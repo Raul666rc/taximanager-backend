@@ -151,6 +151,10 @@ async function guardarCarrera() {
 
             mostrarPanelInicio();
 
+            // --- AGREGAR ESTA LÍNEA AQUÍ ---
+        cargarResumenDia(); 
+        // -------------------------------
+
         } else {
             alert("Error al cobrar: " + resultado.message);
         }

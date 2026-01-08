@@ -9,7 +9,7 @@ class TransaccionModel {
         const query = `
             INSERT INTO transacciones 
             (tipo, ambito, monto, cuenta_id, viaje_id, descripcion, fecha)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())
+            VALUES (?, ?, ?, ?, ?, ?, DATE_SUB(NOW(), INTERVAL 5 HOUR))
         `;
         const valores = [
             datos.tipo, 

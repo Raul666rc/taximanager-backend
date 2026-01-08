@@ -8,7 +8,7 @@ class ViajeModel {
         try {
             const query = `
                 INSERT INTO viajes (origen_tipo, fecha_hora_inicio, estado) 
-                VALUES (?, NOW(), 'EN_CURSO')
+                VALUES (?, DATE_SUB(NOW(), INTERVAL 5 HOUR), 'EN_CURSO')
             `;
             // Ejecutamos la consulta
             const [result] = await db.query(query, [origenTipo]);
@@ -23,7 +23,7 @@ class ViajeModel {
         try {
             const query = `
                 UPDATE viajes 
-                SET fecha_hora_fin = NOW(), 
+                SET fecha_hora_fin = DATE_SUB(NOW(), INTERVAL 5 HOUR), 
                     monto_cobrado = ?, 
                     metodo_cobro_id = ?, 
                     estado = 'COMPLETADO' 
@@ -41,7 +41,7 @@ class ViajeModel {
         try {
             const query = `
                 INSERT INTO ruta_gps_logs (viaje_id, latitud, longitud, tipo_punto, hora_registro) 
-                VALUES (?, ?, ?, ?, CURTIME())
+                VALUES (?, ?, ?, ?, DATE_SUB(NOW(), INTERVAL 5 HOUR))
             `;
             const [result] = await db.query(query, [viajeId, lat, lng, tipo]);
             return result;
@@ -55,7 +55,7 @@ class ViajeModel {
         const query = `
             SELECT SUM(monto_cobrado) as total 
             FROM viajes 
-            WHERE DATE(fecha_hora_fin) = CURDATE() 
+            WHERE DATE(fecha_hora_fin) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR)) 
             AND estado = 'COMPLETADO'
         `;
         const [rows] = await db.query(query);
