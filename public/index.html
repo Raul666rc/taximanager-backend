@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaxiManager - Raúl</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-black mb-3">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1"><i class="fas fa-taxi text-warning"></i> TaxiManager</span>
+            <span class="badge bg-success">ONLINE</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <div class="card card-stats p-3 text-center">
+            <h6 class="text-muted text-uppercase small">Ganancia Hoy (Ayacucho)</h6>
+            <h1 class="display-4 fw-bold text-success" id="gananciaDia">S/ 0.00</h1>
+            <div class="progress" style="height: 10px;">
+                <div class="progress-bar bg-warning" role="progressbar" style="width: 10%"></div>
+            </div>
+            <small class="text-muted mt-2">Meta Diaria: S/ 160.00</small>
+        </div>
+
+        <div class="d-grid gap-3 mb-4">
+            
+            <button id="btnIniciar" class="btn btn-success btn-action-main" onclick="iniciarCarrera()">
+                <i class="fas fa-play mb-2"></i> INICIAR CARRERA
+            </button>
+
+            <div id="panelEnCarrera" class="d-none d-grid gap-3">
+                <div class="alert alert-primary text-center m-0">
+                    <i class="fas fa-clock fa-spin"></i> Carrera en Curso...
+                </div>
+                
+                <div class="row g-2">
+                    <div class="col-6">
+                         <button class="btn btn-secondary btn-action-sec w-100" onclick="registrarParada()">
+                            <i class="fas fa-map-marker-alt"></i><br>Parada
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-info btn-action-sec w-100" onclick="alert('Abriendo Waze...')">
+                            <i class="fas fa-location-arrow"></i><br>Waze
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn btn-danger btn-action-main" data-bs-toggle="modal" data-bs-target="#modalCobrar">
+                    <i class="fas fa-stop mb-2"></i> TERMINAR Y COBRAR
+                </button>
+            </div>
+        </div>
+        
+        <div class="row g-3">
+            <div class="col-6">
+                <button class="btn btn-outline-danger w-100 py-3 rounded-4">
+                    <i class="fas fa-gas-pump fa-2x mb-2"></i><br>Gasolina
+                </button>
+            </div>
+            <div class="col-6">
+                <button class="btn btn-outline-secondary w-100 py-3 rounded-4">
+                    <i class="fas fa-wrench fa-2x mb-2"></i><br>Mantenim.
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal fade" id="modalCobrar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Finalizar Carrera</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label text-muted">Monto Total (S/.)</label>
+                    <input type="number" class="form-control form-control-lg mb-4" placeholder="0.00" autofocus>
+
+                    <label class="form-label text-muted">Método de Pago</label>
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <input type="radio" class="btn-check" name="pago" id="pago1" checked>
+                        <label class="btn btn-outline-success py-3" for="pago1">
+                            <i class="fas fa-money-bill-wave"></i> Efectivo
+                        </label>
+
+                        <input type="radio" class="btn-check" name="pago" id="pago2">
+                        <label class="btn btn-outline-warning py-3" for="pago2">
+                            <i class="fas fa-qrcode"></i> Yape / Plin
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-primary w-100 btn-lg" onclick="guardarCarrera()">
+                        <i class="fas fa-save"></i> REGISTRAR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+
+</body>
+</html>

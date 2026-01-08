@@ -1,0 +1,37 @@
+### 1. PRUEBA DE CONEXIÓN (Para ver si el servidor vive)
+GET http://localhost:3000/
+
+### 2. INICIAR UNA CARRERA (Simulando que recogiste a alguien)
+# Guardamos el ID del viaje que nos devuelva para usarlo luego
+POST http://localhost:3000/api/viajes/iniciar
+Content-Type: application/json
+
+{
+    "origen_tipo": "CALLE",
+    "lat": -13.160000,
+    "lng": -74.220000
+}
+
+### 3. AGREGAR UNA PARADA (El cliente bajó a comprar pan)
+# CAMBIA EL "id_viaje" POR EL NÚMERO QUE TE SALIÓ ARRIBA
+POST http://localhost:3000/api/viajes/parada
+Content-Type: application/json
+
+{
+    "id_viaje": 1, 
+    "lat": -13.165000,
+    "lng": -74.225000,
+    "tipo": "PARADA"
+}
+
+### 4. FINALIZAR CARRERA (Cobrar)
+POST http://localhost:3000/api/viajes/finalizar
+Content-Type: application/json
+
+{
+    "id_viaje": 1,
+    "monto": 15.00,
+    "metodo_pago_id": 1,
+    "lat": -13.170000,
+    "lng": -74.230000
+}
