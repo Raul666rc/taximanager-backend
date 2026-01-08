@@ -62,7 +62,7 @@
         
         <div class="row g-3">
             <div class="col-6">
-                <button class="btn btn-outline-danger w-100 py-3 rounded-4">
+                <button class="btn btn-outline-danger w-100 py-3 rounded-4" data-bs-toggle="modal" data-bs-target="#modalGasto">
                     <i class="fas fa-gas-pump fa-2x mb-2"></i><br>Gasolina
                 </button>
             </div>
@@ -102,6 +102,44 @@
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-primary w-100 btn-lg" onclick="guardarCarrera()">
                         <i class="fas fa-save"></i> REGISTRAR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalGasto" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-danger">
+                <div class="modal-header border-danger">
+                    <h5 class="modal-title text-danger"><i class="fas fa-gas-pump"></i> Registrar Gasto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label text-muted">Monto (S/.)</label>
+                    <input type="number" id="gastoMonto" class="form-control form-control-lg mb-3 border-danger text-danger" placeholder="0.00">
+
+                    <label class="form-label text-muted">Descripción</label>
+                    <select id="gastoDesc" class="form-select mb-3 bg-secondary text-white border-0">
+                        <option value="Gasolina GLP/GNV">⛽ Gasolina GLP/GNV</option>
+                        <option value="Almuerzo/Menu">🍛 Almuerzo / Menú</option>
+                        <option value="Lavado de Auto">💦 Lavado de Auto</option>
+                        <option value="Mecánico / Aceite">🔧 Mecánico / Aceite</option>
+                        <option value="Otros">📝 Otros</option>
+                    </select>
+
+                    <label class="form-label text-muted">¿De dónde pagaste?</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="gastoPago" id="gastoPago1" checked>
+                        <label class="btn btn-outline-secondary" for="gastoPago1">Efectivo</label>
+
+                        <input type="radio" class="btn-check" name="gastoPago" id="gastoPago2">
+                        <label class="btn btn-outline-warning" for="gastoPago2">Yape</label>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-danger w-100 btn-lg" onclick="registrarGasto()">
+                        RESTAR DINERO
                     </button>
                 </div>
             </div>

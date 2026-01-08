@@ -192,6 +192,56 @@ async function cargarResumenDia() {
     }
 }
 
+async function registrarGasto() {
+    const monto = document.getElementById('gastoMonto').value;
+    const descripcion = document.getElementById('gastoDesc').value;
+    
+    const esYape = document.getElementById('gastoPago2').checked;
+    const cuentaId = esYape ? 2 : 1; // 1:Efectivo, 2:Yape
+
+    if (!monto || monto <= 0) {
+        alert("Ingresa un monto válido");
+        return;
+    }
+
+    try {
+        const datos = {
+            monto: parseFloat(monto),
+            descripcion: descripcion,
+            cuenta_id: cuentaId
+        };
+
+        const response = await fetch(`${API_URL}/gasto`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            alert("💸 Gasto registrado: " + descripcion);
+            
+            // Cerrar modal
+            var modalEl = document.getElementById('modalGasto');
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            // Limpiar campo
+            document.getElementById('gastoMonto').value = '';
+
+            // Opcional: Podríamos recargar el resumen si mostráramos el saldo neto
+            // cargarResumenDia(); 
+        } else {
+            alert("Error: " + resultado.message);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
+    }
+}
+
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();

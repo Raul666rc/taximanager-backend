@@ -103,6 +103,38 @@ class ViajeController {
             res.status(500).json({ success: false, message: 'Error al calcular total' });
         }
     }
+
+    // Acción: Registrar un Gasto (Gasolina, Mantenimiento, Comida)
+    static async registrarGasto(req, res) {
+        try {
+            const { monto, descripcion, cuenta_id } = req.body;
+            // cuenta_id: 1=Efectivo, 2=Yape (de dónde salió la plata para pagar)
+
+            if (!monto || !descripcion) {
+                return res.status(400).json({ success: false, message: 'Faltan datos del gasto' });
+            }
+
+            // 1. Registramos la transacción (GASTO)
+            // Usamos el modelo que ya creamos antes
+            await TransaccionModel.crear({
+                tipo: 'GASTO',
+                ambito: 'TAXI', // Asumimos que es gasto del trabajo
+                monto: monto,
+                cuenta_id: cuenta_id || 1, // Por defecto Efectivo
+                viaje_id: null, // No está ligado a una carrera específica
+                descripcion: descripcion
+            });
+
+            // 2. Restamos el dinero de la cuenta real
+            await TransaccionModel.actualizarSaldoCuenta(cuenta_id || 1, monto, false); // false = es resta
+
+            res.json({ success: true, message: 'Gasto registrado correctamente' });
+
+        } catch (error) {
+            console.error('Error al registrar gasto:', error);
+            res.status(500).json({ success: false, message: 'Error en el servidor' });
+        }
+    }
 }
 
 module.exports = ViajeController;
