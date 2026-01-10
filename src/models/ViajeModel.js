@@ -100,6 +100,20 @@ class ViajeModel {
             throw error;
         }
     }
+
+    static async obtenerEstadisticasMes() {
+        // Esta consulta agrupa por APP (Uber, Indriver...) y suma el dinero
+        // Solo cuenta viajes COMPLETADOS de ESTE MES (Hora Perú)
+        const query = `
+            SELECT origen_tipo, SUM(monto_cobrado) as total
+            FROM viajes
+            WHERE estado = 'COMPLETADO'
+            AND MONTH(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) = MONTH(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+            GROUP BY origen_tipo
+        `;
+        const [rows] = await db.query(query);
+        return rows;
+    }
 }
 
 module.exports = ViajeModel;

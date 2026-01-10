@@ -249,6 +249,7 @@ async function registrarGasto() {
 }
 
 // En public/js/main.js (al final)
+let miGrafico = null; // Variable global para controlar el gráfico
 
 async function abrirBilletera() {
     try {
@@ -258,22 +259,59 @@ async function abrirBilletera() {
         if (resultado.success) {
             const data = resultado.data;
 
-            // 1. Llenar Ahorro (Meta)
+            // 1. Llenar Textos (Igual que antes)
             document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
-            
-            // 2. Llenar Saldos Reales (Busca en el array de cuentas)
-            // Asumimos orden: 0=Efectivo, 1=Yape (según tu BD)
-            // Una forma más segura es buscar por nombre:
             const cuentaEfectivo = data.cuentas.find(c => c.nombre.includes('Efectivo')) || { saldo_actual: 0 };
             const cuentaYape = data.cuentas.find(c => c.nombre.includes('Yape')) || { saldo_actual: 0 };
-
             document.getElementById('txtEfectivo').innerText = `S/ ${parseFloat(cuentaEfectivo.saldo_actual).toFixed(2)}`;
             document.getElementById('txtYape').innerText = `S/ ${parseFloat(cuentaYape.saldo_actual).toFixed(2)}`;
-
-            // 3. Llenar Gastos
             document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
 
-            // 4. Mostrar Modal
+            // --- 2. DIBUJAR EL GRÁFICO (NUEVO) ---
+            const ctx = document.getElementById('graficoApps').getContext('2d');
+            
+            // Si ya existía un gráfico viejo, lo destruimos para crear el nuevo
+            if (miGrafico) {
+                miGrafico.destroy();
+            }
+
+            // Preparamos los datos
+            // data.estadisticas viene así: [{origen_tipo: 'UBER', total: 50}, {origen_tipo: 'CALLE', total: 20}]
+            const etiquetas = data.estadisticas.map(e => e.origen_tipo);
+            const valores = data.estadisticas.map(e => e.total);
+            
+            // Colores personalizados para cada marca
+            const coloresFondo = etiquetas.map(nombre => {
+                if(nombre === 'INDRIVER') return '#198754'; // Verde
+                if(nombre === 'UBER') return '#f8f9fa';     // Blanco
+                if(nombre === 'CALLE') return '#ffc107';    // Amarillo
+                return '#6c757d'; // Gris para otros
+            });
+
+            miGrafico = new Chart(ctx, {
+                type: 'doughnut', // Tipo "Dona"
+                data: {
+                    labels: etiquetas,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: coloresFondo,
+                        borderColor: '#000', // Borde negro para que resalte en modo oscuro
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: 'white' } // Letras blancas
+                        }
+                    }
+                }
+            });
+
+            // Mostrar Modal
             var modalEl = document.getElementById('modalBilletera');
             var modal = new bootstrap.Modal(modalEl);
             modal.show();
