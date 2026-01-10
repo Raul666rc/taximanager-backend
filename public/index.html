@@ -35,6 +35,39 @@
 
         <div class="d-grid gap-3 mb-4">
             
+            <div id="selectorApps" class="mb-3">
+                <label class="text-muted small mb-2">¿De dónde salió el pasajero?</label>
+                <div class="row g-2">
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appCalle" value="CALLE" checked>
+                        <label class="btn btn-outline-warning w-100 h-100 py-3" for="appCalle">
+                            <i class="fas fa-hand-paper"></i><br><small>Calle</small>
+                        </label>
+                    </div>
+                    
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appIndriver" value="INDRIVER">
+                        <label class="btn btn-outline-success w-100 h-100 py-3" for="appIndriver">
+                            <i class="fas fa-car-side"></i><br><small>InDrive</small>
+                        </label>
+                    </div>
+
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appUber" value="UBER">
+                        <label class="btn btn-outline-light w-100 h-100 py-3" for="appUber">
+                            <i class="fab fa-uber"></i><br><small>Uber</small>
+                        </label>
+                    </div>
+
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appOtros" value="OTROS">
+                        <label class="btn btn-outline-secondary w-100 h-100 py-3" for="appOtros">
+                            <i class="fas fa-mobile-alt"></i><br><small>Otros</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <button id="btnIniciar" class="btn btn-success btn-action-main" onclick="iniciarCarrera()">
                 <i class="fas fa-play mb-2"></i> INICIAR CARRERA
             </button>

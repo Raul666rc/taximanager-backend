@@ -17,6 +17,12 @@ function mostrarPanelCarrera() {
 function mostrarPanelInicio() {
     document.getElementById('panelEnCarrera').classList.add('d-none');
     document.getElementById('btnIniciar').classList.remove('d-none');
+
+    // --- AGREGAR ESTO: Volver a mostrar el selector de Apps ---
+    const selector = document.getElementById('selectorApps');
+    if(selector) selector.classList.remove('d-none');
+    // ----------------------------------------------------------
+    
     // Limpiar input y variables
     document.querySelector('#modalCobrar input[type="number"]').value = '';
     viajeActualId = null;
@@ -28,27 +34,28 @@ function mostrarPanelInicio() {
 // EN: public/js/main.js
 
 async function iniciarCarrera() {
-    // 1. Verificar si el navegador soporta GPS
     if (!navigator.geolocation) {
         alert("Tu navegador no soporta GPS");
         return;
     }
 
-    // Cambiamos el botón visualmente para que sepa que está "Pensando"
+    // --- NUEVO: OBTENER LA APP SELECCIONADA ---
+    // Buscamos cuál radio button tiene la propiedad "checked"
+    const appSeleccionada = document.querySelector('input[name="appOrigen"]:checked').value;
+    // ------------------------------------------
+
     const btn = document.getElementById('btnIniciar');
     const textoOriginal = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Buscando GPS...';
     btn.disabled = true;
 
-    // 2. Pedir Coordenadas Reales
     navigator.geolocation.getCurrentPosition(
         async (position) => {
-            // ÉXITO: Tenemos ubicación
             try {
                 const datos = {
-                    origen_tipo: 'CALLE', 
-                    lat: position.coords.latitude,  // <--- DATO REAL
-                    lng: position.coords.longitude  // <--- DATO REAL
+                    origen_tipo: appSeleccionada, // <--- AQUÍ ENVIAMOS EL DATO (Antes decía 'CALLE')
+                    lat: position.coords.latitude, 
+                    lng: position.coords.longitude
                 };
 
                 const response = await fetch(`${API_URL}/iniciar`, {
@@ -61,7 +68,10 @@ async function iniciarCarrera() {
 
                 if (resultado.success) {
                     viajeActualId = resultado.data.id_viaje;
-                    console.log("✅ Viaje iniciado en:", datos.lat, datos.lng);
+                    
+                    // Ocultamos el selector cuando arranca la carrera (para que no estorbe)
+                    document.getElementById('selectorApps').classList.add('d-none');
+                    
                     mostrarPanelCarrera();
                 } else {
                     alert("Error: " + resultado.message);
@@ -71,18 +81,16 @@ async function iniciarCarrera() {
                 console.error(error);
                 alert("Error de conexión");
             } finally {
-                // Restaurar botón pase lo que pase
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             }
         },
         (error) => {
-            // ERROR: No dio permiso o falló el GPS
-            alert("⚠️ Error de GPS: " + error.message + ". Verifica que tengas el GPS prendido.");
+            alert("⚠️ Error de GPS: " + error.message);
             btn.innerHTML = textoOriginal;
             btn.disabled = false;
         },
-        { enableHighAccuracy: true } // Opción para máxima precisión
+        { enableHighAccuracy: true }
     );
 }
 
