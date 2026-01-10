@@ -392,24 +392,25 @@ async function cargarHistorial() {
 
                 const html = `
                 <div class="card bg-dark border-secondary mb-2">
-                    <div class="card-body p-2 d-flex align-items-center justify-content-between">
-                        
-                        <div class="d-flex align-items-center overflow-hidden">
-                            <button class="btn btn-sm text-danger me-2 p-0" onclick="confirmarAnulacion(${viaje.id})" style="width: 30px;">
+                    <div class="card-body p-2 d-flex align-items-center"> <div class="me-3">
+                            <button class="btn btn-outline-danger btn-sm border-0 p-2" onclick="confirmarAnulacion(${viaje.id})">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
+                        </div>
 
-                            <div class="d-flex flex-column" style="line-height: 1.2;">
-                                <span class="badge ${badgeColor} mb-1" style="width: fit-content;">${viaje.origen_tipo}</span>
-                                <span class="text-muted small text-nowrap">
-                                    <i class="far fa-clock me-1"></i>${viaje.hora_fin}
-                                </span>
+                        <div class="d-flex flex-column flex-grow-1">
+                            <div class="mb-1">
+                                <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
+                            </div>
+                            <div class="text-muted small">
+                                <i class="far fa-clock me-1"></i>${viaje.hora_fin}
                             </div>
                         </div>
 
-                        <div class="d-flex align-items-center justify-content-end flex-shrink-0 ms-2">
+                        <div class="d-flex align-items-center">
                             <span class="fw-bold text-white fs-5 me-2 text-nowrap">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</span>
-                            <span class="fs-5">${iconoPago}</span> </div>
+                            <span class="fs-5">${iconoPago}</span>
+                        </div>
 
                     </div>
                 </div>`;
