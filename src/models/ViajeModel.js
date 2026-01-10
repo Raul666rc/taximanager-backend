@@ -70,7 +70,7 @@ class ViajeModel {
                 origen_tipo, 
                 monto_cobrado, 
                 metodo_cobro_id, 
-                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%H:%i') as hora_fin
+                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%h:%i %p') as hora_fin
             FROM viajes 
             WHERE DATE(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR)) 
             AND estado = 'COMPLETADO'

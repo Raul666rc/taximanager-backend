@@ -401,8 +401,8 @@ async function cargarHistorial() {
 
                             <span class="badge ${badgeColor} me-2 flex-shrink-0">${viaje.origen_tipo}</span>
                             
-                            <span class="text-muted small text-nowrap">
-                                ${viaje.hora_fin}
+                            <span class="text-info small text-nowrap fw-bold">
+                                <i class="far fa-clock me-1"></i>${viaje.hora_fin || '--:--'}
                             </span>
                         </div>
 
@@ -413,7 +413,6 @@ async function cargarHistorial() {
 
                     </div>
                 </div>`;
-                
                 contenedor.innerHTML += html;
             });
         }
