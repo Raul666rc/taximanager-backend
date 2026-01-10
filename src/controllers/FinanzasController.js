@@ -42,28 +42,26 @@ class FinanzasController {
 
     static async obtenerBilletera(req, res) {
         try {
+            // Leemos el filtro de la URL (ej: ?periodo=semana)
+            const periodo = req.query.periodo || 'mes';
+
             const [cuentas] = await db.query("SELECT nombre, saldo_actual FROM cuentas");
             
-            const [ahorro] = await db.query(`
-                SELECT SUM(monto) as total FROM transacciones WHERE descripcion LIKE '%Ahorro%'
-            `);
+            // ... (Ahorro y Gastos los dejamos igual, o podrías filtrarlos también si quieres) ...
+            const [ahorro] = await db.query("SELECT SUM(monto) as total FROM transacciones WHERE descripcion LIKE '%Ahorro%'");
+            const [gastos] = await db.query("SELECT SUM(monto) as total FROM transacciones WHERE tipo = 'GASTO' AND MONTH(fecha) = MONTH(DATE_SUB(NOW(), INTERVAL 5 HOUR))");
 
-            const [gastos] = await db.query(`
-                SELECT SUM(monto) as total FROM transacciones 
-                WHERE tipo = 'GASTO' AND MONTH(fecha) = MONTH(DATE_SUB(NOW(), INTERVAL 5 HOUR))
-            `);
-
-            // --- NUEVO: Pedimos los datos del gráfico ---
-            const estadisticas = await ViajeModel.obtenerEstadisticasMes();
-            // --------------------------------------------
+            // --- USAMOS EL NUEVO MÉTODO CON FILTRO ---
+            const estadisticas = await ViajeModel.obtenerEstadisticas(periodo);
+            // ----------------------------------------
 
             res.json({
                 success: true,
                 data: {
-                    cuentas: cuentas,
+                    cuentas,
                     ahorro_total: ahorro[0].total || 0,
                     gasto_mensual: gastos[0].total || 0,
-                    estadisticas: estadisticas // <--- Lo enviamos al celular
+                    estadisticas // Enviamos los datos filtrados
                 }
             });
 

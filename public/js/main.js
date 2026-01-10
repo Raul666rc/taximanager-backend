@@ -251,15 +251,20 @@ async function registrarGasto() {
 // En public/js/main.js (al final)
 let miGrafico = null; // Variable global para controlar el gráfico
 
-async function abrirBilletera() {
+// Modificamos la función para aceptar el periodo (por defecto 'mes')
+async function abrirBilletera(periodo = 'mes') {
     try {
-        const response = await fetch(`${API_URL}/billetera`);
+        // Marcamos visualmente el botón seleccionado (opcional, pero ayuda)
+        // (El input radio ya lo hace, pero esto asegura que la petición sea correcta)
+        
+        // Enviamos el periodo en la URL
+        const response = await fetch(`${API_URL}/billetera?periodo=${periodo}`);
         const resultado = await response.json();
 
         if (resultado.success) {
             const data = resultado.data;
 
-            // 1. Llenar Textos (Igual que antes)
+            // ... (Llenado de textos Ahorro/Efectivo/Gastos IGUAL QUE ANTES) ...
             document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
             const cuentaEfectivo = data.cuentas.find(c => c.nombre.includes('Efectivo')) || { saldo_actual: 0 };
             const cuentaYape = data.cuentas.find(c => c.nombre.includes('Yape')) || { saldo_actual: 0 };
@@ -267,35 +272,44 @@ async function abrirBilletera() {
             document.getElementById('txtYape').innerText = `S/ ${parseFloat(cuentaYape.saldo_actual).toFixed(2)}`;
             document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
 
-            // --- 2. DIBUJAR EL GRÁFICO (NUEVO) ---
+
+            // --- LÓGICA DEL GRÁFICO MEJORADA ---
             const ctx = document.getElementById('graficoApps').getContext('2d');
             
-            // Si ya existía un gráfico viejo, lo destruimos para crear el nuevo
             if (miGrafico) {
                 miGrafico.destroy();
             }
 
-            // Preparamos los datos
-            // data.estadisticas viene así: [{origen_tipo: 'UBER', total: 50}, {origen_tipo: 'CALLE', total: 20}]
-            const etiquetas = data.estadisticas.map(e => e.origen_tipo);
-            const valores = data.estadisticas.map(e => e.total);
-            
-            // Colores personalizados para cada marca
-            const coloresFondo = etiquetas.map(nombre => {
-                if(nombre === 'INDRIVER') return '#198754'; // Verde
-                if(nombre === 'UBER') return '#f8f9fa';     // Blanco
-                if(nombre === 'CALLE') return '#ffc107';    // Amarillo
-                return '#6c757d'; // Gris para otros
-            });
+            // Si no hay datos en ese periodo, mostramos gráfico vacío o manejamos error
+            let etiquetas = [];
+            let valores = [];
+            let coloresFondo = [];
+
+            if (data.estadisticas.length > 0) {
+                etiquetas = data.estadisticas.map(e => e.origen_tipo);
+                valores = data.estadisticas.map(e => e.total);
+                
+                coloresFondo = etiquetas.map(nombre => {
+                    if(nombre === 'INDRIVER') return '#198754';
+                    if(nombre === 'UBER') return '#f8f9fa';
+                    if(nombre === 'CALLE') return '#ffc107';
+                    return '#6c757d';
+                });
+            } else {
+                // Si está vacío, una dona gris vacía
+                etiquetas = ['Sin datos'];
+                valores = [1];
+                coloresFondo = ['#333'];
+            }
 
             miGrafico = new Chart(ctx, {
-                type: 'doughnut', // Tipo "Dona"
+                type: 'doughnut',
                 data: {
                     labels: etiquetas,
                     datasets: [{
                         data: valores,
                         backgroundColor: coloresFondo,
-                        borderColor: '#000', // Borde negro para que resalte en modo oscuro
+                        borderColor: '#000',
                         borderWidth: 2
                     }]
                 },
@@ -305,19 +319,37 @@ async function abrirBilletera() {
                     plugins: {
                         legend: {
                             position: 'right',
-                            labels: { color: 'white' } // Letras blancas
+                            labels: { color: 'white', boxWidth: 12 }
+                        },
+                        // AQUÍ ESTÁ LA MAGIA DEL PORCENTAJE
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    let value = context.raw || 0;
+                                    
+                                    // Calcular total para sacar %
+                                    let total = context.chart._metasets[context.datasetIndex].total;
+                                    let percentage = Math.round((value / total) * 100) + '%';
+                                    
+                                    if(label === 'Sin datos') return 'No hay carreras';
+
+                                    return `${label}: S/ ${value} (${percentage})`;
+                                }
+                            }
                         }
                     }
                 }
             });
 
-            // Mostrar Modal
+            // Solo mostrar modal si no estamos "refrescando" el filtro
+            // (Truco: verificamos si el modal ya está abierto)
             var modalEl = document.getElementById('modalBilletera');
-            var modal = new bootstrap.Modal(modalEl);
-            modal.show();
+            if (!modalEl.classList.contains('show')) {
+                var modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
 
-        } else {
-            alert("Error cargando finanzas");
         }
     } catch (error) {
         console.error(error);
@@ -360,23 +392,26 @@ async function cargarHistorial() {
 
                 const html = `
                 <div class="card bg-dark border-secondary mb-2">
-                    <div class="card-body p-2 d-flex justify-content-between align-items-center">
+                    <div class="card-body p-2 d-flex align-items-center justify-content-between">
                         
-                        <div class="d-flex align-items-center">
-                            <button class="btn btn-sm btn-outline-danger me-3 border-0" onclick="confirmarAnulacion(${viaje.id})">
+                        <div class="d-flex align-items-center overflow-hidden">
+                            <button class="btn btn-sm text-danger me-2 p-0" onclick="confirmarAnulacion(${viaje.id})" style="width: 30px;">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
 
-                            <div>
-                                <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
-                                <div class="text-muted small mt-1"><i class="far fa-clock"></i> ${viaje.hora_fin}</div>
+                            <div class="d-flex flex-column" style="line-height: 1.2;">
+                                <span class="badge ${badgeColor} mb-1" style="width: fit-content;">${viaje.origen_tipo}</span>
+                                <span class="text-muted small text-nowrap">
+                                    <i class="far fa-clock me-1"></i>${viaje.hora_fin}
+                                </span>
                             </div>
                         </div>
 
-                        <div class="text-end">
-                            <div class="fw-bold text-white fs-5">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
-                            <div class="small">${iconoPago}</div>
+                        <div class="text-end flex-shrink-0 ms-2">
+                            <div class="fw-bold text-white fs-5 text-nowrap">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
+                            <div class="small text-nowrap">${iconoPago}</div>
                         </div>
+
                     </div>
                 </div>`;
                 

@@ -230,9 +230,21 @@
                         <small>Gastos de este mes: <span id="txtGastos">S/ 0.00</span></small>
                     </div>
 
-                    <h6 class="text-muted border-bottom border-secondary pb-2 mb-3">
-                        <i class="fas fa-chart-pie"></i> Rendimiento del Mes
+                    <h6 class="text-muted border-bottom border-secondary pb-2 mb-3 mt-4">
+                        <i class="fas fa-chart-pie"></i> Rendimiento
                     </h6>
+
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <input type="radio" class="btn-check" name="filtroGrafico" id="filtroHoy" autocomplete="off" onclick="abrirBilletera('hoy')">
+                        <label class="btn btn-outline-secondary btn-sm" for="filtroHoy">Hoy</label>
+
+                        <input type="radio" class="btn-check" name="filtroGrafico" id="filtroSemana" autocomplete="off" onclick="abrirBilletera('semana')">
+                        <label class="btn btn-outline-secondary btn-sm" for="filtroSemana">Semana</label>
+
+                        <input type="radio" class="btn-check" name="filtroGrafico" id="filtroMes" autocomplete="off" checked onclick="abrirBilletera('mes')">
+                        <label class="btn btn-outline-secondary btn-sm" for="filtroMes">Mes</label>
+                    </div>
+
                     <div style="height: 200px;">
                         <canvas id="graficoApps"></canvas>
                     </div>
