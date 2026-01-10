@@ -22,7 +22,7 @@ function mostrarPanelInicio() {
     const selector = document.getElementById('selectorApps');
     if(selector) selector.classList.remove('d-none');
     // ----------------------------------------------------------
-    
+
     // Limpiar input y variables
     document.querySelector('#modalCobrar input[type="number"]').value = '';
     viajeActualId = null;
@@ -158,10 +158,8 @@ async function guardarCarrera() {
             modal.hide();
 
             mostrarPanelInicio();
-
-            // --- AGREGAR ESTA LÍNEA AQUÍ ---
-        cargarResumenDia(); 
-        // -------------------------------
+            cargarHistorial();
+            cargarResumenDia(); 
 
         } else {
             alert("Error al cobrar: " + resultado.message);
@@ -288,8 +286,64 @@ async function abrirBilletera() {
         alert("Error de conexión");
     }
 }
+// public/js/main.js
+
+async function cargarHistorial() {
+    try {
+        const response = await fetch(`${API_URL}/historial`);
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            const lista = resultado.data;
+            const contenedor = document.getElementById('listaHistorial');
+            const mensajeVacio = document.getElementById('msgVacio');
+
+            // Limpiar lo que había antes
+            contenedor.innerHTML = '';
+
+            if (lista.length === 0) {
+                mensajeVacio.classList.remove('d-none');
+                return;
+            }
+            mensajeVacio.classList.add('d-none');
+
+            // Recorrer cada viaje y dibujar su tarjeta
+            lista.forEach(viaje => {
+                // Definir colores e iconos según el tipo
+                let badgeColor = 'bg-secondary';
+                if(viaje.origen_tipo === 'INDRIVER') badgeColor = 'bg-success';
+                if(viaje.origen_tipo === 'UBER') badgeColor = 'bg-light text-dark';
+                if(viaje.origen_tipo === 'CALLE') badgeColor = 'bg-warning text-dark';
+
+                // Definir icono de pago
+                const iconoPago = viaje.metodo_cobro_id === 1 
+                    ? '<i class="fas fa-money-bill-wave text-success"></i>' 
+                    : '<i class="fas fa-mobile-alt text-warning"></i>';
+
+                const html = `
+                <div class="card bg-dark border-secondary">
+                    <div class="card-body p-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
+                            <span class="text-muted small ms-2">${viaje.hora_fin}</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold text-white">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</span>
+                            <span class="ms-1 small">${iconoPago}</span>
+                        </div>
+                    </div>
+                </div>`;
+                
+                contenedor.innerHTML += html;
+            });
+        }
+    } catch (error) {
+        console.error("Error cargando historial:", error);
+    }
+}
 
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();
+    cargarHistorial();
 };

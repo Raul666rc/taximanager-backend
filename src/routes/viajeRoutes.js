@@ -25,4 +25,7 @@ router.post('/gasto', ViajeController.registrarGasto);
 router.get('/billetera', FinanzasController.obtenerBilletera);
 // ----------------------------------
 
+// --- AGREGAR ESTA LÍNEA ---
+router.get('/historial', ViajeController.obtenerHistorialHoy);
+// --------------------------
 module.exports = router;
