@@ -138,22 +138,10 @@ class ViajeController {
     // Acción: Obtener lista de carreras de HOY
     static async obtenerHistorialHoy(req, res) {
         try {
-            // Seleccionamos solo las completadas de HOY (Hora Perú)
-            const query = `
-                SELECT 
-                    id, 
-                    origen_tipo, 
-                    monto_cobrado, 
-                    metodo_cobro_id, 
-                    DATE_FORMAT(fecha_hora_fin, '%H:%i') as hora_fin
-                FROM viajes 
-                WHERE DATE(fecha_hora_fin) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR)) 
-                AND estado = 'COMPLETADO'
-                ORDER BY id DESC
-            `;
+            // AHORA SÍ: Le pedimos los datos al Modelo (que sí tiene acceso a la BD)
+            const historial = await ViajeModel.obtenerHistorialHoy();
             
-            const [rows] = await db.query(query);
-            res.json({ success: true, data: rows });
+            res.json({ success: true, data: historial });
 
         } catch (error) {
             console.error(error);

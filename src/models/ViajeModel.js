@@ -62,6 +62,23 @@ class ViajeModel {
         // Si es null (nadie trabajó hoy), devolvemos 0
         return rows[0].total || 0;
     }
+
+    static async obtenerHistorialHoy() {
+        const query = `
+            SELECT 
+                id, 
+                origen_tipo, 
+                monto_cobrado, 
+                metodo_cobro_id, 
+                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%H:%i') as hora_fin
+            FROM viajes 
+            WHERE DATE(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR)) 
+            AND estado = 'COMPLETADO'
+            ORDER BY id DESC
+        `;
+        const [rows] = await db.query(query);
+        return rows;
+    }
 }
 
 module.exports = ViajeModel;
