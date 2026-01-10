@@ -1,5 +1,14 @@
 // public/js/main.js
 
+// --- 1. VERIFICACIÓN DE SEGURIDAD ---
+const usuarioLogueado = localStorage.getItem('taxi_user');
+
+if (!usuarioLogueado) {
+    // Si no tiene la llave, ¡fuera de aquí!
+    window.location.href = 'login.html';
+}
+// ------------------------------------
+
 // ANTES:
 // const API_URL = 'http://localhost:3000/api/viajes';
 
@@ -454,6 +463,13 @@ async function anularCarrera(id) {
     }
 }
 
+
+function cerrarSesion() {
+    if(confirm("¿Cerrar sesión?")) {
+        localStorage.removeItem('taxi_user');
+        window.location.href = 'login.html';
+    }
+}
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();

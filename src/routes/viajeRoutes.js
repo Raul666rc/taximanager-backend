@@ -5,6 +5,7 @@ const router = express.Router();
 // Importamos la Clase Controladora
 const ViajeController = require('../controllers/ViajeController');
 const FinanzasController = require('../controllers/FinanzasController');
+const AuthController = require('../controllers/AuthController');
 
 // Definimos las URLs
 // POST http://localhost:3000/api/viajes/iniciar
@@ -33,5 +34,9 @@ router.get('/historial', ViajeController.obtenerHistorialHoy);
 router.delete('/anular/:id', ViajeController.anularCarrera); 
 // (Nota que usamos .delete, es un verbo HTTP especial para borrar)
 // --------------------
+
+// --- 2. AGREGAR RUTA DE LOGIN ---
+router.post('/login', AuthController.login);
+// -------------------------------
 
 module.exports = router;
