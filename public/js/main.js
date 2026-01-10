@@ -392,23 +392,26 @@ async function cargarHistorial() {
 
                 const html = `
                 <div class="card bg-dark border-secondary mb-2">
-                    <div class="card-body p-2 d-flex align-items-center justify-content-between">
+                    <div class="card-body p-2 d-flex align-items-center">
                         
-                        <div class="d-flex align-items-center overflow-hidden">
-                            <button class="btn btn-sm text-danger me-2 p-0 flex-shrink-0" onclick="confirmarAnulacion(${viaje.id})" style="width: 30px;">
+                        <div class="me-3">
+                            <button class="btn btn-outline-danger btn-sm border-0 p-2" onclick="confirmarAnulacion(${viaje.id})">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
-
-                            <span class="badge ${badgeColor} me-2 flex-shrink-0">${viaje.origen_tipo}</span>
-                            
-                            <span class="text-info small text-nowrap fw-bold">
-                                <i class="far fa-clock me-1"></i>${viaje.hora_fin || '--:--'}
-                            </span>
                         </div>
 
-                        <div class="d-flex align-items-center flex-shrink-0 ms-2">
-                            <span class="fw-bold text-white fs-5 me-2 text-nowrap">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</span>
-                            <span class="fs-5">${iconoPago}</span>
+                        <div class="d-flex flex-column flex-grow-1">
+                            <div class="mb-1">
+                                <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
+                            </div>
+                            <div class="text-info small fw-bold" style="font-size: 0.8rem;">
+                                <i class="far fa-clock me-1"></i>${viaje.hora_fin || '--:--'}
+                            </div>
+                        </div>
+
+                        <div class="text-end ms-2">
+                            <div class="fw-bold text-white fs-5 lh-1">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
+                            <div class="mt-1">${iconoPago}</div>
                         </div>
 
                     </div>
