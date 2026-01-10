@@ -407,10 +407,9 @@ async function cargarHistorial() {
                             </div>
                         </div>
 
-                        <div class="text-end flex-shrink-0 ms-2">
-                            <div class="fw-bold text-white fs-5 text-nowrap">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
-                            <div class="small text-nowrap">${iconoPago}</div>
-                        </div>
+                        <div class="d-flex align-items-center justify-content-end flex-shrink-0 ms-2">
+                            <span class="fw-bold text-white fs-5 me-2 text-nowrap">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</span>
+                            <span class="fs-5">${iconoPago}</span> </div>
 
                     </div>
                 </div>`;
