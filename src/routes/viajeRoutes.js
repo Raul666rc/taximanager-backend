@@ -28,4 +28,10 @@ router.get('/billetera', FinanzasController.obtenerBilletera);
 // --- AGREGAR ESTA LÍNEA ---
 router.get('/historial', ViajeController.obtenerHistorialHoy);
 // --------------------------
+
+// --- AGREGAR ESTO ---
+router.delete('/anular/:id', ViajeController.anularCarrera); 
+// (Nota que usamos .delete, es un verbo HTTP especial para borrar)
+// --------------------
+
 module.exports = router;

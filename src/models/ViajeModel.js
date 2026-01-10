@@ -79,6 +79,27 @@ class ViajeModel {
         const [rows] = await db.query(query);
         return rows;
     }
+
+    static async anular(id) {
+        try {
+            // 1. PRIMERO: Borramos el dinero distribuido (Transacciones)
+            // Si no hacemos esto, la billetera seguirá sumando ese dinero.
+            await db.query("DELETE FROM transacciones WHERE viaje_id = ?", [id]);
+
+            // 2. SEGUNDO: Marcamos el viaje como CANCELADO (Soft Delete)
+            // No lo borramos del todo para que quede registro de que existió pero se anuló.
+            const query = `
+                UPDATE viajes 
+                SET estado = 'CANCELADO', monto_cobrado = 0 
+                WHERE id = ?
+            `;
+            const [result] = await db.query(query, [id]);
+            return result.affectedRows;
+
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 module.exports = ViajeModel;

@@ -148,6 +148,18 @@ class ViajeController {
             res.status(500).json({ success: false, message: 'Error al obtener historial' });
         }
     }
+
+    // Acción: Anular carrera
+    static async anularCarrera(req, res) {
+        try {
+            const { id } = req.params; // El ID viene en la URL
+            await ViajeModel.anular(id);
+            res.json({ success: true, message: 'Carrera anulada' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: 'Error al anular' });
+        }
+    }
 }
 
 module.exports = ViajeController;

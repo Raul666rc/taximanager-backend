@@ -321,15 +321,23 @@ async function cargarHistorial() {
                     : '<i class="fas fa-mobile-alt text-warning"></i>';
 
                 const html = `
-                <div class="card bg-dark border-secondary">
+                <div class="card bg-dark border-secondary mb-2">
                     <div class="card-body p-2 d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
-                            <span class="text-muted small ms-2">${viaje.hora_fin}</span>
+                        
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-sm btn-outline-danger me-3 border-0" onclick="confirmarAnulacion(${viaje.id})">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+
+                            <div>
+                                <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
+                                <div class="text-muted small mt-1"><i class="far fa-clock"></i> ${viaje.hora_fin}</div>
+                            </div>
                         </div>
+
                         <div class="text-end">
-                            <span class="fw-bold text-white">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</span>
-                            <span class="ms-1 small">${iconoPago}</span>
+                            <div class="fw-bold text-white fs-5">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
+                            <div class="small">${iconoPago}</div>
                         </div>
                     </div>
                 </div>`;
@@ -339,6 +347,36 @@ async function cargarHistorial() {
         }
     } catch (error) {
         console.error("Error cargando historial:", error);
+    }
+}
+
+
+function confirmarAnulacion(id) {
+    if(confirm("¿Seguro que quieres anular esta carrera? Se restará el dinero de la caja.")) {
+        anularCarrera(id);
+    }
+}
+
+async function anularCarrera(id) {
+    try {
+        const response = await fetch(`${API_URL}/anular/${id}`, {
+            method: 'DELETE' // Coincide con la ruta router.delete
+        });
+        
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            // Recargamos todo para ver los números bajar
+            cargarResumenDia();
+            cargarHistorial();
+            alert("🗑️ Carrera eliminada y dinero descontado.");
+        } else {
+            alert("Error: " + resultado.message);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
     }
 }
 
