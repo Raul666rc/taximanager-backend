@@ -15,7 +15,10 @@
     <nav class="navbar navbar-dark bg-black mb-3">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1"><i class="fas fa-taxi text-warning"></i> TaxiManager</span>
-            <span class="badge bg-success">ONLINE</span>
+            
+            <button class="btn btn-sm btn-outline-warning" onclick="abrirBilletera()">
+                <i class="fas fa-wallet"></i> Ver Saldos
+            </button>
         </div>
     </nav>
 
@@ -146,6 +149,45 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalBilletera" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-warning">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-warning"><i class="fas fa-chart-pie"></i> Mis Finanzas</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    
+                    <div class="card bg-success text-white mb-3">
+                        <div class="card-body text-center">
+                            <h6 class="card-title text-uppercase opacity-75">Fondo Ahorro (Matrícula)</h6>
+                            <h2 class="display-4 fw-bold" id="txtAhorro">S/ 0.00</h2>
+                            <small>¡No tocar este dinero!</small>
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted border-bottom border-secondary pb-2 mb-3">Dinero Disponible Real</h6>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span><i class="fas fa-money-bill-wave text-success"></i> Efectivo (Bolsillo)</span>
+                        <span class="h4 mb-0" id="txtEfectivo">S/ 0.00</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span><i class="fas fa-mobile-alt text-warning"></i> Yape / Plin</span>
+                        <span class="h4 mb-0" id="txtYape">S/ 0.00</span>
+                    </div>
+
+                    <hr class="border-secondary">
+
+                    <div class="text-center text-danger">
+                        <small>Gastos de este mes: <span id="txtGastos">S/ 0.00</span></small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
 

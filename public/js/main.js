@@ -242,6 +242,45 @@ async function registrarGasto() {
     }
 }
 
+// En public/js/main.js (al final)
+
+async function abrirBilletera() {
+    try {
+        const response = await fetch(`${API_URL}/billetera`);
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            const data = resultado.data;
+
+            // 1. Llenar Ahorro (Meta)
+            document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
+            
+            // 2. Llenar Saldos Reales (Busca en el array de cuentas)
+            // Asumimos orden: 0=Efectivo, 1=Yape (según tu BD)
+            // Una forma más segura es buscar por nombre:
+            const cuentaEfectivo = data.cuentas.find(c => c.nombre.includes('Efectivo')) || { saldo_actual: 0 };
+            const cuentaYape = data.cuentas.find(c => c.nombre.includes('Yape')) || { saldo_actual: 0 };
+
+            document.getElementById('txtEfectivo').innerText = `S/ ${parseFloat(cuentaEfectivo.saldo_actual).toFixed(2)}`;
+            document.getElementById('txtYape').innerText = `S/ ${parseFloat(cuentaYape.saldo_actual).toFixed(2)}`;
+
+            // 3. Llenar Gastos
+            document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
+
+            // 4. Mostrar Modal
+            var modalEl = document.getElementById('modalBilletera');
+            var modal = new bootstrap.Modal(modalEl);
+            modal.show();
+
+        } else {
+            alert("Error cargando finanzas");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
+    }
+}
+
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();
