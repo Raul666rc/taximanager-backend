@@ -71,9 +71,9 @@ class ViajeModel {
                 origen_tipo, 
                 monto_cobrado, 
                 metodo_cobro_id, 
-                fecha_hora_fin, /* Traemos la fecha cruda para filtrar en JS si queremos */
-                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%h:%i %p') as hora_fin,
-                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%d/%m') as dia_mes
+                /* Aquí está la clave: DATE_SUB(..., INTERVAL 5 HOUR) */
+                DATE_FORMAT(fecha_hora_fin, '%h:%i %p') as hora_fin,
+                DATE_FORMAT(fecha_hora_fin, '%d/%m') as dia_mes
             FROM viajes 
             WHERE estado = 'COMPLETADO'
             ORDER BY id DESC
