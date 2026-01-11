@@ -15,6 +15,8 @@ if (!usuarioLogueado) {
 // AHORA (Borrale el dominio, deja solo la carpeta):
 const API_URL = '/api/viajes';
 let viajeActualId = null; 
+let miGrafico = null; // Variable global para controlar el gráfico
+let miGraficoBarras = null;
 
 // --- FUNCIONES DE LA INTERFAZ (UI) ---
 
@@ -266,24 +268,16 @@ async function guardarGasto() {
     }
 }
 
-// En public/js/main.js (al final)
-let miGrafico = null; // Variable global para controlar el gráfico
-let miGraficoBarras = null;
 
-// Modificamos la función para aceptar el periodo (por defecto 'mes')
 async function abrirBilletera(periodo = 'mes') {
     try {
-        // Marcamos visualmente el botón seleccionado (opcional, pero ayuda)
-        // (El input radio ya lo hace, pero esto asegura que la petición sea correcta)
-        
-        // Enviamos el periodo en la URL
         const response = await fetch(`${API_URL}/billetera?periodo=${periodo}`);
         const resultado = await response.json();
 
         if (resultado.success) {
             const data = resultado.data;
 
-            // ... (Llenado de textos Ahorro/Efectivo/Gastos IGUAL QUE ANTES) ...
+            // 1. LLENAR TEXTOS
             document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
             const cuentaEfectivo = data.cuentas.find(c => c.nombre.includes('Efectivo')) || { saldo_actual: 0 };
             const cuentaYape = data.cuentas.find(c => c.nombre.includes('Yape')) || { saldo_actual: 0 };
@@ -291,15 +285,13 @@ async function abrirBilletera(periodo = 'mes') {
             document.getElementById('txtYape').innerText = `S/ ${parseFloat(cuentaYape.saldo_actual).toFixed(2)}`;
             document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
 
-
-            // --- LÓGICA DEL GRÁFICO MEJORADA ---
+            // ==========================================
+            //       GRÁFICO 1: DONA (APPS)
+            // ==========================================
             const ctx = document.getElementById('graficoApps').getContext('2d');
             
-            if (miGrafico) {
-                miGrafico.destroy();
-            }
+            if (miGrafico) miGrafico.destroy();
 
-            // Si no hay datos en ese periodo, mostramos gráfico vacío o manejamos error
             let etiquetas = [];
             let valores = [];
             let coloresFondo = [];
@@ -307,7 +299,6 @@ async function abrirBilletera(periodo = 'mes') {
             if (data.estadisticas.length > 0) {
                 etiquetas = data.estadisticas.map(e => e.origen_tipo);
                 valores = data.estadisticas.map(e => e.total);
-                
                 coloresFondo = etiquetas.map(nombre => {
                     if(nombre === 'INDRIVER') return '#198754';
                     if(nombre === 'UBER') return '#f8f9fa';
@@ -315,10 +306,7 @@ async function abrirBilletera(periodo = 'mes') {
                     return '#6c757d';
                 });
             } else {
-                // Si está vacío, una dona gris vacía
-                etiquetas = ['Sin datos'];
-                valores = [1];
-                coloresFondo = ['#333'];
+                etiquetas = ['Sin datos']; valores = [1]; coloresFondo = ['#333'];
             }
 
             miGrafico = new Chart(ctx, {
@@ -336,97 +324,65 @@ async function abrirBilletera(periodo = 'mes') {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { color: 'white', boxWidth: 12 }
-                        },
-                        // AQUÍ ESTÁ LA MAGIA DEL PORCENTAJE
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    let value = context.raw || 0;
-                                    
-                                    // Calcular total para sacar %
-                                    let total = context.chart._metasets[context.datasetIndex].total;
-                                    let percentage = Math.round((value / total) * 100) + '%';
-                                    
-                                    if(label === 'Sin datos') return 'No hay carreras';
-
-                                    return `${label}: S/ ${value} (${percentage})`;
-                                }
-                            }
-                        }
+                        legend: { position: 'right', labels: { color: 'white', boxWidth: 12 } }
                     }
                 }
             });
 
             // ==========================================
-            //       NUEVO: GRÁFICO DE BARRAS
+            //       GRÁFICO 2: BARRAS (SEMANA)
             // ==========================================
-            const ctxBarras = document.getElementById('graficoSemana').getContext('2d');
+            // Verificamos si existe el canvas antes de dibujar (para evitar errores si no cargó el HTML)
+            const canvasBarras = document.getElementById('graficoSemana');
             
-            // Variable global para destruir el gráfico anterior si existe (agrégala al inicio del archivo junto a let miGrafico)
-            if (window.miGraficoBarras) {
-                window.miGraficoBarras.destroy();
+            if (canvasBarras) {
+                const ctxBarras = canvasBarras.getContext('2d');
+                
+                if (miGraficoBarras) miGraficoBarras.destroy();
+
+                const diasIngles = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                const diasEsp = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+                const etiquetasSemana = (data.semana || []).map(item => {
+                    const index = diasIngles.indexOf(item.dia_nombre);
+                    return index >= 0 ? diasEsp[index] : item.dia_nombre;
+                });
+                const valoresSemana = (data.semana || []).map(item => item.total);
+
+                miGraficoBarras = new Chart(ctxBarras, {
+                    type: 'bar',
+                    data: {
+                        labels: etiquetasSemana,
+                        datasets: [{
+                            label: 'S/',
+                            data: valoresSemana,
+                            backgroundColor: '#ffc107',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                            x: { grid: { display: false }, ticks: { color: '#fff' } }
+                        }
+                    }
+                });
             }
 
-            // Procesar datos de la semana
-            // data.semana viene del backend: [{dia_nombre: 'Monday', total: 120}, ...]
-            // Traducir días al español y extraer valores
-            const diasIngles = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            const diasEsp = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-            const etiquetasSemana = (data.semana || []).map(item => {
-                // Truco simple para traducir
-                const index = diasIngles.indexOf(item.dia_nombre);
-                return index >= 0 ? diasEsp[index] : item.dia_nombre;
-            });
-            const valoresSemana = (data.semana || []).map(item => item.total);
-
-            window.miGraficoBarras = new Chart(ctxBarras, {
-                type: 'bar', // Tipo BARRAS
-                data: {
-                    labels: etiquetasSemana,
-                    datasets: [{
-                        label: 'Producción (S/)',
-                        data: valoresSemana,
-                        backgroundColor: '#ffc107', // Amarillo Taxi
-                        borderRadius: 4 // Bordes redondeados modernos
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false } // No necesitamos leyenda para esto
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#333' }, // Líneas de fondo oscuras
-                            ticks: { color: '#aaa' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#fff' }
-                        }
-                    }
-                }
-            });
-
-            // Solo mostrar modal si no estamos "refrescando" el filtro
-            // (Truco: verificamos si el modal ya está abierto)
+            // MOSTRAR MODAL
+            // Solo si no está visible ya
             var modalEl = document.getElementById('modalBilletera');
             if (!modalEl.classList.contains('show')) {
                 var modal = new bootstrap.Modal(modalEl);
                 modal.show();
             }
-
         }
     } catch (error) {
-        console.error(error);
-        alert("Error de conexión");
+        console.error("Error billetera:", error);
+        alert("Error cargando billetera");
     }
 }
 // public/js/main.js
