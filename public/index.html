@@ -59,10 +59,18 @@
                 <small class="text-muted mt-2 d-block text-end fst-italic" id="fraseMotivacional">¡A empezar el día!</small>
             </div>
         </div>
-        <div class="d-grid mb-3">
-            <button class="btn btn-warning fw-bold" onclick="calcularRepartoBabilonia()">
-                <i class="fas fa-balance-scale me-2"></i> Asistente de Reparto (Cierre)
-            </button>
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <button class="btn btn-warning w-100 fw-bold h-100" onclick="calcularRepartoBabilonia()">
+                    <i class="fas fa-balance-scale d-block mb-1"></i> Reparto
+                </button>
+            </div>
+            <div class="col-6">
+                <button class="btn btn-outline-info w-100 fw-bold h-100" onclick="abrirObligaciones()">
+                    <i class="fas fa-clipboard-list d-block mb-1"></i> Por Pagar
+                    <span class="badge bg-danger ms-1" id="badgeDeudasCount" style="display:none">0</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -350,6 +358,47 @@
                         <small class="text-muted text-center mt-2">
                             Descarga el historial completo para analizarlo en tu PC.
                         </small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modalObligaciones" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg"> <div class="modal-content bg-dark text-white border-info">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-info"><i class="fas fa-tasks me-2"></i>Cuentas por Pagar</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    
+                    <div id="listaObligaciones" class="list-group list-group-flush mb-3">
+                        <div class="text-center p-4 text-muted">Cargando...</div>
+                    </div>
+
+                    <div class="p-3 bg-secondary bg-opacity-10 border-top border-secondary">
+                        <h6 class="text-white mb-2"><i class="fas fa-plus-circle text-success"></i> Agregar Nueva</h6>
+                        <div class="row g-2">
+                            <div class="col-7">
+                                <input type="text" id="nuevaObliTitulo" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Ej: Luz, Aceite...">
+                            </div>
+                            <div class="col-5">
+                                <input type="number" id="nuevaObliMonto" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="S/ 0.00">
+                            </div>
+                            <div class="col-6">
+                                <input type="date" id="nuevaObliFecha" class="form-control form-control-sm bg-dark text-white border-secondary">
+                            </div>
+                            <div class="col-6">
+                                <select id="nuevaObliPrioridad" class="form-select form-select-sm bg-dark text-white border-secondary">
+                                    <option value="NORMAL">Normal</option>
+                                    <option value="ALTA">Alta</option>
+                                    <option value="URGENTE">🚨 URGENTE</option>
+                                </select>
+                            </div>
+                            <div class="col-12 d-grid">
+                                <button class="btn btn-sm btn-success" onclick="crearObligacion()">GUARDAR</button>
+                            </div>
+                        </div>
                     </div>
 
                 </div>

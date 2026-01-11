@@ -732,6 +732,138 @@ function calcularRepartoBabilonia() {
     }
 }
 
+
+async function abrirObligaciones() {
+    const modal = new bootstrap.Modal(document.getElementById('modalObligaciones'));
+    modal.show();
+    cargarObligaciones();
+}
+
+async function cargarObligaciones() {
+    const contenedor = document.getElementById('listaObligaciones');
+    contenedor.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i></div>';
+
+    try {
+        const response = await fetch(`${API_URL}/obligaciones`);
+        const result = await response.json();
+
+        if (result.success && result.data.length > 0) {
+            let html = '';
+            result.data.forEach(item => {
+                // Lógica de colores semáforo
+                let bordeColor = 'border-secondary';
+                let icono = 'fa-circle';
+                let diasTexto = '';
+                
+                const dias = parseInt(item.dias_restantes);
+
+                if (item.prioridad === 'URGENTE' || dias < 3) {
+                    bordeColor = 'border-danger border-start border-4'; // Rojo fuerte
+                    icono = 'fa-exclamation-circle text-danger';
+                    diasTexto = `<span class="badge bg-danger">Vence en ${dias} días</span>`;
+                } else if (item.prioridad === 'ALTA' || dias < 7) {
+                    bordeColor = 'border-warning border-start border-4'; // Amarillo
+                    icono = 'fa-clock text-warning';
+                    diasTexto = `<span class="badge bg-warning text-dark">${dias} días restantes</span>`;
+                } else {
+                    bordeColor = 'border-success border-start border-4'; // Verde
+                    icono = 'fa-calendar-check text-success';
+                    diasTexto = `<small class="text-muted">Vence: ${new Date(item.fecha_vencimiento).toLocaleDateString()}</small>`;
+                }
+                
+                // Si ya venció
+                if (dias < 0) diasTexto = `<span class="badge bg-danger w-100">¡VENCIDO HACE ${Math.abs(dias)} DÍAS!</span>`;
+
+                html += `
+                <div class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center p-3 ${bordeColor}">
+                    <div class="me-3">
+                        <h6 class="mb-0 fw-bold">${item.titulo}</h6>
+                        <div class="mt-1">${diasTexto}</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fs-5 fw-bold mb-1">S/ ${parseFloat(item.monto).toFixed(2)}</div>
+                        <button class="btn btn-sm btn-outline-light" onclick="pagarDeuda(${item.id}, ${item.monto}, '${item.titulo}')">
+                            PAGAR <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>`;
+            });
+            contenedor.innerHTML = html;
+            
+            // Actualizar badge del menú principal (opcional)
+            const countBadge = document.getElementById('badgeDeudasCount');
+            if(countBadge) {
+                countBadge.innerText = result.data.length;
+                countBadge.style.display = 'inline-block';
+            }
+
+        } else {
+            contenedor.innerHTML = '<div class="text-center p-4 text-muted">🎉 ¡Eres libre! No hay deudas pendientes.</div>';
+        }
+    } catch (e) {
+        console.error(e);
+        contenedor.innerHTML = '<div class="text-danger p-3">Error al cargar</div>';
+    }
+}
+
+async function crearObligacion() {
+    const titulo = document.getElementById('nuevaObliTitulo').value;
+    const monto = document.getElementById('nuevaObliMonto').value;
+    const fecha = document.getElementById('nuevaObliFecha').value;
+    const prioridad = document.getElementById('nuevaObliPrioridad').value;
+
+    if (!titulo || !monto || !fecha) {
+        alert("Completa los datos");
+        return;
+    }
+
+    try {
+        await fetch(`${API_URL}/obligaciones`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ titulo, monto, fecha, prioridad })
+        });
+        
+        // Limpiar
+        document.getElementById('nuevaObliTitulo').value = '';
+        document.getElementById('nuevaObliMonto').value = '';
+        
+        // Recargar lista
+        cargarObligaciones();
+
+    } catch (e) { alert("Error"); }
+}
+
+async function pagarDeuda(id, monto, titulo) {
+    // Al pagar, preguntamos de DÓNDE sale la plata
+    // Usamos las cuentas que ya conocemos
+    const cuentaId = prompt(`Vas a pagar "${titulo}" (S/ ${monto}).\n\nIngresa el ID de la cuenta de origen:\n1: Efectivo\n2: Yape\n6: Warda Deuda (Ejemplo)\n\n(Mira tu Billetera para ver los IDs exactos)`);
+    
+    if (!cuentaId) return;
+
+    if (confirm(`¿Confirmas el pago de S/ ${monto} saliendo de la cuenta ${cuentaId}?`)) {
+        try {
+            const resp = await fetch(`${API_URL}/obligaciones/pagar`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id_obligacion: id,
+                    id_cuenta_origen: cuentaId,
+                    monto: monto
+                })
+            });
+            const r = await resp.json();
+            if (r.success) {
+                alert("✅ Pagado exitosamente");
+                cargarObligaciones();
+                // Opcional: Actualizar barra meta o billetera si estuvieran visibles
+            } else {
+                alert("Error: " + r.message);
+            }
+        } catch (e) { alert("Error conexión"); }
+    }
+}
+
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();

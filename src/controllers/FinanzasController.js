@@ -163,6 +163,63 @@ class FinanzasController {
             res.status(500).json({ success: false, message: "Error en transferencia" });
         }
     }
+
+    // 1. LISTAR OBLIGACIONES PENDIENTES
+    static async obtenerObligaciones(req, res) {
+        try {
+            const query = `
+                SELECT *, 
+                DATEDIFF(fecha_vencimiento, NOW()) as dias_restantes 
+                FROM obligaciones 
+                WHERE estado = 'PENDIENTE'
+                ORDER BY fecha_vencimiento ASC
+            `;
+            const [rows] = await db.query(query);
+            res.json({ success: true, data: rows });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al listar obligaciones" });
+        }
+    }
+
+    // 2. CREAR NUEVA OBLIGACIÓN
+    static async crearObligacion(req, res) {
+        try {
+            const { titulo, monto, fecha, prioridad, warda_id } = req.body;
+            await db.query(`
+                INSERT INTO obligaciones (titulo, monto, fecha_vencimiento, prioridad, origen_sugerido_id)
+                VALUES (?, ?, ?, ?, ?)
+            `, [titulo, monto, fecha, prioridad, warda_id]);
+            res.json({ success: true, message: "Obligación registrada" });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al crear obligación" });
+        }
+    }
+
+    // 3. PAGAR OBLIGACIÓN (Descuenta plata y cierra la deuda)
+    static async pagarObligacion(req, res) {
+        try {
+            const { id_obligacion, id_cuenta_origen, monto } = req.body;
+
+            // Transacción: Restar Dinero + Marcar Pagado
+            // 1. Restar dinero
+            await db.query("UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?", [monto, id_cuenta_origen]);
+            
+            // 2. Marcar como pagado
+            await db.query("UPDATE obligaciones SET estado = 'PAGADO' WHERE id = ?", [id_obligacion]);
+
+            // 3. Registrar en historial transacciones
+            await db.query("INSERT INTO transacciones (tipo, monto, descripcion, fecha) VALUES ('PAGO_DEUDA', ?, ?, NOW())",
+                [monto, `Pago de Obligación ID: ${id_obligacion}`]);
+
+            res.json({ success: true, message: "¡Deuda pagada!" });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al pagar" });
+        }
+    }
 }
 
 module.exports = FinanzasController;

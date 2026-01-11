@@ -53,4 +53,8 @@ router.post('/transaccion', FinanzasController.registrarTransaccion);
 router.post('/transferir', FinanzasController.realizarTransferencia);
 // --------------------
 
+router.get('/obligaciones', FinanzasController.obtenerObligaciones);
+router.post('/obligaciones', FinanzasController.crearObligacion);
+router.post('/obligaciones/pagar', FinanzasController.pagarObligacion);
+
 module.exports = router;
