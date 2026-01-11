@@ -48,4 +48,9 @@ router.get('/reporte', ViajeController.descargarReporte);
 // --------------------
 
 router.post('/transaccion', FinanzasController.registrarTransaccion);
+
+// --- AGREGAR ESTO ---
+router.post('/transferencia', FinanzasController.realizarTransferencia);
+// --------------------
+
 module.exports = router;

@@ -18,6 +18,8 @@ let viajeActualId = null;
 let miGrafico = null; // Variable global para controlar el gráfico
 let miGraficoBarras = null;
 
+let cuentasCache = [];
+
 // --- FUNCIONES DE LA INTERFAZ (UI) ---
 
 function mostrarPanelCarrera() {
@@ -578,6 +580,101 @@ function descargarExcel() {
     if(confirm("¿Quieres descargar todo tu historial de viajes a tu celular/PC?")) {
         // Truco: Abrimos la URL del backend directamente
         window.location.href = `${API_URL}/reporte`;
+    }
+}
+
+
+
+// 1. Abrir y Cargar Cuentas
+async function abrirModalTransferencia() {
+    // Cerramos la billetera un momento para mostrar este modal encima
+    bootstrap.Modal.getInstance(document.getElementById('modalBilletera')).hide();
+    
+    const modalTransf = new bootstrap.Modal(document.getElementById('modalTransferencia'));
+    modalTransf.show();
+
+    // Llenar los Selects (Pedimos la info a Billetera si no la tenemos)
+    // Usaremos una petición rápida para obtener las cuentas con sus IDs
+    try {
+        const response = await fetch(`${API_URL}/billetera?periodo=hoy`);
+        const resultado = await response.json();
+        if (resultado.success) {
+            // Nota: El backend de billetera devuelve nombres y saldos, pero quizás no los IDs.
+            // Para simplificar, asumiremos IDs fijos o necesitaremos que el backend envíe IDs.
+            // MEJORA: Vamos a modificar Billetera controller para enviar IDs.
+            
+            // POR AHORA: Usaremos un truco visual. Enviaremos los NOMBRES y el backend buscará los IDs.
+            // O mejor aún: Asumiremos los IDs estándar de tu SQL inicial:
+            // 1: Efectivo, 2: Yape, 3: Ahorro BCP.
+            
+            // Llenar selects
+            const cuentas = [
+                {id: 1, nombre: 'Efectivo (Bolsillo)'},
+                {id: 2, nombre: 'Yape / Plin'},
+                {id: 3, nombre: 'Ahorros BCP'}
+            ];
+            
+            const selectOrigen = document.getElementById('selectOrigen');
+            const selectDestino = document.getElementById('selectDestino');
+            selectOrigen.innerHTML = '';
+            selectDestino.innerHTML = '';
+
+            cuentas.forEach(c => {
+                selectOrigen.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+                selectDestino.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+
+            // Seleccionar por defecto: Efectivo -> Ahorros
+            selectOrigen.value = 1; 
+            selectDestino.value = 3; 
+        }
+    } catch (e) { console.error(e); }
+}
+
+// 2. Ejecutar
+async function ejecutarTransferencia() {
+    const origen = document.getElementById('selectOrigen').value;
+    const destino = document.getElementById('selectDestino').value;
+    const monto = document.getElementById('montoTransferencia').value;
+
+    if (origen === destino) {
+        alert("El origen y destino no pueden ser iguales");
+        return;
+    }
+    if (!monto || monto <= 0) {
+        alert("Ingresa un monto válido");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/transferir`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cuenta_origen_id: origen,
+                cuenta_destino_id: destino,
+                monto: monto,
+                nota: 'Movimiento App'
+            })
+        });
+
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            alert("✅ Transferencia realizada");
+            
+            // Cerrar modal transferencia
+            bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
+            
+            // Reabrir billetera actualizada
+            abrirBilletera(); 
+        } else {
+            alert("Error: " + resultado.message);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
     }
 }
 

@@ -134,6 +134,35 @@ class FinanzasController {
             res.status(500).json({ success: false, message: 'Error al registrar' });
         }
     }
+
+    // Acción: Mover dinero entre cuentas
+    static async realizarTransferencia(req, res) {
+        try {
+            const { cuenta_origen_id, cuenta_destino_id, monto, nota } = req.body;
+
+            if (!monto || monto <= 0) {
+                return res.json({ success: false, message: "Monto inválido" });
+            }
+
+            // 1. Restar del Origen
+            await db.query("UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?", [monto, cuenta_origen_id]);
+
+            // 2. Sumar al Destino
+            await db.query("UPDATE cuentas SET saldo_actual = saldo_actual + ? WHERE id = ?", [monto, cuenta_destino_id]);
+
+            // 3. Registrar el movimiento
+            await db.query(`
+                INSERT INTO transacciones (tipo, monto, descripcion, fecha) 
+                VALUES ('TRANSFERENCIA', ?, ?, NOW())
+            `, [monto, `Transferencia: ${nota}`]);
+
+            res.json({ success: true, message: "Transferencia exitosa" });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error en transferencia" });
+        }
+    }
 }
 
 module.exports = FinanzasController;

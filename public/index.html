@@ -235,6 +235,38 @@
         </div>
     </div>
 
+
+    <div class="modal fade" id="modalTransferencia" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-primary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-primary"><i class="fas fa-exchange-alt me-2"></i>Mover Dinero</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    
+                    <label class="text-muted small">Origen (Sale dinero)</label>
+                    <select id="selectOrigen" class="form-select bg-dark text-white border-secondary mb-3">
+                        </select>
+
+                    <label class="text-muted small">Destino (Entra dinero)</label>
+                    <select id="selectDestino" class="form-select bg-dark text-white border-secondary mb-3">
+                        </select>
+
+                    <label class="text-muted small">Monto (S/)</label>
+                    <input type="number" id="montoTransferencia" class="form-control bg-dark text-white border-secondary mb-3" placeholder="0.00">
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-lg" onclick="ejecutarTransferencia()">
+                            CONFIRMAR <i class="fas fa-check ms-2"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalBilletera" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-warning">
@@ -262,6 +294,15 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span><i class="fas fa-mobile-alt text-warning"></i> Yape / Plin</span>
                         <span class="h4 mb-0" id="txtYape">S/ 0.00</span>
+                    </div>
+
+                    <div class="row text-center mb-4">
+                    </div>
+
+                    <div class="d-grid mb-4">
+                        <button class="btn btn-outline-primary" onclick="abrirModalTransferencia()">
+                            <i class="fas fa-exchange-alt me-2"></i> Mover Dinero / Depositar
+                        </button>
                     </div>
 
                     <hr class="border-secondary">
