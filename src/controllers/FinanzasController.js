@@ -60,8 +60,22 @@ class FinanzasController {
             const estadisticas = await ViajeModel.obtenerEstadisticas(periodo);
             // ----------------------------------------
             // --- NUEVO: Pedimos los datos de la semana ---
-            const semana = await ViajeModel.obtenerGananciasUltimos7Dias();
+            //const semana = await ViajeModel.obtenerGananciasUltimos7Dias();
             // ---------------------------------------------
+
+            let semana = [];
+            try {
+                // Intentamos obtener el gráfico
+                if (ViajeModel.obtenerGananciasUltimos7Dias) {
+                     semana = await ViajeModel.obtenerGananciasUltimos7Dias();
+                }
+            } catch (err) {
+                // Si falla, solo imprimimos el error en la consola del servidor
+                // PERO NO DETENEMOS LA APP. Enviamos lista vacía.
+                console.error("⚠️ Error calculando gráfico semana:", err.message);
+                semana = []; 
+            }
+            // --------------------------------------------------
 
             res.json({
                 success: true,
