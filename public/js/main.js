@@ -563,6 +563,13 @@ async function cambiarMeta() {
     }
 }
 
+function descargarExcel() {
+    if(confirm("¿Quieres descargar todo tu historial de viajes a tu celular/PC?")) {
+        // Truco: Abrimos la URL del backend directamente
+        window.location.href = `${API_URL}/reporte`;
+    }
+}
+
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();

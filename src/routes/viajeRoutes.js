@@ -42,4 +42,8 @@ router.post('/login', AuthController.login);
 // --- AGREGAR ESTO ---
 router.post('/meta', FinanzasController.actualizarMeta);
 // --------------------
+
+// --- AGREGAR ESTO ---
+router.get('/reporte', ViajeController.descargarReporte);
+// --------------------
 module.exports = router;
