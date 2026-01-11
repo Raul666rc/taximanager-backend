@@ -2,11 +2,37 @@
 
 /* ESTILOS GENERALES (Modo Oscuro) */
 body {
-    background-color: #121212; /* Negro profundo */
-    color: #e0e0e0;            /* Blanco suave */
+    background-color: #000000; 
+    color: white;            /* Blanco suave */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding-bottom: 80px;      /* Espacio para no tapar contenido abajo */
 }
+
+    /* --- CORRECCIÓN DE VISIBILIDAD --- */
+    
+    /* Hacemos que el texto "apagado" sea mucho más brillante y legible */
+    .text-muted {
+        color: #d1d1d1 !important; /* Gris Plata Brillante */
+    }
+
+    /* Aumentamos un poquito el tamaño de los textos pequeños */
+    small, .small {
+        font-size: 0.85rem; 
+        font-weight: 500; /* Un poco más gordita la letra */
+    }
+
+    /* Mejoramos el borde de las tarjetas para que se distingan del fondo negro */
+    .card {
+        border: 1px solid #333 !important;
+        background-color: #121212 !important; /* Un negro un pelín más claro que el fondo */
+    }
+
+    /* El input de la meta también necesita verse mejor */
+    .input-group-text {
+        background-color: #222;
+        color: white;
+        border-color: #444;
+    }
 
 /* TARJETA DE RESUMEN (Dashboard) */
 .card-stats {
