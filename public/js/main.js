@@ -48,12 +48,13 @@ function mostrarPanelInicio() {
 // ==========================================
 // 1. INICIAR CARRERA (V3.0 con Texto y GPS)
 // ==========================================
-// 1. INICIAR CARRERA (Versión TURBO: Solo GPS, sin esperar dirección)
+// 1. INICIAR CARRERA (RÁPIDO)
 async function iniciarCarrera() {
     if (!navigator.geolocation) return alert("Tu navegador no soporta GPS");
 
     const appSeleccionada = document.querySelector('input[name="appOrigen"]:checked').value;
-    // Si escribiste algo manual, lo enviamos. Si no, enviamos vacío (el servidor lo buscará después)
+    
+    // Si existe el input origen (en el HTML), lo tomamos, sino vacío
     const origenTexto = document.getElementById('inputOrigen')?.value || '';
 
     const btn = document.getElementById('btnIniciar');
@@ -62,10 +63,17 @@ async function iniciarCarrera() {
     btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> GPS...';
     btn.disabled = true;
 
+    // OPCIONES GPS PARA VELOCIDAD:
+    const opcionesGPS = { 
+        enableHighAccuracy: true, 
+        timeout: 5000, 
+        maximumAge: 30000 // <--- ESTO ES LA CLAVE DE LA VELOCIDAD (Acepta cache de 30seg)
+    };
+
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             try {
-                // Guardamos inicio para calcular distancia al final
+                // Guardamos coordenadas de inicio
                 viajeInicioCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
                 viajeInicioTime = new Date();
 
@@ -76,7 +84,6 @@ async function iniciarCarrera() {
                     lng: position.coords.longitude
                 };
 
-                // Enviamos al servidor
                 const response = await fetch(`${API_URL}/iniciar`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -87,8 +94,12 @@ async function iniciarCarrera() {
 
                 if (resultado.success) {
                     viajeActualId = resultado.data.id_viaje;
-                    document.getElementById('selectorApps').classList.add('d-none');
-                    mostrarPanelCarrera(); // ¡CAMBIO DE PANTALLA INSTANTÁNEO!
+                    
+                    // Ocultar selector si existe
+                    const sel = document.getElementById('selectorApps');
+                    if(sel) sel.classList.add('d-none');
+                    
+                    mostrarPanelCarrera();
                 } else {
                     alert("Error: " + resultado.message);
                 }
@@ -106,7 +117,7 @@ async function iniciarCarrera() {
             btn.innerHTML = textoOriginal;
             btn.disabled = false;
         },
-        { enableHighAccuracy: true }
+        opcionesGPS // <--- Pasamos las opciones aquí
     );
 }
 
@@ -135,11 +146,12 @@ async function registrarParada() {
 // ==========================================
 // 3. FINALIZAR Y COBRAR (V3.0 Completo)
 // ==========================================
-// 3. FINALIZAR Y COBRAR (Versión TURBO)
+// 3. FINALIZAR Y COBRAR (RÁPIDO)
 async function guardarCarrera() {
     const montoInput = document.querySelector('#modalCobrar input[type="number"]').value;
     const esYape = document.getElementById('pago2').checked; 
     const metodoId = esYape ? 2 : 1;
+    // Si existe el input destino (opcional), lo tomamos
     const destinoManual = document.getElementById('inputDestino')?.value || '';
 
     if (!montoInput || montoInput <= 0) return alert("Ingresa un monto válido");
@@ -149,13 +161,19 @@ async function guardarCarrera() {
     btnCobrar.disabled = true;
     btnCobrar.innerHTML = '<i class="fas fa-check"></i> Guardando...';
 
-    // Obtenemos GPS Final
+    // OPCIONES GPS PARA VELOCIDAD:
+    const opcionesGPS = { 
+        enableHighAccuracy: true, 
+        timeout: 5000, 
+        maximumAge: 30000 // <--- Acepta cache reciente para no esperar satélites
+    };
+
     navigator.geolocation.getCurrentPosition(async (position) => {
         try {
             const latFin = position.coords.latitude;
             const lngFin = position.coords.longitude;
 
-            // Cálculos matemáticos (Esto es rapidísimo, no demora nada)
+            // Cálculos
             let distancia = 0;
             if (viajeInicioCoords) {
                 distancia = calcularDistancia(viajeInicioCoords.lat, viajeInicioCoords.lng, latFin, lngFin);
@@ -175,7 +193,7 @@ async function guardarCarrera() {
                 lng: lngFin,
                 distancia_km: distancia,
                 duracion_min: duracion,
-                destino_texto: destinoManual // Si no escribiste nada, el servidor buscará la calle
+                destino_texto: destinoManual 
             };
 
             const response = await fetch(`${API_URL}/finalizar`, { 
@@ -187,8 +205,8 @@ async function guardarCarrera() {
             const resultado = await response.json();
 
             if (resultado.success) {
-                // Alerta simple y rápida
-                alert(`✅ ¡Cobrado S/ ${montoInput}!`);
+                // Alerta corta
+                alert(`✅ Listo. Cobrado S/ ${montoInput}`);
                 
                 var modal = bootstrap.Modal.getInstance(document.getElementById('modalCobrar'));
                 modal.hide();
@@ -208,7 +226,11 @@ async function guardarCarrera() {
             btnCobrar.disabled = false;
             btnCobrar.innerText = textoBtn;
         }
-    });
+    }, (err) => {
+        alert("Error GPS Fin: " + err.message);
+        btnCobrar.disabled = false;
+        btnCobrar.innerText = textoBtn;
+    }, opcionesGPS);
 }
 
 // --- CARGA DE DATOS ---

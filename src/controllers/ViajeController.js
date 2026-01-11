@@ -1,17 +1,17 @@
 // UBICACIÓN: src/controllers/ViajeController.js
 const ViajeModel = require('../models/ViajeModel');
 const db = require('../config/db');
+const https = require('https'); // Usamos librería nativa para máxima compatibilidad
 
 class ViajeController {
 
-    // Acción: Iniciar Carrera (Respuesta Inmediata + Búsqueda de fondo)
     static async iniciarCarrera(req, res) {
         try {
             const { origen_tipo, lat, lng, origen_texto } = req.body;
 
             if (!origen_tipo) return res.status(400).json({ success: false, message: 'Falta tipo' });
 
-            // 1. Guardamos rápido (Si mandaste texto manual, lo usamos. Si no, guardamos "GPS...")
+            // 1. Guardamos rápido
             const textoInicial = origen_texto || 'Ubicación GPS...';
             const idViaje = await ViajeModel.iniciar(origen_tipo, textoInicial);
 
@@ -20,15 +20,14 @@ class ViajeController {
                 await ViajeModel.guardarRastro(idViaje, lat, lng, 'INICIO');
             }
 
-            // 3. RESPONDEMOS AL CELULAR INMEDIATAMENTE (Para que no esperes)
+            // 3. RESPONDEMOS YA (Velocidad)
             res.json({
                 success: true,
                 message: 'Carrera iniciada',
                 data: { id_viaje: idViaje }
             });
 
-            // 4. TAREA DE FONDO (INVISIBLE): Buscar nombre de calle
-            // Solo si no escribiste nada manualmente
+            // 4. FONDO: Buscar calle (si no se escribió manual)
             if (!origen_texto && lat && lng) {
                 this.resolverDireccionBackground(idViaje, lat, lng, 'ORIGEN');
             }
@@ -39,7 +38,6 @@ class ViajeController {
         }
     }
 
-    // Acción: Terminar Carrera (Respuesta Inmediata + Búsqueda de fondo)
     static async terminarCarrera(req, res) {
         const connection = await db.getConnection();
         try {
@@ -74,10 +72,10 @@ class ViajeController {
 
             await connection.commit();
 
-            // 5. RESPONDEMOS RÁPIDO AL CELULAR
+            // 5. RESPONDEMOS YA
             res.json({ success: true, message: 'Cobrado' });
 
-            // 6. TAREA DE FONDO: Buscar nombre de calle destino
+            // 6. FONDO: Buscar calle destino
             if (!destino_texto && lat && lng) {
                 this.resolverDireccionBackground(id_viaje, lat, lng, 'DESTINO');
             }
@@ -152,36 +150,42 @@ class ViajeController {
     }
 
     // ==========================================
-    // MAGIA DE FONDO: BUSCADOR DE DIRECCIONES
+    // MAGIA DE FONDO: BUSCADOR ROBUSTO (HTTPS NATIVO)
     // ==========================================
-    static async resolverDireccionBackground(idViaje, lat, lng, tipo) {
-        try {
-            // Esperamos 1 segundo para no saturar
-            // await new Promise(r => setTimeout(r, 1000));
+    static resolverDireccionBackground(idViaje, lat, lng, tipo) {
+        // No usamos async/await aquí para no bloquear nada, usamos callback puro de Node
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+        
+        const options = {
+            headers: { 'User-Agent': 'TaxiManagerApp/1.0 (raul@taxi.com)' } // Identificación requerida por OSM
+        };
 
-            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-            
-            // Usamos fetch nativo de Node (versiones modernas)
-            const response = await fetch(url, { headers: { 'User-Agent': 'TaxiManagerApp/1.0' } });
-            const data = await response.json();
-
-            if (data && data.address) {
-                const calle = data.address.road || data.address.pedestrian || '';
-                const numero = data.address.house_number || '';
-                const barrio = data.address.neighbourhood || data.address.suburb || '';
-                let direccion = `${calle} ${numero}`.trim();
-                if (barrio) direccion += `, ${barrio}`;
-                
-                if (direccion.length > 5) {
-                    const campo = tipo === 'ORIGEN' ? 'origen_texto' : 'destino_texto';
-                    await db.query(`UPDATE viajes SET ${campo} = ? WHERE id = ?`, [direccion, idViaje]);
-                    console.log(`📍 Dirección actualizada (${tipo}): ${direccion}`);
-                }
-            }
-        } catch (error) {
-            console.error("Error background GPS:", error.message);
-            // No pasa nada si falla, el usuario ya cobró y está feliz.
-        }
+        https.get(url, options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', async () => {
+                try {
+                    const json = JSON.parse(data);
+                    if (json && json.address) {
+                        const calle = json.address.road || json.address.pedestrian || '';
+                        const numero = json.address.house_number || '';
+                        const barrio = json.address.neighbourhood || json.address.suburb || '';
+                        
+                        let direccion = `${calle} ${numero}`.trim();
+                        if (barrio) direccion += `, ${barrio}`;
+                        
+                        if (direccion.length > 3) {
+                            const campo = tipo === 'ORIGEN' ? 'origen_texto' : 'destino_texto';
+                            // Ejecutamos UPDATE directo
+                            await db.query(`UPDATE viajes SET ${campo} = ? WHERE id = ?`, [direccion, idViaje]);
+                            console.log(`📍 [OK] Dirección actualizada (${tipo}): ${direccion}`);
+                        }
+                    }
+                } catch (e) { console.error("Error parseando GPS:", e.message); }
+            });
+        }).on('error', (err) => {
+            console.error("Error conexión GPS:", err.message);
+        });
     }
 }
 
