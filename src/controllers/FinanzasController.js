@@ -196,20 +196,14 @@ class FinanzasController {
         }
     }
 
-    // Crear Compromiso (Préstamo o Servicio Recurrente)
     static async crearCompromiso(req, res) {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
 
             const { 
-                titulo,           // "Préstamo Auto"
-                tipo,             // 'PRESTAMO' o 'SERVICIO_FIJO'
-                monto_total,      // 8000
-                monto_cuota,      // 50
-                cuotas_totales,   // 12
-                dia_pago,         // 5
-                warda_origen_id 
+                titulo, tipo, monto_total, monto_cuota, 
+                cuotas_totales, dia_pago, warda_origen_id 
             } = req.body;
 
             // 1. Crear PADRE
@@ -221,17 +215,34 @@ class FinanzasController {
             
             const compromisoId = resCompromiso.insertId;
 
-            // 2. Generar HIJOS (Cuotas)
+            // 2. Generar HIJOS (Cuotas) - LÓGICA CORREGIDA
             const numCuotasAGenerar = cuotas_totales || 1; 
 
-            for (let i = 1; i <= numCuotasAGenerar; i++) {
-                let fechaVence = new Date();
-                // Ajuste simple de fecha (mes actual + i)
-                fechaVence.setMonth(fechaVence.getMonth() + i);
-                fechaVence.setDate(dia_pago);
+            // A. Determinamos la fecha de la PRIMERA cuota
+            let fechaBase = new Date(); // Hoy
+            const diaHoy = fechaBase.getDate();
+
+            // Si hoy es 11 y el pago es el 20 -> Pagas este mes (No sumamos mes)
+            // Si hoy es 25 y el pago es el 20 -> Ya pasó, pagas el próximo mes (Sumamos 1 mes)
+            if (diaHoy > dia_pago) {
+                fechaBase.setMonth(fechaBase.getMonth() + 1);
+            }
+            
+            // Fijamos el día de pago
+            fechaBase.setDate(dia_pago);
+
+            for (let i = 0; i < numCuotasAGenerar; i++) {
+                // Clonamos la fecha base para no alterarla
+                let fechaCuota = new Date(fechaBase);
+                // Sumamos 'i' meses (0 para la primera, 1 para la segunda, etc.)
+                fechaCuota.setMonth(fechaBase.getMonth() + i);
                 
-                const fechaSQL = fechaVence.toISOString().split('T')[0];
-                const tituloCuota = cuotas_totales ? `Cuota ${i}/${cuotas_totales}` : `Mensualidad ${i}`;
+                const fechaSQL = fechaCuota.toISOString().split('T')[0];
+                
+                // Mejoramos el título: "Préstamo Auto - Cuota 1/12"
+                const tituloCuota = cuotas_totales 
+                    ? `${titulo} - Cuota ${i + 1}/${cuotas_totales}` 
+                    : `${titulo} - Mensualidad ${i + 1}`;
 
                 await connection.query(`
                     INSERT INTO obligaciones 
@@ -241,7 +252,7 @@ class FinanzasController {
             }
 
             await connection.commit();
-            res.json({ success: true, message: "Compromiso registrado exitosamente" });
+            res.json({ success: true, message: "Cronograma generado correctamente" });
 
         } catch (error) {
             await connection.rollback();

@@ -492,39 +492,85 @@ async function abrirObligaciones() {
 }
 
 async function cargarObligaciones() {
-    const div = document.getElementById('listaObligaciones');
-    div.innerHTML = '<div class="text-center text-muted">Cargando...</div>';
-    
+    const contenedor = document.getElementById('listaObligaciones');
+    contenedor.innerHTML = '<div class="text-center p-3 text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando deudas...</div>';
+
     try {
-        const res = await fetch(`${API_URL}/obligaciones`);
-        const json = await res.json();
-        
-        if (json.success && json.data.length > 0) {
+        const response = await fetch(`${API_URL}/obligaciones`);
+        const result = await response.json();
+
+        if (result.success && result.data.length > 0) {
             let html = '';
-            json.data.forEach(item => {
-                const dias = parseInt(item.dias_restantes);
-                let color = dias < 3 ? 'border-danger' : (dias < 7 ? 'border-warning' : 'border-success');
-                let badge = dias < 0 ? `<span class="badge bg-danger">VENCIDO (${Math.abs(dias)}d)</span>` : `<small class="text-muted">${dias} días rest.</small>`;
+            result.data.forEach(item => {
                 
+                // CÁLCULOS DE VISUALIZACIÓN
+                const dias = parseInt(item.dias_restantes);
+                
+                // Formatear fecha bonita: "20/01/2026"
+                // Truco: Agregamos 'T00:00' para evitar problemas de zona horaria al visualizar
+                const fechaObj = new Date(item.fecha_vencimiento + 'T00:00:00');
+                const fechaBonita = fechaObj.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                // Semáforo de colores
+                let bordeColor = 'border-secondary';
+                let badgeEstado = '';
+
+                if (item.prioridad === 'URGENTE' || dias < 3) {
+                    bordeColor = 'border-danger border-start border-4'; 
+                    badgeEstado = `<span class="badge bg-danger mb-1">🔥 Vence en ${dias} días</span>`;
+                } else if (item.prioridad === 'ALTA' || dias < 7) {
+                    bordeColor = 'border-warning border-start border-4'; 
+                    badgeEstado = `<span class="badge bg-warning text-dark mb-1">⚠️ Quedan ${dias} días</span>`;
+                } else {
+                    bordeColor = 'border-success border-start border-4'; 
+                    badgeEstado = `<span class="badge bg-success mb-1">📅 Faltan ${dias} días</span>`;
+                }
+                
+                // Si ya venció (dias negativo)
+                if (dias < 0) {
+                    bordeColor = 'border-danger border-start border-4';
+                    badgeEstado = `<span class="badge bg-danger w-100 mb-1">¡VENCIDO HACE ${Math.abs(dias)} DÍAS!</span>`;
+                }
+
+                // ESTRUCTURA DE LA TARJETA
                 html += `
-                <div class="list-group-item bg-dark text-white p-3 mb-2 border-start border-4 ${color}">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="mb-0 fw-bold">${item.titulo}</h6>
-                            ${badge}
+                <div class="list-group-item bg-dark text-white p-3 mb-2 shadow-sm ${bordeColor}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        
+                        <div style="flex: 1;">
+                            ${badgeEstado}
+                            <h6 class="mb-1 fw-bold text-white">${item.titulo}</h6>
+                            <div class="text-info small">
+                                <i class="far fa-calendar-alt me-1"></i>Vence: <strong>${fechaBonita}</strong>
+                            </div>
                         </div>
-                        <div class="text-end">
-                            <div class="fw-bold">S/ ${parseFloat(item.monto).toFixed(2)}</div>
-                            <button class="btn btn-sm btn-outline-light mt-1" onclick="pagarDeuda(${item.id}, ${item.monto}, '${item.titulo}')">PAGAR</button>
+
+                        <div class="text-end ms-3">
+                            <div class="fs-4 fw-bold text-white mb-2">S/ ${parseFloat(item.monto).toFixed(2)}</div>
+                            <button class="btn btn-sm btn-outline-light w-100" onclick="pagarDeuda(${item.id}, ${item.monto}, '${item.titulo}')">
+                                PAGAR <i class="fas fa-chevron-right ms-1"></i>
+                            </button>
                         </div>
+
                     </div>
                 </div>`;
             });
-            div.innerHTML = html;
+            contenedor.innerHTML = html;
+            
+            // Actualizar contador rojo en el menú principal
+            const countBadge = document.getElementById('badgeDeudasCount');
+            if(countBadge) {
+                countBadge.innerText = result.data.length;
+                countBadge.style.display = 'inline-block';
+            }
+
         } else {
-            div.innerHTML = '<div class="p-3 text-center text-muted">No tienes deudas pendientes 🎉</div>';
+            contenedor.innerHTML = '<div class="text-center p-5 text-muted"><i class="fas fa-check-circle fa-2x mb-3 text-success"></i><br>¡Todo pagado! Eres libre.</div>';
         }
-    } catch (e) { div.innerHTML = 'Error cargar'; }
+    } catch (e) {
+        console.error(e);
+        contenedor.innerHTML = '<div class="text-danger p-3 text-center">Error al cargar datos</div>';
+    }
 }
 
 async function crearObligacion() {
