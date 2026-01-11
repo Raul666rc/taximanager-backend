@@ -88,6 +88,28 @@ class FinanzasController {
             res.status(500).json({ success: false, message: "Error al actualizar meta" });
         }
     }
+
+    static async registrarTransaccion(req, res) {
+        try {
+            const { tipo, monto, descripcion } = req.body;
+            
+            // Insertar en tabla transacciones
+            // Asegúrate de que tu tabla tenga las columnas: tipo, monto, descripcion, fecha
+            await db.query("INSERT INTO transacciones (tipo, monto, descripcion, fecha) VALUES (?, ?, ?, NOW())", 
+                [tipo, monto, descripcion]);
+
+            // Descontar o sumar a la CAJA CHICA (Efectivo) si es necesario
+            // Por simplicidad, asumimos que los gastos salen del EFECTIVO
+            if (tipo === 'GASTO') {
+                await db.query("UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE nombre = 'Efectivo'", [monto]);
+            }
+
+            res.json({ success: true, message: 'Registrado' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: 'Error al registrar' });
+        }
+    }
 }
 
 module.exports = FinanzasController;

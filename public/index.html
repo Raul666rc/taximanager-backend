@@ -127,15 +127,12 @@
         </div>
         
         <div class="row g-3">
-            <div class="col-6">
-                <button class="btn btn-outline-danger w-100 py-3 rounded-4" data-bs-toggle="modal" data-bs-target="#modalGasto">
-                    <i class="fas fa-gas-pump fa-2x mb-2"></i><br>Gasolina
-                </button>
-            </div>
-            <div class="col-6">
-                <button class="btn btn-outline-secondary w-100 py-3 rounded-4">
-                    <i class="fas fa-wrench fa-2x mb-2"></i><br>Mantenim.
-                </button>
+            <div class="row g-2 mt-2 mb-4">
+                <div class="col-12">
+                    <button class="btn btn-outline-danger w-100 py-2" data-bs-toggle="modal" data-bs-target="#modalGasto">
+                        <i class="fas fa-gas-pump me-2"></i> Registrar Salida de Dinero (Gasto)
+                    </button>
+                </div>
             </div>
             <div class="mt-4 mb-5">
                 <h6 class="text-muted text-uppercase small border-bottom border-secondary pb-2">
@@ -188,37 +185,51 @@
 
     <div class="modal fade" id="modalGasto" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-danger">
-                <div class="modal-header border-danger">
-                    <h5 class="modal-title text-danger"><i class="fas fa-gas-pump"></i> Registrar Gasto</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-danger"><i class="fas fa-wallet me-2"></i>Registrar Gasto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="form-label text-muted">Monto (S/.)</label>
-                    <input type="number" id="gastoMonto" class="form-control form-control-lg mb-3 border-danger text-danger" placeholder="0.00">
-
-                    <label class="form-label text-muted">Descripción</label>
-                    <select id="gastoDesc" class="form-select mb-3 bg-secondary text-white border-0">
-                        <option value="Gasolina GLP/GNV">⛽ Gasolina GLP/GNV</option>
-                        <option value="Almuerzo/Menu">🍛 Almuerzo / Menú</option>
-                        <option value="Lavado de Auto">💦 Lavado de Auto</option>
-                        <option value="Mecánico / Aceite">🔧 Mecánico / Aceite</option>
-                        <option value="Otros">📝 Otros</option>
-                    </select>
-
-                    <label class="form-label text-muted">¿De dónde pagaste?</label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="gastoPago" id="gastoPago1" checked>
-                        <label class="btn btn-outline-secondary" for="gastoPago1">Efectivo</label>
-
-                        <input type="radio" class="btn-check" name="gastoPago" id="gastoPago2">
-                        <label class="btn btn-outline-warning" for="gastoPago2">Yape</label>
+                    <p class="text-muted small text-center mb-3">Selecciona el concepto del gasto:</p>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoGas" value="Combustible" checked>
+                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoGas">
+                                <i class="fas fa-gas-pump text-warning fs-3 mb-2"></i><br>GLP / GNV
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoComida" value="Alimentación">
+                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoComida">
+                                <i class="fas fa-utensils text-success fs-3 mb-2"></i><br>Menu / Agua
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoTaller" value="Mantenimiento">
+                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoTaller">
+                                <i class="fas fa-tools text-info fs-3 mb-2"></i><br>Taller / Lavado
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoOtros" value="Otros">
+                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoOtros">
+                                <i class="fas fa-receipt text-danger fs-3 mb-2"></i><br>Otros / Papeletas
+                            </label>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-danger w-100 btn-lg" onclick="registrarGasto()">
-                        RESTAR DINERO
-                    </button>
+
+                    <div class="form-floating mb-3">
+                        <input type="number" class="form-control bg-dark text-white border-secondary" id="montoGasto" placeholder="0.00">
+                        <label for="montoGasto" class="text-muted">Monto (S/)</label>
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-danger btn-lg" onclick="guardarGasto()">
+                            GUARDAR GASTO <i class="fas fa-save ms-2"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

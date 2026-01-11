@@ -46,4 +46,6 @@ router.post('/meta', FinanzasController.actualizarMeta);
 // --- AGREGAR ESTO ---
 router.get('/reporte', ViajeController.descargarReporte);
 // --------------------
+
+router.post('/transaccion', FinanzasController.registrarTransaccion);
 module.exports = router;

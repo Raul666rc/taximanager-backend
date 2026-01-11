@@ -208,46 +208,51 @@ async function cargarResumenDia() {
     }
 }
 
-async function registrarGasto() {
-    const monto = document.getElementById('gastoMonto').value;
-    const descripcion = document.getElementById('gastoDesc').value;
+async function guardarGasto() {
+    const montoInput = document.getElementById('montoGasto');
+    const monto = parseFloat(montoInput.value);
     
-    const esYape = document.getElementById('gastoPago2').checked;
-    const cuentaId = esYape ? 2 : 1; // 1:Efectivo, 2:Yape
+    // Obtener qué botón de radio está marcado
+    const categoria = document.querySelector('input[name="tipoGasto"]:checked').value;
 
     if (!monto || monto <= 0) {
         alert("Ingresa un monto válido");
         return;
     }
 
-    try {
-        const datos = {
-            monto: parseFloat(monto),
-            descripcion: descripcion,
-            cuenta_id: cuentaId
-        };
+    // Desactivar botón para evitar doble click
+    const btnGuardar = document.querySelector('#modalGasto button.btn-danger');
+    const textoOriginal = btnGuardar.innerHTML;
+    btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btnGuardar.disabled = true;
 
-        const response = await fetch(`${API_URL}/gasto`, {
+    try {
+        // Reutilizamos el endpoint de transacciones que ya tenías
+        // Enviamos 'Gasto - Categoria' como descripción para que quede claro en el Excel
+        const response = await fetch(`${API_URL}/transaccion`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
+            body: JSON.stringify({
+                tipo: 'GASTO',
+                monto: monto,
+                descripcion: `Gasto - ${categoria}` // Ej: "Gasto - Combustible"
+            })
         });
 
         const resultado = await response.json();
 
         if (resultado.success) {
-            alert("💸 Gasto registrado: " + descripcion);
+            alert(`💸 Gasto de S/ ${monto} registrado en ${categoria}`);
             
-            // Cerrar modal
+            // Limpiar y Cerrar Modal
+            montoInput.value = '';
             var modalEl = document.getElementById('modalGasto');
             var modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
 
-            // Limpiar campo
-            document.getElementById('gastoMonto').value = '';
-
-            // Opcional: Podríamos recargar el resumen si mostráramos el saldo neto
-            // cargarResumenDia(); 
+            // Actualizar datos
+            cargarMetaDiaria(); // Si la meta fuera neta, esto bajaría (opcional)
+            // Si tuvieramos "Dinero en Mano", aquí se restaría.
         } else {
             alert("Error: " + resultado.message);
         }
@@ -255,6 +260,9 @@ async function registrarGasto() {
     } catch (error) {
         console.error(error);
         alert("Error de conexión");
+    } finally {
+        btnGuardar.innerHTML = textoOriginal;
+        btnGuardar.disabled = false;
     }
 }
 
