@@ -109,10 +109,8 @@
                         </label>
                     </div>
                 </div>
-
-                <div class="form-floating">
-                    <input type="text" class="form-control bg-dark text-white border-secondary" id="inputOrigen" placeholder="Ej: Av. Larco 123">
-                    <label for="inputOrigen" class="text-muted">📍 Dirección de Origen (Opcional)</label>
+                <div id="infoDireccionAuto" class="text-info small fst-italic d-none">
+                    <i class="fas fa-satellite-dish fa-spin me-1"></i> Detectando dirección...
                 </div>
             </div>
 
@@ -177,9 +175,6 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="form-label text-muted small">Destino (Opcional)</label>
-                    <input type="text" id="inputDestino" class="form-control mb-3 bg-black text-white border-secondary" placeholder="Ej: Aeropuerto">
-
                     <label class="form-label text-muted small">Monto Total (S/.)</label>
                     <input type="number" class="form-control form-control-lg mb-4 bg-black text-white border-success fw-bold text-center" placeholder="0.00">
 

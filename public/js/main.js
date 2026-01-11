@@ -14,6 +14,35 @@ let miGrafico = null;
 let miGraficoBarras = null;
 
 // --- UTILIDADES ---
+// Función para convertir GPS a Texto (Calle/Avenida) GRATIS
+async function obtenerDireccionGPS(lat, lng) {
+    try {
+        // Usamos la API de OpenStreetMap (Nominatim)
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+        
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'TaxiManagerApp/1.0' } // Es buena práctica identificarse
+        });
+        const data = await response.json();
+
+        if (data && data.address) {
+            // Tratamos de armar una dirección corta y útil
+            const calle = data.address.road || data.address.pedestrian || '';
+            const numero = data.address.house_number || '';
+            const barrio = data.address.neighbourhood || data.address.suburb || '';
+            
+            // Ej: "Av. Arequipa 500, Lince"
+            let direccion = `${calle} ${numero}`.trim();
+            if (barrio) direccion += `, ${barrio}`;
+            
+            return direccion || "Dirección desconocida";
+        }
+        return "Ubicación sin nombre";
+    } catch (error) {
+        console.error("Error obteniendo dirección:", error);
+        return "Error GPS Red"; // Si falla internet, guardamos esto
+    }
+}
 // Función matemática para calcular distancia entre dos coordenadas (Haversine)
 function calcularDistancia(lat1, lon1, lat2, lon2) {
     if(!lat1 || !lat2) return 0;
@@ -53,26 +82,32 @@ async function iniciarCarrera() {
 
     const appSeleccionada = document.querySelector('input[name="appOrigen"]:checked').value;
     
-    // NUEVO: Capturar dirección escrita si existe (Asumiendo que tienes un input con id 'inputOrigen')
-    const origenTexto = document.getElementById('inputOrigen')?.value || '';
-
     const btn = document.getElementById('btnIniciar');
     const textoOriginal = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> GPS...';
+    
+    // Feedback visual
+    btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Detectando Calle...';
     btn.disabled = true;
 
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             try {
-                // Guardamos coordenadas de inicio para calcular distancia después
-                viajeInicioCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                // 1. GUARDAR INICIO PARA CÁLCULOS
+                viajeInicioCoords = { lat, lng };
                 viajeInicioTime = new Date();
+
+                // 2. ¡MAGIA! OBTENER NOMBRE DE LA CALLE AUTOMÁTICAMENTE
+                const direccionDetectada = await obtenerDireccionGPS(lat, lng);
+                console.log("Origen detectado:", direccionDetectada);
 
                 const datos = {
                     origen_tipo: appSeleccionada,
-                    origen_texto: origenTexto, // <--- ENVIAMOS DIRECCIÓN ESCRITA
-                    lat: position.coords.latitude, 
-                    lng: position.coords.longitude
+                    origen_texto: direccionDetectada, // <--- Enviamos lo que detectó el satélite
+                    lat: lat, 
+                    lng: lng
                 };
 
                 const response = await fetch(`${API_URL}/iniciar`, {
@@ -86,6 +121,10 @@ async function iniciarCarrera() {
                 if (resultado.success) {
                     viajeActualId = resultado.data.id_viaje;
                     document.getElementById('selectorApps').classList.add('d-none');
+                    
+                    // Opcional: Mostrar un toast o alerta pequeña de dónde estás
+                    // alert(`Carrera iniciada en: ${direccionDetectada}`); 
+                    
                     mostrarPanelCarrera();
                 } else {
                     alert("Error: " + resultado.message);
@@ -137,15 +176,13 @@ async function guardarCarrera() {
     const montoInput = document.querySelector('#modalCobrar input[type="number"]').value;
     const esYape = document.getElementById('pago2').checked; 
     const metodoId = esYape ? 2 : 1;
-    
-    // NUEVO: Capturar destino escrito (si agregaste el input en el modal)
-    const destinoTexto = document.getElementById('inputDestino')?.value || '';
 
     if (!montoInput || montoInput <= 0) return alert("Ingresa un monto válido");
 
     const btnCobrar = document.querySelector('#modalCobrar .btn-success');
+    const textoBtn = btnCobrar.innerText;
     btnCobrar.disabled = true;
-    btnCobrar.innerText = "Procesando...";
+    btnCobrar.innerHTML = '<i class="fas fa-sync fa-spin"></i> Finalizando...';
 
     // Obtenemos GPS Final
     navigator.geolocation.getCurrentPosition(async (position) => {
@@ -153,7 +190,7 @@ async function guardarCarrera() {
             const latFin = position.coords.latitude;
             const lngFin = position.coords.longitude;
 
-            // CÁLCULOS AUTOMÁTICOS
+            // 1. CÁLCULOS AUTOMÁTICOS DE DISTANCIA/TIEMPO
             let distancia = 0;
             if (viajeInicioCoords) {
                 distancia = calcularDistancia(viajeInicioCoords.lat, viajeInicioCoords.lng, latFin, lngFin);
@@ -162,8 +199,12 @@ async function guardarCarrera() {
             let duracion = 0;
             if (viajeInicioTime) {
                 const diffMs = new Date() - viajeInicioTime;
-                duracion = Math.floor(diffMs / 60000); // Convertir a minutos
+                duracion = Math.floor(diffMs / 60000); 
             }
+
+            // 2. ¡MAGIA! DETECTAR DESTINO AUTOMÁTICAMENTE
+            const destinoDetectado = await obtenerDireccionGPS(latFin, lngFin);
+            console.log("Destino detectado:", destinoDetectado);
 
             const datos = {
                 id_viaje: viajeActualId,
@@ -171,13 +212,12 @@ async function guardarCarrera() {
                 metodo_pago_id: metodoId,
                 lat: latFin,
                 lng: lngFin,
-                // NUEVOS CAMPOS V3.0
                 distancia_km: distancia,
                 duracion_min: duracion,
-                destino_texto: destinoTexto
+                destino_texto: destinoDetectado // <--- Enviamos la calle detectada
             };
 
-            const response = await fetch(`${API_URL}/finalizar`, { // Asegúrate que la ruta en router sea /finalizar
+            const response = await fetch(`${API_URL}/finalizar`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(datos)
@@ -186,7 +226,8 @@ async function guardarCarrera() {
             const resultado = await response.json();
 
             if (resultado.success) {
-                alert(`💰 Cobrado S/${montoInput}. Distancia: ${distancia}km.`);
+                // Mensaje informativo bonito
+                alert(`✅ Completado\n🏁 Destino: ${destinoDetectado}\n📏 Distancia: ${distancia} km\n⏱️ Tiempo: ${duracion} min`);
                 
                 var modal = bootstrap.Modal.getInstance(document.getElementById('modalCobrar'));
                 modal.hide();
@@ -204,7 +245,7 @@ async function guardarCarrera() {
             alert("Error al cobrar");
         } finally {
             btnCobrar.disabled = false;
-            btnCobrar.innerText = "COBRAR E INICIAR NUEVA";
+            btnCobrar.innerText = textoBtn;
         }
     });
 }
