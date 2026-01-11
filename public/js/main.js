@@ -658,6 +658,13 @@ async function ejecutarTransferencia() {
             })
         });
 
+        // --- AGREGAR ESTO PARA DIAGNÓSTICO ---
+        if (!response.ok) {
+            const textoError = await response.text();
+            throw new Error(`Servidor respondió: ${response.status} - ${textoError}`);
+        }
+        // -------------------------------------
+
         const resultado = await response.json();
 
         if (resultado.success) {
@@ -673,8 +680,9 @@ async function ejecutarTransferencia() {
         }
 
     } catch (error) {
-        console.error(error);
-        alert("Error de conexión");
+        console.error("Error detallado:", error);
+        // Esto nos mostrará si es un error de código o de red
+        alert("⚠️ Fallo: " + error.message);
     }
 }
 
