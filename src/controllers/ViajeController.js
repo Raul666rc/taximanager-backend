@@ -164,39 +164,32 @@ class ViajeController {
     // Acción: Descargar Reporte Excel (CSV)
     static async descargarReporte(req, res) {
         try {
-            // 1. Consultamos TODOS los viajes completados
-            const query = `
-                SELECT 
-                    id, 
-                    origen_tipo as App, 
-                    monto_cobrado as Monto, 
-                    DATE_FORMAT(DATE_SUB(fecha_hora_inicio, INTERVAL 5 HOUR), '%Y-%m-%d %H:%i:%s') as Inicio,
-                    DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%Y-%m-%d %H:%i:%s') as Fin,
-                    CASE WHEN metodo_cobro_id = 1 THEN 'Efectivo' ELSE 'Yape' END as Pago,
-                    estado
-                FROM viajes 
-                WHERE estado = 'COMPLETADO'
-                ORDER BY id DESC
-            `;
-            const [viajes] = await db.query(query);
+            // 1. Pedimos los datos al Modelo (que sí sabe hablar con la BD)
+            const viajes = await ViajeModel.obtenerReporteCompleto();
 
-            // 2. Construimos el archivo CSV texto a texto
-            // Encabezados
+            // 2. Armamos el CSV (Texto plano)
             let csv = "ID,APP,MONTO,INICIO,FIN,METODO PAGO,ESTADO\n";
 
-            // Filas
             viajes.forEach(v => {
-                csv += `${v.id},${v.App},${v.Monto},${v.Inicio},${v.Fin},${v.Pago},${v.estado}\n`;
+                // Aseguramos que los datos no sean null para que no rompa
+                const app = v.App || 'DESCONOCIDO';
+                const monto = v.Monto || 0;
+                const inicio = v.Inicio || '';
+                const fin = v.Fin || '';
+                const pago = v.Pago || 'Efectivo';
+                const estado = v.estado || '';
+
+                csv += `${v.id},${app},${monto},${inicio},${fin},${pago},${estado}\n`;
             });
 
-            // 3. Enviamos el archivo al navegador
+            // 3. Enviamos
             res.header('Content-Type', 'text/csv');
             res.header('Content-Disposition', 'attachment; filename="reporte_taxi.csv"');
-            res.send(csv);
+            res.status(200).send(csv);
 
         } catch (error) {
-            console.error(error);
-            res.status(500).send("Error al generar reporte");
+            console.error("Error reporte:", error); // Esto te ayudará a ver errores en el log de Railway
+            res.status(500).send("Error al generar reporte: " + error.message);
         }
     }
 }

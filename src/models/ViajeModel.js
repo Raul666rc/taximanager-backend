@@ -128,6 +128,25 @@ class ViajeModel {
         const [rows] = await db.query(query);
         return rows;
     }
+
+    static async obtenerReporteCompleto() {
+        // Aquí sí tenemos acceso a 'db'
+        const query = `
+            SELECT 
+                id, 
+                origen_tipo as App, 
+                monto_cobrado as Monto, 
+                DATE_FORMAT(DATE_SUB(fecha_hora_inicio, INTERVAL 5 HOUR), '%Y-%m-%d %H:%i:%s') as Inicio,
+                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%Y-%m-%d %H:%i:%s') as Fin,
+                CASE WHEN metodo_cobro_id = 1 THEN 'Efectivo' ELSE 'Yape' END as Pago,
+                estado
+            FROM viajes 
+            WHERE estado = 'COMPLETADO'
+            ORDER BY id DESC
+        `;
+        const [rows] = await db.query(query);
+        return rows;
+    }
 }
 
 module.exports = ViajeModel;
