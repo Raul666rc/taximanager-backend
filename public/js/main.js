@@ -686,6 +686,52 @@ async function ejecutarTransferencia() {
     }
 }
 
+function calcularRepartoBabilonia() {
+    // 1. Preguntar cuánto fue la Producción Bruta del día
+    const ingresoTotal = prompt("¿Cuánto fue la producción TOTAL de hoy? (S/)", "200");
+    if (!ingresoTotal || isNaN(ingresoTotal)) return;
+
+    const total = parseFloat(ingresoTotal);
+
+    // 2. Aplicar la Regla 10 - 10 - 80
+    const pagoPersonal = total * 0.10; // 10% Para ti (Gasto libre)
+    const ahorroRiqueza = total * 0.10; // 10% Ahorro (Warda Arca)
+    const operativo = total * 0.80;    // 80% Gastos/Deuda/Auto
+
+    // 3. Desglose del 80% Operativo (Ajustable según tus prioridades actuales)
+    // De esos S/ 160 (el 80%), ¿cómo los repartimos?
+    // Sugerencia: 
+    // - Gasolina/Comida se come una gran parte (digamos S/ 60 aprox fijo o un % real)
+    // - El resto va a Mantenimiento y Deuda.
+    
+    // Para simplificar la recomendación visual:
+    const paraMantenimiento = operativo * 0.20; // Un 20% del operativo para el auto
+    const paraDeuda = operativo * 0.30;         // Un 30% del operativo para la deuda
+    const paraGasolinaYVida = operativo * 0.50; // El resto queda en efectivo para trabajar mañana
+
+    // 4. Mostrar el Plan de Acción
+    const mensaje = `
+    🏛️ PLAN DE REPARTO (10-10-80):
+    
+    👑 10% PÁGATE A TI MISMO: S/ ${pagoPersonal.toFixed(2)}
+    (Déjalo en Yape/Bolsillo y disfrútalo)
+
+    💰 10% AHORRO (ARCA): S/ ${ahorroRiqueza.toFixed(2)}
+    (Transfiere a Warda - Arca)
+
+    🚜 80% OPERACIÓN (S/ ${operativo.toFixed(2)}):
+       - ⛽ Gasolina/Comida (Se queda): S/ ${paraGasolinaYVida.toFixed(2)}
+       - 🛠️ Warda Taller: S/ ${paraMantenimiento.toFixed(2)}
+       - 📉 Warda Deuda: S/ ${paraDeuda.toFixed(2)}
+    
+    ¿Deseas abrir la ventana de transferencias ahora?
+    `;
+
+    if (confirm(mensaje)) {
+        abrirModalTransferencia();
+    }
+}
+
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();
