@@ -63,6 +63,7 @@ class ViajeModel {
         return rows[0].total || 0;
     }
 
+    // 1. VERSIÓN MEJORADA: Trae las últimas 20 carreras (siempre muestra algo)
     static async obtenerHistorialHoy() {
         const query = `
             SELECT 
@@ -70,11 +71,13 @@ class ViajeModel {
                 origen_tipo, 
                 monto_cobrado, 
                 metodo_cobro_id, 
-                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%h:%i %p') as hora_fin
+                fecha_hora_fin, /* Traemos la fecha cruda para filtrar en JS si queremos */
+                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%h:%i %p') as hora_fin,
+                DATE_FORMAT(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR), '%d/%m') as dia_mes
             FROM viajes 
-            WHERE DATE(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR)) 
-            AND estado = 'COMPLETADO'
+            WHERE estado = 'COMPLETADO'
             ORDER BY id DESC
+            LIMIT 20
         `;
         const [rows] = await db.query(query);
         return rows;
@@ -148,25 +151,40 @@ class ViajeModel {
         return rows;
     }
 
+    // 2. VERSIÓN MEJORADA: Gráfico Semanal (Más flexible)
     static async obtenerGananciasUltimos7Dias() {
-        // Esta consulta es mágica:
-        // 1. Agrupa por FECHA.
-        // 2. Ordena cronológicamente.
-        // 3. Muestra el nombre del día (Lunes, Martes...) en español si el servidor está configurado, 
-        //    sino lo traduciremos en JS.
-        const query = `
-            SELECT 
-                DATE(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) as fecha,
-                DAYNAME(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) as dia_nombre,
-                SUM(monto_cobrado) as total
-            FROM viajes
-            WHERE estado = 'COMPLETADO'
-            AND fecha_hora_fin >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-            GROUP BY fecha
-            ORDER BY fecha ASC
-        `;
-        const [rows] = await db.query(query);
-        return rows;
+        try {
+            const query = `
+                SELECT 
+                    DATE(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) as fecha,
+                    SUM(monto_cobrado) as total
+                FROM viajes
+                WHERE estado = 'COMPLETADO'
+                GROUP BY fecha
+                ORDER BY fecha DESC
+                LIMIT 7
+            `;
+            const [rows] = await db.query(query);
+            
+            // Invertimos el orden para que el gráfico vaya de Lunes -> Domingo (No al revés)
+            // Y formateamos el nombre del día
+            const resultados = rows.reverse().map(r => {
+                const fechaObj = new Date(r.fecha);
+                // Truco: Forzamos la zona horaria para que el nombre del día sea correcto
+                fechaObj.setMinutes(fechaObj.getMinutes() + fechaObj.getTimezoneOffset());
+                
+                const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+                return {
+                    dia_nombre: dias[fechaObj.getDay()],
+                    total: parseFloat(r.total)
+                };
+            });
+            
+            return resultados;
+        } catch (error) {
+            console.error(error);
+            return [];
+        }
     }
 }
 

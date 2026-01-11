@@ -434,7 +434,7 @@ async function cargarHistorial() {
                                 <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
                             </div>
                             <div class="text-info small fw-bold" style="font-size: 0.8rem;">
-                                <i class="far fa-clock me-1"></i>${viaje.hora_fin || '--:--'}
+                                <i class="far fa-clock me-1"></i>${viaje.hora_fin} <span class="text-muted ms-1">(${viaje.dia_mes})</span>
                             </div>
                         </div>
 
@@ -494,56 +494,55 @@ function cerrarSesion() {
 
 async function cargarMetaDiaria() {
     try {
-        // Pedimos los datos (aprovechamos que el endpoint de billetera ya trae todo, 
-        // pero para ser más eficientes, sería mejor pedir solo lo de hoy. 
-        // Por ahora, para no complicar, usaremos el historial que ya cargamos).
-        
-        // 1. Calcular Ganancia de HOY sumando el historial que ya tenemos en pantalla
-        // (Esto es un truco para no hacer otra petición al servidor)
+        // 1. Traemos el historial (que ahora trae las últimas 20)
         const response = await fetch(`${API_URL}/historial`);
         const resultado = await response.json();
         
         let gananciaHoy = 0;
+        
         if (resultado.success) {
-            // Sumar todos los montos de la lista
-            gananciaHoy = resultado.data.reduce((sum, viaje) => sum + parseFloat(viaje.monto_cobrado), 0);
+            // --- FILTRO INTELIGENTE ---
+            // Obtenemos la fecha de "Hoy" en formato DD/MM (ej: "11/01")
+            const hoy = new Date();
+            const dia = String(hoy.getDate()).padStart(2, '0');
+            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+            const fechaHoyTexto = `${dia}/${mes}`;
+
+            // Sumamos SOLO las carreras que coincidan con la fecha de hoy
+            gananciaHoy = resultado.data.reduce((sum, viaje) => {
+                // viaje.dia_mes viene del SQL (ej: "11/01")
+                if (viaje.dia_mes === fechaHoyTexto) {
+                    return sum + parseFloat(viaje.monto_cobrado);
+                }
+                return sum;
+            }, 0);
         }
 
-        // 2. Pedir la Meta (podemos usar el endpoint de billetera o crear uno simple, 
-        // pero para rápido, vamos a hardcodear la meta visualmente o pedirla a billetera)
-        // MEJOR OPCIÓN: Llamar a billetera para sacar la meta real de la BD
+        // 2. Pedimos la Meta
         const respBilletera = await fetch(`${API_URL}/billetera?periodo=hoy`);
         const resBilletera = await respBilletera.json();
         const meta = parseFloat(resBilletera.data.meta_diaria) || 200;
 
-        // 3. Calcular Porcentajes
+        // 3. Pintamos la barra (Igual que antes)
         let porcentaje = (gananciaHoy / meta) * 100;
         if (porcentaje > 100) porcentaje = 100;
 
-        // 4. Pintar la Barra
         document.getElementById('txtProgreso').innerText = `S/ ${gananciaHoy.toFixed(0)} / ${meta}`;
         document.getElementById('txtPorcentaje').innerText = `${porcentaje.toFixed(0)}%`;
-        
         const barra = document.getElementById('barraMeta');
         barra.style.width = `${porcentaje}%`;
 
-        // 5. Cambiar colores y frases según avance
+        // Colores
         const frase = document.getElementById('fraseMotivacional');
-        
         if (porcentaje < 20) {
-            barra.classList.remove('bg-success');
-            barra.classList.add('bg-warning');
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold';
             frase.innerText = "☕ Calentando motores...";
-        } else if (porcentaje < 50) {
-            frase.innerText = "🚕 ¡Buen ritmo! Vamos por la mitad.";
         } else if (porcentaje < 80) {
-            barra.classList.remove('bg-warning');
-            barra.classList.add('bg-info');
-            frase.innerText = "🔥 ¡Ya falta poco!";
-        } else if (porcentaje >= 100) {
-            barra.classList.remove('bg-info', 'bg-warning');
-            barra.classList.add('bg-success');
-            frase.innerText = "🎉 ¡META CUMPLIDA! Todo extra es ganancia pura.";
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated bg-info text-dark fw-bold';
+            frase.innerText = "🚕 Buen ritmo.";
+        } else {
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated bg-success fw-bold';
+            frase.innerText = "🎉 ¡META CUMPLIDA!";
         }
 
     } catch (error) {
