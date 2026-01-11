@@ -1,4 +1,4 @@
-// src/controllers/AuthController.js
+// UBICACIÓN: src/controllers/AuthController.js
 const db = require('../config/db');
 
 class AuthController {
@@ -8,6 +8,8 @@ class AuthController {
             const { username, password } = req.body;
 
             // Buscamos al usuario
+            // Nota: En un futuro, aquí deberíamos encriptar la contraseña, 
+            // pero para tu uso personal funciona bien así.
             const query = "SELECT * FROM usuarios WHERE username = ? AND password = ?";
             const [rows] = await db.query(query, [username, password]);
 
@@ -17,7 +19,9 @@ class AuthController {
                     success: true, 
                     user: { 
                         id: rows[0].id, 
-                        nombre: rows[0].nombre 
+                        nombre: rows[0].nombre,
+                        // AGREGADO: Enviamos la meta para que la App la sepa al instante
+                        meta_diaria: rows[0].meta_diaria || 200 
                     } 
                 });
             } else {

@@ -53,8 +53,9 @@ router.post('/transaccion', FinanzasController.registrarTransaccion);
 router.post('/transferir', FinanzasController.realizarTransferencia);
 // --------------------
 
-router.get('/obligaciones', FinanzasController.obtenerObligaciones);
-router.post('/obligaciones', FinanzasController.crearObligacion);
+// RUTAS ACTUALIZADAS
+router.get('/obligaciones', FinanzasController.obtenerObligaciones); // (Asegúrate de tener este método en el Controller, es igual al anterior)
+router.post('/compromisos', FinanzasController.crearCompromiso);     // <--- Cambio de nombre
 router.post('/obligaciones/pagar', FinanzasController.pagarObligacion);
 
 module.exports = router;

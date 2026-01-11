@@ -2,71 +2,75 @@
 
 // --- 1. VERIFICACIÓN DE SEGURIDAD ---
 const usuarioLogueado = localStorage.getItem('taxi_user');
+if (!usuarioLogueado) window.location.href = 'login.html';
 
-if (!usuarioLogueado) {
-    // Si no tiene la llave, ¡fuera de aquí!
-    window.location.href = 'login.html';
-}
-// ------------------------------------
-
-// ANTES:
-// const API_URL = 'http://localhost:3000/api/viajes';
-
-// AHORA (Borrale el dominio, deja solo la carpeta):
 const API_URL = '/api/viajes';
+
+// VARIABLES GLOBALES
 let viajeActualId = null; 
-let miGrafico = null; // Variable global para controlar el gráfico
+let viajeInicioCoords = null; // Para calcular distancia
+let viajeInicioTime = null;   // Para calcular duración
+let miGrafico = null; 
 let miGraficoBarras = null;
 
-let cuentasCache = [];
+// --- UTILIDADES ---
+// Función matemática para calcular distancia entre dos coordenadas (Haversine)
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+    if(!lat1 || !lat2) return 0;
+    const R = 6371; // Radio de la tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return (R * c).toFixed(2); // Retorna Km con 2 decimales
+}
 
-// --- FUNCIONES DE LA INTERFAZ (UI) ---
-
+// --- UI ---
 function mostrarPanelCarrera() {
     document.getElementById('btnIniciar').classList.add('d-none');
     document.getElementById('panelEnCarrera').classList.remove('d-none');
+    // Mostrar hora de inicio
+    document.getElementById('txtCronometro').innerText = "En curso: " + new Date().toLocaleTimeString();
 }
 
 function mostrarPanelInicio() {
     document.getElementById('panelEnCarrera').classList.add('d-none');
     document.getElementById('btnIniciar').classList.remove('d-none');
-
-    // --- AGREGAR ESTO: Volver a mostrar el selector de Apps ---
     const selector = document.getElementById('selectorApps');
     if(selector) selector.classList.remove('d-none');
-    // ----------------------------------------------------------
-
-    // Limpiar input y variables
+    
     document.querySelector('#modalCobrar input[type="number"]').value = '';
     viajeActualId = null;
+    viajeInicioCoords = null;
 }
 
-// --- FUNCIONES DE CONEXIÓN CON EL SERVIDOR (BACKEND) ---
-
-// 1. INICIAR CARRERA
-// EN: public/js/main.js
-
+// ==========================================
+// 1. INICIAR CARRERA (V3.0 con Texto y GPS)
+// ==========================================
 async function iniciarCarrera() {
-    if (!navigator.geolocation) {
-        alert("Tu navegador no soporta GPS");
-        return;
-    }
+    if (!navigator.geolocation) return alert("Tu navegador no soporta GPS");
 
-    // --- NUEVO: OBTENER LA APP SELECCIONADA ---
-    // Buscamos cuál radio button tiene la propiedad "checked"
     const appSeleccionada = document.querySelector('input[name="appOrigen"]:checked').value;
-    // ------------------------------------------
+    
+    // NUEVO: Capturar dirección escrita si existe (Asumiendo que tienes un input con id 'inputOrigen')
+    const origenTexto = document.getElementById('inputOrigen')?.value || '';
 
     const btn = document.getElementById('btnIniciar');
     const textoOriginal = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Buscando GPS...';
+    btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> GPS...';
     btn.disabled = true;
 
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             try {
+                // Guardamos coordenadas de inicio para calcular distancia después
+                viajeInicioCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+                viajeInicioTime = new Date();
+
                 const datos = {
-                    origen_tipo: appSeleccionada, // <--- AQUÍ ENVIAMOS EL DATO (Antes decía 'CALLE')
+                    origen_tipo: appSeleccionada,
+                    origen_texto: origenTexto, // <--- ENVIAMOS DIRECCIÓN ESCRITA
                     lat: position.coords.latitude, 
                     lng: position.coords.longitude
                 };
@@ -81,10 +85,7 @@ async function iniciarCarrera() {
 
                 if (resultado.success) {
                     viajeActualId = resultado.data.id_viaje;
-                    
-                    // Ocultamos el selector cuando arranca la carrera (para que no estorbe)
                     document.getElementById('selectorApps').classList.add('d-none');
-                    
                     mostrarPanelCarrera();
                 } else {
                     alert("Error: " + resultado.message);
@@ -99,7 +100,7 @@ async function iniciarCarrera() {
             }
         },
         (error) => {
-            alert("⚠️ Error de GPS: " + error.message);
+            alert("⚠️ Error GPS: " + error.message);
             btn.innerHTML = textoOriginal;
             btn.disabled = false;
         },
@@ -110,761 +111,501 @@ async function iniciarCarrera() {
 // 2. REGISTRAR PARADA
 async function registrarParada() {
     if (!viajeActualId) return;
-
-    try {
-        const datos = {
-            id_viaje: viajeActualId,
-            lat: -13.165000, 
-            lng: -74.225000,
-            tipo: 'PARADA'
-        };
-
-        await fetch(`${API_URL}/parada`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
-        });
-        
-        alert("📍 Parada registrada");
-
-    } catch (error) {
-        console.error(error);
-    }
+    
+    // Usamos GPS real para la parada
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+            await fetch(`${API_URL}/parada`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_viaje: viajeActualId,
+                    lat: position.coords.latitude, 
+                    lng: position.coords.longitude,
+                    tipo: 'PARADA'
+                })
+            });
+            alert("📍 Parada registrada");
+        } catch (e) { console.error(e); }
+    });
 }
 
-// 3. FINALIZAR Y COBRAR
+// ==========================================
+// 3. FINALIZAR Y COBRAR (V3.0 Completo)
+// ==========================================
 async function guardarCarrera() {
     const montoInput = document.querySelector('#modalCobrar input[type="number"]').value;
-    
-    // Detectar pago
     const esYape = document.getElementById('pago2').checked; 
-    const metodoId = esYape ? 2 : 1; // 1:Efectivo, 2:Yape/Plin (Según tu BD)
+    const metodoId = esYape ? 2 : 1;
+    
+    // NUEVO: Capturar destino escrito (si agregaste el input en el modal)
+    const destinoTexto = document.getElementById('inputDestino')?.value || '';
 
-    if (!montoInput || montoInput <= 0) {
-        alert("Ingresa un monto válido");
-        return;
-    }
+    if (!montoInput || montoInput <= 0) return alert("Ingresa un monto válido");
 
-    try {
-        const datos = {
-            id_viaje: viajeActualId,
-            monto: parseFloat(montoInput),
-            metodo_pago_id: metodoId,
-            lat: -13.170000,
-            lng: -74.230000
-        };
+    const btnCobrar = document.querySelector('#modalCobrar .btn-success');
+    btnCobrar.disabled = true;
+    btnCobrar.innerText = "Procesando...";
 
-        const response = await fetch(`${API_URL}/finalizar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
-        });
+    // Obtenemos GPS Final
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+            const latFin = position.coords.latitude;
+            const lngFin = position.coords.longitude;
 
-        const resultado = await response.json();
-
-        if (resultado.success) {
-            alert("💰 ¡Cobrado! Dinero distribuido automáticamente.");
+            // CÁLCULOS AUTOMÁTICOS
+            let distancia = 0;
+            if (viajeInicioCoords) {
+                distancia = calcularDistancia(viajeInicioCoords.lat, viajeInicioCoords.lng, latFin, lngFin);
+            }
             
-            // Cerrar modal usando Bootstrap
-            var modalEl = document.getElementById('modalCobrar');
-            var modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
+            let duracion = 0;
+            if (viajeInicioTime) {
+                const diffMs = new Date() - viajeInicioTime;
+                duracion = Math.floor(diffMs / 60000); // Convertir a minutos
+            }
 
-            mostrarPanelInicio();
-            cargarHistorial();
-            cargarResumenDia();
-            cargarMetaDiaria(); 
+            const datos = {
+                id_viaje: viajeActualId,
+                monto: parseFloat(montoInput),
+                metodo_pago_id: metodoId,
+                lat: latFin,
+                lng: lngFin,
+                // NUEVOS CAMPOS V3.0
+                distancia_km: distancia,
+                duracion_min: duracion,
+                destino_texto: destinoTexto
+            };
 
-        } else {
-            alert("Error al cobrar: " + resultado.message);
+            const response = await fetch(`${API_URL}/finalizar`, { // Asegúrate que la ruta en router sea /finalizar
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+
+            const resultado = await response.json();
+
+            if (resultado.success) {
+                alert(`💰 Cobrado S/${montoInput}. Distancia: ${distancia}km.`);
+                
+                var modal = bootstrap.Modal.getInstance(document.getElementById('modalCobrar'));
+                modal.hide();
+
+                mostrarPanelInicio();
+                cargarHistorial();
+                cargarResumenDia();
+                cargarMetaDiaria(); 
+            } else {
+                alert("Error: " + resultado.message);
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("Error al cobrar");
+        } finally {
+            btnCobrar.disabled = false;
+            btnCobrar.innerText = "COBRAR E INICIAR NUEVA";
         }
-
-    } catch (error) {
-        console.error(error);
-        alert("Error de conexión al cobrar");
-    }
+    });
 }
+
+// --- CARGA DE DATOS ---
 
 async function cargarResumenDia() {
     try {
         const response = await fetch(`${API_URL}/resumen`);
         const resultado = await response.json();
-        
         if (resultado.success) {
-            // Buscamos el elemento H1 donde va el dinero
-            const etiqueta = document.getElementById('gananciaDia');
-            // Formateamos a soles (ej: S/ 15.50)
-            etiqueta.innerText = `S/ ${parseFloat(resultado.total).toFixed(2)}`;
-            
-            // Lógica visual de la barra de progreso (Meta: 160 soles)
-            const porcentaje = (resultado.total / 160) * 100;
-            const barra = document.querySelector('.progress-bar');
-            barra.style.width = `${porcentaje}%`;
-            
-            // Si pasas la meta, se pone verde
-            if(porcentaje >= 100) {
-                barra.classList.remove('bg-warning');
-                barra.classList.add('bg-success');
-            }
+            document.getElementById('gananciaDia').innerText = `S/ ${parseFloat(resultado.total).toFixed(2)}`;
         }
-    } catch (error) {
-        console.error("Error cargando resumen:", error);
-    }
-}
-
-async function guardarGasto() {
-    const montoInput = document.getElementById('montoGasto');
-    const monto = parseFloat(montoInput.value);
-    
-    // Obtener qué botón de radio está marcado
-    const categoria = document.querySelector('input[name="tipoGasto"]:checked').value;
-
-    if (!monto || monto <= 0) {
-        alert("Ingresa un monto válido");
-        return;
-    }
-
-    // Desactivar botón para evitar doble click
-    const btnGuardar = document.querySelector('#modalGasto button.btn-danger');
-    const textoOriginal = btnGuardar.innerHTML;
-    btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-    btnGuardar.disabled = true;
-
-    try {
-        // Reutilizamos el endpoint de transacciones que ya tenías
-        // Enviamos 'Gasto - Categoria' como descripción para que quede claro en el Excel
-        const response = await fetch(`${API_URL}/transaccion`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                tipo: 'GASTO',
-                monto: monto,
-                descripcion: `Gasto - ${categoria}` // Ej: "Gasto - Combustible"
-            })
-        });
-
-        const resultado = await response.json();
-
-        if (resultado.success) {
-            alert(`💸 Gasto de S/ ${monto} registrado en ${categoria}`);
-            
-            // Limpiar y Cerrar Modal
-            montoInput.value = '';
-            var modalEl = document.getElementById('modalGasto');
-            var modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
-
-            // Actualizar datos
-            cargarMetaDiaria(); // Si la meta fuera neta, esto bajaría (opcional)
-            // Si tuvieramos "Dinero en Mano", aquí se restaría.
-        } else {
-            alert("Error: " + resultado.message);
-        }
-
-    } catch (error) {
-        console.error(error);
-        alert("Error de conexión");
-    } finally {
-        btnGuardar.innerHTML = textoOriginal;
-        btnGuardar.disabled = false;
-    }
-}
-
-
-async function abrirBilletera(periodo = 'mes') {
-    try {
-        const response = await fetch(`${API_URL}/billetera?periodo=${periodo}`);
-        const resultado = await response.json();
-
-        if (resultado.success) {
-            const data = resultado.data;
-
-            // 1. LLENAR TEXTOS
-            document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
-            const cuentaEfectivo = data.cuentas.find(c => c.nombre.includes('Efectivo')) || { saldo_actual: 0 };
-            const cuentaYape = data.cuentas.find(c => c.nombre.includes('Yape')) || { saldo_actual: 0 };
-            document.getElementById('txtEfectivo').innerText = `S/ ${parseFloat(cuentaEfectivo.saldo_actual).toFixed(2)}`;
-            document.getElementById('txtYape').innerText = `S/ ${parseFloat(cuentaYape.saldo_actual).toFixed(2)}`;
-            document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
-
-            // ==========================================
-            //       GRÁFICO 1: DONA (APPS)
-            // ==========================================
-            const ctx = document.getElementById('graficoApps').getContext('2d');
-            
-            if (miGrafico) miGrafico.destroy();
-
-            let etiquetas = [];
-            let valores = [];
-            let coloresFondo = [];
-
-            if (data.estadisticas.length > 0) {
-                etiquetas = data.estadisticas.map(e => e.origen_tipo);
-                valores = data.estadisticas.map(e => e.total);
-                coloresFondo = etiquetas.map(nombre => {
-                    if(nombre === 'INDRIVER') return '#198754';
-                    if(nombre === 'UBER') return '#f8f9fa';
-                    if(nombre === 'CALLE') return '#ffc107';
-                    return '#6c757d';
-                });
-            } else {
-                etiquetas = ['Sin datos']; valores = [1]; coloresFondo = ['#333'];
-            }
-
-            miGrafico = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: etiquetas,
-                    datasets: [{
-                        data: valores,
-                        backgroundColor: coloresFondo,
-                        borderColor: '#000',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { color: 'white', boxWidth: 12 } }
-                    }
-                }
-            });
-
-            // ==========================================
-            //       GRÁFICO 2: BARRAS (SEMANA)
-            // ==========================================
-            // Verificamos si existe el canvas antes de dibujar (para evitar errores si no cargó el HTML)
-            const canvasBarras = document.getElementById('graficoSemana');
-            
-            if (canvasBarras) {
-                const ctxBarras = canvasBarras.getContext('2d');
-                
-                if (miGraficoBarras) miGraficoBarras.destroy();
-
-                const diasIngles = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                const diasEsp = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-                const etiquetasSemana = (data.semana || []).map(item => {
-                    const index = diasIngles.indexOf(item.dia_nombre);
-                    return index >= 0 ? diasEsp[index] : item.dia_nombre;
-                });
-                const valoresSemana = (data.semana || []).map(item => item.total);
-
-                miGraficoBarras = new Chart(ctxBarras, {
-                    type: 'bar',
-                    data: {
-                        labels: etiquetasSemana,
-                        datasets: [{
-                            label: 'S/',
-                            data: valoresSemana,
-                            backgroundColor: '#ffc107',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#aaa' } },
-                            x: { grid: { display: false }, ticks: { color: '#fff' } }
-                        }
-                    }
-                });
-            }
-
-            // MOSTRAR MODAL
-            // Solo si no está visible ya
-            var modalEl = document.getElementById('modalBilletera');
-            if (!modalEl.classList.contains('show')) {
-                var modal = new bootstrap.Modal(modalEl);
-                modal.show();
-            }
-        }
-    } catch (error) {
-        console.error("Error billetera:", error);
-        alert("Error cargando billetera");
-    }
-}
-// public/js/main.js
-
-async function cargarHistorial() {
-    try {
-        const response = await fetch(`${API_URL}/historial`);
-        const resultado = await response.json();
-
-        if (resultado.success) {
-            const lista = resultado.data;
-            const contenedor = document.getElementById('listaHistorial');
-            const mensajeVacio = document.getElementById('msgVacio');
-
-            // Limpiar lo que había antes
-            contenedor.innerHTML = '';
-
-            if (lista.length === 0) {
-                mensajeVacio.classList.remove('d-none');
-                return;
-            }
-            mensajeVacio.classList.add('d-none');
-
-            // Recorrer cada viaje y dibujar su tarjeta
-            lista.forEach(viaje => {
-                // Definir colores e iconos según el tipo
-                let badgeColor = 'bg-secondary';
-                if(viaje.origen_tipo === 'INDRIVER') badgeColor = 'bg-success';
-                if(viaje.origen_tipo === 'UBER') badgeColor = 'bg-light text-dark';
-                if(viaje.origen_tipo === 'CALLE') badgeColor = 'bg-warning text-dark';
-
-                // Definir icono de pago
-                const iconoPago = viaje.metodo_cobro_id === 1 
-                    ? '<i class="fas fa-money-bill-wave text-success"></i>' 
-                    : '<i class="fas fa-mobile-alt text-warning"></i>';
-
-                const html = `
-                <div class="card bg-dark border-secondary mb-2">
-                    <div class="card-body p-2 d-flex align-items-center">
-                        
-                        <div class="me-3">
-                            <button class="btn btn-outline-danger btn-sm border-0 p-2" onclick="confirmarAnulacion(${viaje.id})">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-
-                        <div class="d-flex flex-column flex-grow-1">
-                            <div class="mb-1">
-                                <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
-                            </div>
-                            <div class="text-info small fw-bold" style="font-size: 0.8rem;">
-                                <i class="far fa-clock me-1"></i>${viaje.hora_fin} <span class="text-muted ms-1">(${viaje.dia_mes})</span>
-                            </div>
-                        </div>
-
-                        <div class="text-end ms-2">
-                            <div class="fw-bold text-white fs-5 lh-1">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
-                            <div class="mt-1">${iconoPago}</div>
-                        </div>
-
-                    </div>
-                </div>`;
-                contenedor.innerHTML += html;
-            });
-        }
-    } catch (error) {
-        console.error("Error cargando historial:", error);
-    }
-}
-
-
-function confirmarAnulacion(id) {
-    if(confirm("¿Seguro que quieres anular esta carrera? Se restará el dinero de la caja.")) {
-        anularCarrera(id);
-    }
-}
-
-async function anularCarrera(id) {
-    try {
-        const response = await fetch(`${API_URL}/anular/${id}`, {
-            method: 'DELETE' // Coincide con la ruta router.delete
-        });
-        
-        const resultado = await response.json();
-
-        if (resultado.success) {
-            // Recargamos todo para ver los números bajar
-            cargarResumenDia();
-            cargarHistorial();
-            cargarMetaDiaria();
-            alert("🗑️ Carrera eliminada y dinero descontado.");
-        } else {
-            alert("Error: " + resultado.message);
-        }
-
-    } catch (error) {
-        console.error(error);
-        alert("Error de conexión");
-    }
-}
-
-
-function cerrarSesion() {
-    if(confirm("¿Cerrar sesión?")) {
-        localStorage.removeItem('taxi_user');
-        window.location.href = 'login.html';
-    }
+    } catch (e) { console.error(e); }
 }
 
 async function cargarMetaDiaria() {
     try {
-        // Pedimos los datos a la Billetera (que ahora trae el cálculo exacto de Perú)
-        // Usamos '?periodo=hoy' para que sea ligero
         const response = await fetch(`${API_URL}/billetera?periodo=hoy`);
         const resultado = await response.json();
 
         if (resultado.success) {
             const data = resultado.data;
-            
-            // DATOS EXACTOS DESDE EL SERVIDOR
-            // Ya no calculamos nada aquí, confiamos en la BD
             const gananciaHoy = parseFloat(data.ganancia_hoy) || 0; 
             const meta = parseFloat(data.meta_diaria) || 200;
 
-            // Calcular porcentaje
             let porcentaje = (gananciaHoy / meta) * 100;
             if (porcentaje > 100) porcentaje = 100;
 
-            // Actualizar la Barra (Visual)
             document.getElementById('txtProgreso').innerText = `S/ ${gananciaHoy.toFixed(0)} / ${meta}`;
             document.getElementById('txtPorcentaje').innerText = `${porcentaje.toFixed(0)}%`;
             
             const barra = document.getElementById('barraMeta');
             barra.style.width = `${porcentaje}%`;
 
-            // Actualizar Frases y Colores
-            const frase = document.getElementById('fraseMotivacional');
-            
-            // Reiniciamos clases
             barra.className = 'progress-bar progress-bar-striped progress-bar-animated fw-bold';
+            const frase = document.getElementById('fraseMotivacional');
 
             if (porcentaje < 20) {
                 barra.classList.add('bg-warning', 'text-dark');
                 frase.innerText = "☕ Arrancando motores (Hora Perú 🇵🇪)";
-            } else if (porcentaje < 50) {
+            } else if (porcentaje < 80) {
                 barra.classList.add('bg-info', 'text-dark');
-                frase.innerText = "🚕 Vamos a buen ritmo.";
-            } else if (porcentaje < 99) {
-                barra.classList.add('bg-primary');
-                frase.innerText = "🔥 ¡Ya casi llegas!";
+                frase.innerText = "🚕 A buen ritmo.";
             } else {
                 barra.classList.add('bg-success');
-                frase.innerText = "🎉 ¡META CUMPLIDA! A descansar o seguir sumando.";
+                frase.innerText = "🎉 ¡META CUMPLIDA!";
             }
         }
-    } catch (error) {
-        console.error("Error meta:", error);
-    }
+    } catch (error) { console.error("Error meta:", error); }
 }
 
 async function cambiarMeta() {
-    // 1. Preguntar al usuario con una ventanita simple
     const actual = document.getElementById('txtProgreso').innerText.split('/')[1]?.trim() || "200";
-    const nuevaMeta = prompt("¿Cuál es tu meta de dinero para hoy?", actual);
-
-    // Si el usuario cancela o lo deja vacío, no hacemos nada
-    if (!nuevaMeta || isNaN(nuevaMeta) || nuevaMeta <= 0) return;
+    const nuevaMeta = prompt("¿Meta para hoy?", actual);
+    if (!nuevaMeta || isNaN(nuevaMeta)) return;
 
     try {
-        // 2. Enviar al servidor
-        const response = await fetch(`${API_URL}/meta`, {
+        await fetch(`${API_URL}/meta`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nueva_meta: nuevaMeta })
         });
+        cargarMetaDiaria();
+    } catch (e) { alert("Error"); }
+}
 
-        const resultado = await response.json();
+// --- GASTOS Y TRANSFERENCIAS ---
 
-        if (resultado.success) {
-            // 3. Recargar la barra para ver el cambio
+async function guardarGasto() {
+    const montoInput = document.getElementById('montoGasto');
+    const monto = parseFloat(montoInput.value);
+    const categoria = document.querySelector('input[name="tipoGasto"]:checked').value;
+    const cuentaId = 1; // Por defecto Efectivo (Podríamos agregar un select en el futuro)
+
+    if (!monto || monto <= 0) return alert("Monto inválido");
+
+    try {
+        // Usamos la ruta simplificada del Controller
+        const response = await fetch(`${API_URL}/gasto`, { // Asegúrate que la ruta en router sea /gasto
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ monto, descripcion: `Gasto - ${categoria}`, cuenta_id: cuentaId })
+        });
+
+        const res = await response.json();
+        if (res.success) {
+            alert(`💸 Gasto registrado`);
+            montoInput.value = '';
+            bootstrap.Modal.getInstance(document.getElementById('modalGasto')).hide();
             cargarMetaDiaria();
         } else {
-            alert("Error al guardar la meta");
+            alert(res.message);
         }
-
-    } catch (error) {
-        console.error(error);
-        alert("Error de conexión");
-    }
+    } catch (e) { alert("Error conexión"); }
 }
 
-function descargarExcel() {
-    if(confirm("¿Quieres descargar todo tu historial de viajes a tu celular/PC?")) {
-        // Truco: Abrimos la URL del backend directamente
-        window.location.href = `${API_URL}/reporte`;
-    }
-}
-
-
-
-// 1. Abrir y Cargar Cuentas
+// ABRIR TRANSFERENCIA CON LAS CUENTAS CORRECTAS (V3.0)
 async function abrirModalTransferencia() {
-    // Cerramos la billetera un momento para mostrar este modal encima
     bootstrap.Modal.getInstance(document.getElementById('modalBilletera')).hide();
+    new bootstrap.Modal(document.getElementById('modalTransferencia')).show();
+
+    // LISTA ACTUALIZADA DE TUS CUENTAS (IDs deben coincidir con tu BD)
+    const cuentas = [
+        {id: 1, nombre: '💵 Efectivo (Bolsillo)'},
+        {id: 2, nombre: '🟣 Yape / BCP'},
+        {id: 3, nombre: '💰 Warda - Arca (10%)'},
+        {id: 4, nombre: '🛠️ Warda - Taller'},
+        {id: 5, nombre: '📉 Warda - Deuda 8k'},
+        {id: 6, nombre: '🎓 Warda - Emergencia'}
+    ];
     
-    const modalTransf = new bootstrap.Modal(document.getElementById('modalTransferencia'));
-    modalTransf.show();
-
-    // Llenar los Selects (Pedimos la info a Billetera si no la tenemos)
-    // Usaremos una petición rápida para obtener las cuentas con sus IDs
-    try {
-        const response = await fetch(`${API_URL}/billetera?periodo=hoy`);
-        const resultado = await response.json();
-        if (resultado.success) {
-            // Nota: El backend de billetera devuelve nombres y saldos, pero quizás no los IDs.
-            // Para simplificar, asumiremos IDs fijos o necesitaremos que el backend envíe IDs.
-            // MEJORA: Vamos a modificar Billetera controller para enviar IDs.
-            
-            // POR AHORA: Usaremos un truco visual. Enviaremos los NOMBRES y el backend buscará los IDs.
-            // O mejor aún: Asumiremos los IDs estándar de tu SQL inicial:
-            // 1: Efectivo, 2: Yape, 3: Ahorro BCP.
-            
-            // Llenar selects
-            const cuentas = [
-                {id: 1, nombre: 'Efectivo (Bolsillo)'},
-                {id: 2, nombre: 'Yape / Plin'},
-                {id: 3, nombre: 'Ahorros BCP'}
-            ];
-            
-            const selectOrigen = document.getElementById('selectOrigen');
-            const selectDestino = document.getElementById('selectDestino');
-            selectOrigen.innerHTML = '';
-            selectDestino.innerHTML = '';
-
-            cuentas.forEach(c => {
-                selectOrigen.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-                selectDestino.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-            });
-
-            // Seleccionar por defecto: Efectivo -> Ahorros
-            selectOrigen.value = 1; 
-            selectDestino.value = 3; 
-        }
-    } catch (e) { console.error(e); }
+    const selectOrigen = document.getElementById('selectOrigen');
+    const selectDestino = document.getElementById('selectDestino');
+    let html = '';
+    cuentas.forEach(c => html += `<option value="${c.id}">${c.nombre}</option>`);
+    
+    selectOrigen.innerHTML = html;
+    selectDestino.innerHTML = html;
+    
+    selectOrigen.value = 1; 
+    selectDestino.value = 3; 
 }
 
-// 2. Ejecutar
 async function ejecutarTransferencia() {
     const origen = document.getElementById('selectOrigen').value;
     const destino = document.getElementById('selectDestino').value;
     const monto = document.getElementById('montoTransferencia').value;
 
-    if (origen === destino) {
-        alert("El origen y destino no pueden ser iguales");
-        return;
-    }
-    if (!monto || monto <= 0) {
-        alert("Ingresa un monto válido");
-        return;
-    }
+    if (origen === destino) return alert("Origen y destino iguales");
+    if (!monto || monto <= 0) return alert("Monto inválido");
 
     try {
         const response = await fetch(`${API_URL}/transferir`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                cuenta_origen_id: origen,
-                cuenta_destino_id: destino,
-                monto: monto,
-                nota: 'Movimiento App'
-            })
+            body: JSON.stringify({ cuenta_origen_id: origen, cuenta_destino_id: destino, monto, nota: 'App' })
         });
-
-        // --- AGREGAR ESTO PARA DIAGNÓSTICO ---
-        if (!response.ok) {
-            const textoError = await response.text();
-            throw new Error(`Servidor respondió: ${response.status} - ${textoError}`);
-        }
-        // -------------------------------------
-
-        const resultado = await response.json();
-
-        if (resultado.success) {
+        
+        const res = await response.json();
+        if (res.success) {
             alert("✅ Transferencia realizada");
-            
-            // Cerrar modal transferencia
             bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
-            
-            // Reabrir billetera actualizada
             abrirBilletera(); 
         } else {
-            alert("Error: " + resultado.message);
+            alert(res.message);
         }
-
-    } catch (error) {
-        console.error("Error detallado:", error);
-        // Esto nos mostrará si es un error de código o de red
-        alert("⚠️ Fallo: " + error.message);
-    }
+    } catch (e) { alert("Error: " + e.message); }
 }
 
+// ASISTENTE BABILONIA (Actualizado con IDs correctos)
 function calcularRepartoBabilonia() {
-    // 1. Preguntar cuánto fue la Producción Bruta del día
-    const ingresoTotal = prompt("¿Cuánto fue la producción TOTAL de hoy? (S/)", "200");
+    const ingresoTotal = prompt("¿Producción TOTAL de hoy?", "200");
     if (!ingresoTotal || isNaN(ingresoTotal)) return;
 
     const total = parseFloat(ingresoTotal);
-
-    // 2. Aplicar la Regla 10 - 10 - 80
-    const pagoPersonal = total * 0.10; // 10% Para ti (Gasto libre)
-    const ahorroRiqueza = total * 0.10; // 10% Ahorro (Warda Arca)
-    const operativo = total * 0.80;    // 80% Gastos/Deuda/Auto
-
-    // 3. Desglose del 80% Operativo (Ajustable según tus prioridades actuales)
-    // De esos S/ 160 (el 80%), ¿cómo los repartimos?
-    // Sugerencia: 
-    // - Gasolina/Comida se come una gran parte (digamos S/ 60 aprox fijo o un % real)
-    // - El resto va a Mantenimiento y Deuda.
+    const pagoPersonal = total * 0.10;
+    const ahorroRiqueza = total * 0.10;
+    const operativo = total * 0.80; 
     
-    // Para simplificar la recomendación visual:
-    const paraMantenimiento = operativo * 0.20; // Un 20% del operativo para el auto
-    const paraDeuda = operativo * 0.30;         // Un 30% del operativo para la deuda
-    const paraGasolinaYVida = operativo * 0.50; // El resto queda en efectivo para trabajar mañana
+    const paraMantenimiento = operativo * 0.20;
+    const paraDeuda = operativo * 0.30;
+    const paraGasolina = operativo * 0.50;
 
-    // 4. Mostrar el Plan de Acción
     const mensaje = `
-    🏛️ PLAN DE REPARTO (10-10-80):
+    🏛️ REPARTO SUGERIDO (10-10-80):
     
-    👑 10% PÁGATE A TI MISMO: S/ ${pagoPersonal.toFixed(2)}
-    (Déjalo en Yape/Bolsillo y disfrútalo)
-
-    💰 10% AHORRO (ARCA): S/ ${ahorroRiqueza.toFixed(2)}
-    (Transfiere a Warda - Arca)
-
-    🚜 80% OPERACIÓN (S/ ${operativo.toFixed(2)}):
-       - ⛽ Gasolina/Comida (Se queda): S/ ${paraGasolinaYVida.toFixed(2)}
-       - 🛠️ Warda Taller: S/ ${paraMantenimiento.toFixed(2)}
-       - 📉 Warda Deuda: S/ ${paraDeuda.toFixed(2)}
+    👑 10% TÚ (Yape): S/ ${pagoPersonal.toFixed(0)}
+    💰 10% ARCA (Warda 3): S/ ${ahorroRiqueza.toFixed(0)}
     
-    ¿Deseas abrir la ventana de transferencias ahora?
-    `;
+    🚜 80% OPERATIVO (S/ ${operativo.toFixed(0)}):
+       - ⛽ Gasolina (Efec): S/ ${paraGasolina.toFixed(0)}
+       - 🛠️ Taller (Warda 4): S/ ${paraMantenimiento.toFixed(0)}
+       - 📉 Deuda (Warda 5): S/ ${paraDeuda.toFixed(0)}
+    
+    ¿Abrir transferencias?`;
 
-    if (confirm(mensaje)) {
-        abrirModalTransferencia();
-    }
+    if (confirm(mensaje)) abrirModalTransferencia();
 }
 
+// --- BILLETERA Y GRÁFICOS ---
+async function abrirBilletera(periodo = 'mes') {
+    try {
+        const response = await fetch(`${API_URL}/billetera?periodo=${periodo}`);
+        const res = await response.json();
+
+        if (res.success) {
+            const data = res.data;
+            // Llenar saldos
+            const saldoEfectivo = data.cuentas.find(c => c.id === 1)?.saldo_actual || 0;
+            const saldoYape = data.cuentas.find(c => c.id === 2)?.saldo_actual || 0;
+            
+            document.getElementById('txtEfectivo').innerText = `S/ ${parseFloat(saldoEfectivo).toFixed(2)}`;
+            document.getElementById('txtYape').innerText = `S/ ${parseFloat(saldoYape).toFixed(2)}`;
+            document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
+            document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
+
+            // Gráfico Dona
+            dibujarDona(data.estadisticas);
+            // Gráfico Barras
+            dibujarBarras(data.semana);
+
+            // Mostrar Modal
+            const modalEl = document.getElementById('modalBilletera');
+            if (!modalEl.classList.contains('show')) new bootstrap.Modal(modalEl).show();
+        }
+    } catch (e) { console.error(e); }
+}
+
+function dibujarDona(stats) {
+    const ctx = document.getElementById('graficoApps').getContext('2d');
+    if (miGrafico) miGrafico.destroy();
+    
+    const labels = stats.length ? stats.map(e => e.origen_tipo) : ['Sin datos'];
+    const values = stats.length ? stats.map(e => e.total) : [1];
+    const colors = labels.map(n => n==='INDRIVER'?'#198754':(n==='UBER'?'#f8f9fa':'#ffc107'));
+
+    miGrafico = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+        options: { plugins: { legend: { position: 'right', labels: { color: 'white' } } } }
+    });
+}
+
+function dibujarBarras(semana) {
+    const canvas = document.getElementById('graficoSemana');
+    if (!canvas) return;
+    if (miGraficoBarras) miGraficoBarras.destroy();
+
+    const diasMap = { 'Monday':'Lun', 'Tuesday':'Mar', 'Wednesday':'Mié', 'Thursday':'Jue', 'Friday':'Vie', 'Saturday':'Sáb', 'Sunday':'Dom' };
+    const labels = (semana || []).map(i => diasMap[i.dia_nombre] || i.dia_nombre);
+    const data = (semana || []).map(i => i.total);
+
+    miGraficoBarras = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data, backgroundColor: '#ffc107', borderRadius: 4 }] },
+        options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#fff' } }, y: { ticks: { color: '#aaa' } } } }
+    });
+}
+
+// --- DEUDAS Y COMPROMISOS (NUEVO) ---
 
 async function abrirObligaciones() {
-    const modal = new bootstrap.Modal(document.getElementById('modalObligaciones'));
-    modal.show();
+    new bootstrap.Modal(document.getElementById('modalObligaciones')).show();
     cargarObligaciones();
 }
 
 async function cargarObligaciones() {
-    const contenedor = document.getElementById('listaObligaciones');
-    contenedor.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i></div>';
-
+    const div = document.getElementById('listaObligaciones');
+    div.innerHTML = '<div class="text-center text-muted">Cargando...</div>';
+    
     try {
-        const response = await fetch(`${API_URL}/obligaciones`);
-        const result = await response.json();
-
-        if (result.success && result.data.length > 0) {
+        const res = await fetch(`${API_URL}/obligaciones`);
+        const json = await res.json();
+        
+        if (json.success && json.data.length > 0) {
             let html = '';
-            result.data.forEach(item => {
-                // Lógica de colores semáforo
-                let bordeColor = 'border-secondary';
-                let icono = 'fa-circle';
-                let diasTexto = '';
-                
+            json.data.forEach(item => {
                 const dias = parseInt(item.dias_restantes);
-
-                if (item.prioridad === 'URGENTE' || dias < 3) {
-                    bordeColor = 'border-danger border-start border-4'; // Rojo fuerte
-                    icono = 'fa-exclamation-circle text-danger';
-                    diasTexto = `<span class="badge bg-danger">Vence en ${dias} días</span>`;
-                } else if (item.prioridad === 'ALTA' || dias < 7) {
-                    bordeColor = 'border-warning border-start border-4'; // Amarillo
-                    icono = 'fa-clock text-warning';
-                    diasTexto = `<span class="badge bg-warning text-dark">${dias} días restantes</span>`;
-                } else {
-                    bordeColor = 'border-success border-start border-4'; // Verde
-                    icono = 'fa-calendar-check text-success';
-                    diasTexto = `<small class="text-muted">Vence: ${new Date(item.fecha_vencimiento).toLocaleDateString()}</small>`;
-                }
+                let color = dias < 3 ? 'border-danger' : (dias < 7 ? 'border-warning' : 'border-success');
+                let badge = dias < 0 ? `<span class="badge bg-danger">VENCIDO (${Math.abs(dias)}d)</span>` : `<small class="text-muted">${dias} días rest.</small>`;
                 
-                // Si ya venció
-                if (dias < 0) diasTexto = `<span class="badge bg-danger w-100">¡VENCIDO HACE ${Math.abs(dias)} DÍAS!</span>`;
-
                 html += `
-                <div class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center p-3 ${bordeColor}">
-                    <div class="me-3">
-                        <h6 class="mb-0 fw-bold">${item.titulo}</h6>
-                        <div class="mt-1">${diasTexto}</div>
-                    </div>
-                    <div class="text-end">
-                        <div class="fs-5 fw-bold mb-1">S/ ${parseFloat(item.monto).toFixed(2)}</div>
-                        <button class="btn btn-sm btn-outline-light" onclick="pagarDeuda(${item.id}, ${item.monto}, '${item.titulo}')">
-                            PAGAR <i class="fas fa-chevron-right"></i>
-                        </button>
+                <div class="list-group-item bg-dark text-white p-3 mb-2 border-start border-4 ${color}">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="mb-0 fw-bold">${item.titulo}</h6>
+                            ${badge}
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold">S/ ${parseFloat(item.monto).toFixed(2)}</div>
+                            <button class="btn btn-sm btn-outline-light mt-1" onclick="pagarDeuda(${item.id}, ${item.monto}, '${item.titulo}')">PAGAR</button>
+                        </div>
                     </div>
                 </div>`;
             });
-            contenedor.innerHTML = html;
-            
-            // Actualizar badge del menú principal (opcional)
-            const countBadge = document.getElementById('badgeDeudasCount');
-            if(countBadge) {
-                countBadge.innerText = result.data.length;
-                countBadge.style.display = 'inline-block';
-            }
-
+            div.innerHTML = html;
         } else {
-            contenedor.innerHTML = '<div class="text-center p-4 text-muted">🎉 ¡Eres libre! No hay deudas pendientes.</div>';
+            div.innerHTML = '<div class="p-3 text-center text-muted">No tienes deudas pendientes 🎉</div>';
         }
-    } catch (e) {
-        console.error(e);
-        contenedor.innerHTML = '<div class="text-danger p-3">Error al cargar</div>';
-    }
+    } catch (e) { div.innerHTML = 'Error cargar'; }
 }
 
 async function crearObligacion() {
+    // Lógica simple para crear deuda puntual
     const titulo = document.getElementById('nuevaObliTitulo').value;
     const monto = document.getElementById('nuevaObliMonto').value;
     const fecha = document.getElementById('nuevaObliFecha').value;
-    const prioridad = document.getElementById('nuevaObliPrioridad').value;
+    if(!titulo || !monto) return;
 
-    if (!titulo || !monto || !fecha) {
-        alert("Completa los datos");
-        return;
-    }
+    await fetch(`${API_URL}/obligaciones`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ titulo, monto, fecha, prioridad: 'NORMAL' })
+    });
+    cargarObligaciones();
+}
 
-    try {
-        await fetch(`${API_URL}/obligaciones`, {
+// NUEVO: CREAR PRÉSTAMO GRANDE (COMPROMISO)
+async function crearPrestamo() {
+    const titulo = document.getElementById('presTitulo').value;
+    const monto = document.getElementById('presMonto').value;
+    const cuotas = document.getElementById('presCuotas').value;
+    const dia = document.getElementById('presDia').value;
+
+    if (!titulo || !monto || !cuotas) return alert("Completa datos");
+
+    if(confirm(`Generar ${cuotas} cuotas para ${titulo}?`)) {
+        const res = await fetch(`${API_URL}/compromisos`, { // Ruta correcta
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ titulo, monto, fecha, prioridad })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                titulo, 
+                tipo: 'PRESTAMO',
+                monto_total: monto,
+                monto_cuota: (monto/cuotas).toFixed(2),
+                cuotas_totales: cuotas,
+                dia_pago: dia
+            })
         });
-        
-        // Limpiar
-        document.getElementById('nuevaObliTitulo').value = '';
-        document.getElementById('nuevaObliMonto').value = '';
-        
-        // Recargar lista
-        cargarObligaciones();
-
-    } catch (e) { alert("Error"); }
+        const data = await res.json();
+        if(data.success) {
+            alert("Cronograma creado");
+            cargarObligaciones();
+        } else {
+            alert(data.message);
+        }
+    }
 }
 
 async function pagarDeuda(id, monto, titulo) {
-    // Al pagar, preguntamos de DÓNDE sale la plata
-    // Usamos las cuentas que ya conocemos
-    const cuentaId = prompt(`Vas a pagar "${titulo}" (S/ ${monto}).\n\nIngresa el ID de la cuenta de origen:\n1: Efectivo\n2: Yape\n6: Warda Deuda (Ejemplo)\n\n(Mira tu Billetera para ver los IDs exactos)`);
-    
+    const cuentaId = prompt(`Pagar "${titulo}" (S/ ${monto}).\nOrigen:\n1: Efectivo\n2: Yape\n5: Warda Deuda`);
     if (!cuentaId) return;
 
-    if (confirm(`¿Confirmas el pago de S/ ${monto} saliendo de la cuenta ${cuentaId}?`)) {
-        try {
-            const resp = await fetch(`${API_URL}/obligaciones/pagar`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    id_obligacion: id,
-                    id_cuenta_origen: cuentaId,
-                    monto: monto
-                })
-            });
-            const r = await resp.json();
-            if (r.success) {
-                alert("✅ Pagado exitosamente");
-                cargarObligaciones();
-                // Opcional: Actualizar barra meta o billetera si estuvieran visibles
-            } else {
-                alert("Error: " + r.message);
-            }
-        } catch (e) { alert("Error conexión"); }
+    if (confirm("¿Confirmar pago?")) {
+        const res = await fetch(`${API_URL}/obligaciones/pagar`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id_obligacion: id, id_cuenta_origen: cuentaId, monto })
+        });
+        const data = await res.json();
+        if(data.success) {
+            alert("✅ Pagado");
+            cargarObligaciones();
+        } else alert(data.message);
     }
 }
 
-// EJECUTAR APENAS CARGUE LA PÁGINA
+// Historial y Reporte
+async function cargarHistorial() {
+    const res = await fetch(`${API_URL}/historial`);
+    const json = await res.json();
+    const div = document.getElementById('listaHistorial');
+    div.innerHTML = '';
+    
+    if(json.success && json.data.length > 0) {
+        document.getElementById('msgVacio').classList.add('d-none');
+        json.data.forEach(v => {
+            // Mostrar texto de origen si existe, sino el tipo
+            const titulo = v.origen_texto ? `<small>${v.origen_texto}</small>` : v.origen_tipo;
+            
+            div.innerHTML += `
+            <div class="card bg-dark border-secondary mb-2">
+                <div class="card-body p-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold text-white">${titulo}</div>
+                        <div class="small text-muted">${v.hora_fin} (${v.dia_mes})</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fs-5 text-white fw-bold">S/ ${parseFloat(v.monto_cobrado).toFixed(2)}</div>
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="anularCarrera(${v.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        });
+    } else {
+        document.getElementById('msgVacio').classList.remove('d-none');
+    }
+}
+
+async function anularCarrera(id) {
+    if(confirm("¿Borrar carrera?")) {
+        await fetch(`${API_URL}/anular/${id}`, { method: 'DELETE' });
+        cargarHistorial();
+        cargarMetaDiaria();
+        cargarResumenDia();
+    }
+}
+
+function descargarExcel() {
+    if(confirm("¿Descargar Excel?")) window.location.href = `${API_URL}/reporte`;
+}
+
+function cerrarSesion() {
+    if(confirm("¿Salir?")) {
+        localStorage.removeItem('taxi_user');
+        window.location.href = 'login.html';
+    }
+}
+
+// INIT
 window.onload = function() {
     cargarResumenDia();
     cargarHistorial();
