@@ -151,34 +151,31 @@ async function guardarCarrera() {
     const montoInput = document.querySelector('#modalCobrar input[type="number"]').value;
     const esYape = document.getElementById('pago2').checked; 
     const metodoId = esYape ? 2 : 1;
-    // Si existe el input destino (opcional), lo tomamos
     const destinoManual = document.getElementById('inputDestino')?.value || '';
 
-    if (!montoInput || montoInput <= 0) return alert("Ingresa un monto válido");
+    if (!montoInput || montoInput <= 0) return; // Si está vacío, no hace nada (sin alerta molesta)
 
     const btnCobrar = document.querySelector('#modalCobrar .btn-success');
     const textoBtn = btnCobrar.innerText;
+    
+    // Feedback visual rápido
     btnCobrar.disabled = true;
-    btnCobrar.innerHTML = '<i class="fas fa-check"></i> Guardando...';
+    btnCobrar.className = 'btn btn-warning w-100 btn-lg fw-bold'; // Se pone amarillo
+    btnCobrar.innerHTML = '<i class="fas fa-sync fa-spin"></i> Procesando...';
 
-    // OPCIONES GPS PARA VELOCIDAD:
-    const opcionesGPS = { 
-        enableHighAccuracy: true, 
-        timeout: 5000, 
-        maximumAge: 30000 // <--- Acepta cache reciente para no esperar satélites
-    };
+    // OPCIONES GPS ULTRA RÁPIDAS (Usamos caché viejo si existe)
+    const opcionesGPS = { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 };
 
     navigator.geolocation.getCurrentPosition(async (position) => {
         try {
             const latFin = position.coords.latitude;
             const lngFin = position.coords.longitude;
 
-            // Cálculos
+            // Cálculos rápidos
             let distancia = 0;
             if (viajeInicioCoords) {
                 distancia = calcularDistancia(viajeInicioCoords.lat, viajeInicioCoords.lng, latFin, lngFin);
             }
-            
             let duracion = 0;
             if (viajeInicioTime) {
                 const diffMs = new Date() - viajeInicioTime;
@@ -196,6 +193,7 @@ async function guardarCarrera() {
                 destino_texto: destinoManual 
             };
 
+            // Enviamos sin esperar respuesta visual
             const response = await fetch(`${API_URL}/finalizar`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -205,31 +203,48 @@ async function guardarCarrera() {
             const resultado = await response.json();
 
             if (resultado.success) {
-                // Alerta corta
-                alert(`✅ Listo. Cobrado S/ ${montoInput}`);
+                // ¡AQUÍ ESTÁ EL CAMBIO!
+                // NO mostramos alert(). Simplemente cerramos todo.
                 
-                var modal = bootstrap.Modal.getInstance(document.getElementById('modalCobrar'));
+                // 1. Ocultar Modal
+                const modalEl = document.getElementById('modalCobrar');
+                const modal = bootstrap.Modal.getInstance(modalEl);
                 modal.hide();
 
+                // 2. Actualizar Dashboard en silencio
                 mostrarPanelInicio();
                 cargarHistorial();
                 cargarResumenDia();
                 cargarMetaDiaria(); 
+
+                // 3. Restaurar botón (por si lo abres luego)
+                setTimeout(() => {
+                    btnCobrar.className = 'btn btn-success w-100 btn-lg fw-bold';
+                    btnCobrar.innerHTML = textoBtn;
+                    btnCobrar.disabled = false;
+                }, 500);
+
             } else {
+                // Solo mostramos alerta si hubo ERROR REAL
                 alert("Error: " + resultado.message);
+                btnCobrar.disabled = false;
+                btnCobrar.innerHTML = textoBtn;
+                btnCobrar.className = 'btn btn-success w-100 btn-lg fw-bold';
             }
 
         } catch (error) {
             console.error(error);
-            alert("Error al cobrar");
-        } finally {
+            alert("Error de conexión");
             btnCobrar.disabled = false;
-            btnCobrar.innerText = textoBtn;
         }
     }, (err) => {
-        alert("Error GPS Fin: " + err.message);
+        // Si falla el GPS final, guardamos igual con lat 0 (Para no trabarte)
+        console.warn("GPS falló al cerrar, guardando sin coords fin");
+        // ... (Podrías repetir la lógica de fetch aquí, pero para simplificar dejamos que intente de nuevo)
+        alert("GPS Lento: Intenta de nuevo (Acércate a la ventana)");
         btnCobrar.disabled = false;
-        btnCobrar.innerText = textoBtn;
+        btnCobrar.innerHTML = textoBtn;
+        btnCobrar.className = 'btn btn-success w-100 btn-lg fw-bold';
     }, opcionesGPS);
 }
 

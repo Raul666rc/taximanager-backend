@@ -150,41 +150,68 @@ class ViajeController {
     }
 
     // ==========================================
-    // MAGIA DE FONDO: BUSCADOR ROBUSTO (HTTPS NATIVO)
+    // MAGIA DE FONDO: BUSCADOR ROBUSTO
     // ==========================================
     static resolverDireccionBackground(idViaje, lat, lng, tipo) {
-        // No usamos async/await aquí para no bloquear nada, usamos callback puro de Node
+        console.log(`📡 Buscando dirección ${tipo} para ID: ${idViaje}...`);
+        
         const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
         
         const options = {
-            headers: { 'User-Agent': 'TaxiManagerApp/1.0 (raul@taxi.com)' } // Identificación requerida por OSM
+            headers: { 
+                // IMPORTANTE: Nominatim exige un User-Agent con email válido o te bloquea
+                'User-Agent': 'TaxiManagerApp/1.0 (micorreo@gmail.com)', 
+                'Accept-Language': 'es' // Pedimos la dirección en Español
+            } 
         };
 
         https.get(url, options, (res) => {
             let data = '';
+            
+            // Si el servidor nos rechaza (403 o 429), lo anotamos
+            if (res.statusCode !== 200) {
+                console.error(`❌ Error Nominatim: Código ${res.statusCode}`);
+                res.resume();
+                return;
+            }
+
             res.on('data', (chunk) => { data += chunk; });
+            
             res.on('end', async () => {
                 try {
                     const json = JSON.parse(data);
+                    
                     if (json && json.address) {
-                        const calle = json.address.road || json.address.pedestrian || '';
+                        // Lógica para armar dirección corta
+                        const calle = json.address.road || json.address.pedestrian || json.address.construction || '';
                         const numero = json.address.house_number || '';
-                        const barrio = json.address.neighbourhood || json.address.suburb || '';
+                        const barrio = json.address.neighbourhood || json.address.residential || json.address.suburb || '';
                         
+                        // Priorizamos: Calle + Número. Si no hay número, ponemos el barrio.
                         let direccion = `${calle} ${numero}`.trim();
-                        if (barrio) direccion += `, ${barrio}`;
-                        
-                        if (direccion.length > 3) {
+                        if (direccion.length < 3 && barrio) direccion = barrio; // Si solo sale número, ponemos barrio
+                        if (direccion.length > 5) {
+                            if (barrio && !direccion.includes(barrio)) direccion += `, ${barrio}`;
+                        }
+
+                        // Si Nominatim devolvió algo útil, actualizamos la BD
+                        if (direccion.length > 2) {
                             const campo = tipo === 'ORIGEN' ? 'origen_texto' : 'destino_texto';
-                            // Ejecutamos UPDATE directo
+                            
+                            // UPDATE en la base de datos
                             await db.query(`UPDATE viajes SET ${campo} = ? WHERE id = ?`, [direccion, idViaje]);
-                            console.log(`📍 [OK] Dirección actualizada (${tipo}): ${direccion}`);
+                            console.log(`✅ Dirección GUARDADA (${tipo}): ${direccion}`);
+                        } else {
+                            console.log(`⚠️ Dirección muy corta o vacía: ${direccion}`);
                         }
                     }
-                } catch (e) { console.error("Error parseando GPS:", e.message); }
+                } catch (e) { 
+                    console.error("Error procesando JSON de mapa:", e.message); 
+                }
             });
+
         }).on('error', (err) => {
-            console.error("Error conexión GPS:", err.message);
+            console.error("Error de conexión con mapas:", err.message);
         });
     }
 }
