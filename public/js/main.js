@@ -532,6 +532,37 @@ async function cargarMetaDiaria() {
     }
 }
 
+async function cambiarMeta() {
+    // 1. Preguntar al usuario con una ventanita simple
+    const actual = document.getElementById('txtProgreso').innerText.split('/')[1]?.trim() || "200";
+    const nuevaMeta = prompt("¿Cuál es tu meta de dinero para hoy?", actual);
+
+    // Si el usuario cancela o lo deja vacío, no hacemos nada
+    if (!nuevaMeta || isNaN(nuevaMeta) || nuevaMeta <= 0) return;
+
+    try {
+        // 2. Enviar al servidor
+        const response = await fetch(`${API_URL}/meta`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nueva_meta: nuevaMeta })
+        });
+
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            // 3. Recargar la barra para ver el cambio
+            cargarMetaDiaria();
+        } else {
+            alert("Error al guardar la meta");
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
+    }
+}
+
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();

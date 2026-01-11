@@ -42,34 +42,26 @@
         </div>
     </nav>
 
-    <div class="card bg-dark border-0 mb-3 shadow-sm">
-        <div class="card-body p-3">
-            <div class="d-flex justify-content-between align-items-end mb-2">
-                <div>
-                    <span class="text-muted small text-uppercase">Meta de Hoy</span>
-                    <h3 class="fw-bold text-white mb-0" id="txtProgreso">S/ 0 / 200</h3>
+    <div class="container mb-3">
+        <div class="card bg-dark border-0 shadow-sm" onclick="cambiarMeta()"> <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-end mb-2">
+                    <div>
+                        <span class="text-muted small text-uppercase">Meta de Hoy <i class="fas fa-edit ms-1"></i></span>
+                        <h3 class="fw-bold text-white mb-0" id="txtProgreso">S/ 0 / 200</h3>
+                    </div>
+                    <div class="text-success fw-bold h4 mb-0" id="txtPorcentaje">0%</div>
                 </div>
-                <div class="text-success fw-bold h4 mb-0" id="txtPorcentaje">0%</div>
+                
+                <div class="progress" style="height: 15px; background-color: #333;">
+                    <div id="barraMeta" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%"></div>
+                </div>
+                
+                <small class="text-muted mt-2 d-block text-end fst-italic" id="fraseMotivacional">¡A empezar el día!</small>
             </div>
-            
-            <div class="progress" style="height: 15px; background-color: #333;">
-                <div id="barraMeta" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%"></div>
-            </div>
-            
-            <small class="text-muted mt-2 d-block text-end fst-italic" id="fraseMotivacional">¡A empezar el día!</small>
         </div>
     </div>
 
     <div class="container">
-        
-        <div class="card card-stats p-3 text-center">
-            <h6 class="text-muted text-uppercase small">Ganancia Hoy (Ayacucho)</h6>
-            <h1 class="display-4 fw-bold text-success" id="gananciaDia">S/ 0.00</h1>
-            <div class="progress" style="height: 10px;">
-                <div class="progress-bar bg-warning" role="progressbar" style="width: 10%"></div>
-            </div>
-            <small class="text-muted mt-2">Meta Diaria: S/ 160.00</small>
-        </div>
 
         <div class="d-grid gap-3 mb-4">
             

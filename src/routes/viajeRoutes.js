@@ -39,4 +39,7 @@ router.delete('/anular/:id', ViajeController.anularCarrera);
 router.post('/login', AuthController.login);
 // -------------------------------
 
+// --- AGREGAR ESTO ---
+router.post('/meta', FinanzasController.actualizarMeta);
+// --------------------
 module.exports = router;

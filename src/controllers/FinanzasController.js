@@ -76,6 +76,18 @@ class FinanzasController {
             res.status(500).json({ success: false, message: 'Error finanzas' });
         }
     }
+
+    static async actualizarMeta(req, res) {
+        try {
+            const { nueva_meta } = req.body;
+            // Actualizamos la meta del usuario 1 (Admin)
+            await db.query("UPDATE usuarios SET meta_diaria = ? WHERE id = 1", [nueva_meta]);
+            res.json({ success: true, message: "Meta actualizada" });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al actualizar meta" });
+        }
+    }
 }
 
 module.exports = FinanzasController;
