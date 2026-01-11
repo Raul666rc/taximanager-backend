@@ -168,7 +168,8 @@ async function guardarCarrera() {
 
             mostrarPanelInicio();
             cargarHistorial();
-            cargarResumenDia(); 
+            cargarResumenDia();
+            cargarMetaDiaria(); 
 
         } else {
             alert("Error al cobrar: " + resultado.message);
@@ -452,6 +453,7 @@ async function anularCarrera(id) {
             // Recargamos todo para ver los números bajar
             cargarResumenDia();
             cargarHistorial();
+            cargarMetaDiaria();
             alert("🗑️ Carrera eliminada y dinero descontado.");
         } else {
             alert("Error: " + resultado.message);
@@ -470,8 +472,69 @@ function cerrarSesion() {
         window.location.href = 'login.html';
     }
 }
+
+async function cargarMetaDiaria() {
+    try {
+        // Pedimos los datos (aprovechamos que el endpoint de billetera ya trae todo, 
+        // pero para ser más eficientes, sería mejor pedir solo lo de hoy. 
+        // Por ahora, para no complicar, usaremos el historial que ya cargamos).
+        
+        // 1. Calcular Ganancia de HOY sumando el historial que ya tenemos en pantalla
+        // (Esto es un truco para no hacer otra petición al servidor)
+        const response = await fetch(`${API_URL}/historial`);
+        const resultado = await response.json();
+        
+        let gananciaHoy = 0;
+        if (resultado.success) {
+            // Sumar todos los montos de la lista
+            gananciaHoy = resultado.data.reduce((sum, viaje) => sum + parseFloat(viaje.monto_cobrado), 0);
+        }
+
+        // 2. Pedir la Meta (podemos usar el endpoint de billetera o crear uno simple, 
+        // pero para rápido, vamos a hardcodear la meta visualmente o pedirla a billetera)
+        // MEJOR OPCIÓN: Llamar a billetera para sacar la meta real de la BD
+        const respBilletera = await fetch(`${API_URL}/billetera?periodo=hoy`);
+        const resBilletera = await respBilletera.json();
+        const meta = parseFloat(resBilletera.data.meta_diaria) || 200;
+
+        // 3. Calcular Porcentajes
+        let porcentaje = (gananciaHoy / meta) * 100;
+        if (porcentaje > 100) porcentaje = 100;
+
+        // 4. Pintar la Barra
+        document.getElementById('txtProgreso').innerText = `S/ ${gananciaHoy.toFixed(0)} / ${meta}`;
+        document.getElementById('txtPorcentaje').innerText = `${porcentaje.toFixed(0)}%`;
+        
+        const barra = document.getElementById('barraMeta');
+        barra.style.width = `${porcentaje}%`;
+
+        // 5. Cambiar colores y frases según avance
+        const frase = document.getElementById('fraseMotivacional');
+        
+        if (porcentaje < 20) {
+            barra.classList.remove('bg-success');
+            barra.classList.add('bg-warning');
+            frase.innerText = "☕ Calentando motores...";
+        } else if (porcentaje < 50) {
+            frase.innerText = "🚕 ¡Buen ritmo! Vamos por la mitad.";
+        } else if (porcentaje < 80) {
+            barra.classList.remove('bg-warning');
+            barra.classList.add('bg-info');
+            frase.innerText = "🔥 ¡Ya falta poco!";
+        } else if (porcentaje >= 100) {
+            barra.classList.remove('bg-info', 'bg-warning');
+            barra.classList.add('bg-success');
+            frase.innerText = "🎉 ¡META CUMPLIDA! Todo extra es ganancia pura.";
+        }
+
+    } catch (error) {
+        console.error("Error meta:", error);
+    }
+}
+
 // EJECUTAR APENAS CARGUE LA PÁGINA
 window.onload = function() {
     cargarResumenDia();
     cargarHistorial();
+    cargarMetaDiaria();
 };

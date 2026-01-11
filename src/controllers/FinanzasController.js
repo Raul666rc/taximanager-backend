@@ -45,6 +45,11 @@ class FinanzasController {
             // Leemos el filtro de la URL (ej: ?periodo=semana)
             const periodo = req.query.periodo || 'mes';
 
+            // 1. OBTENER META DEL USUARIO (Asumimos ID 1 o lo sacamos del login si tuvieramos el token a mano)
+            // Para simplificar por ahora, usaremos el ID 1 (Admin)
+            const [userRows] = await db.query("SELECT meta_diaria FROM usuarios WHERE id = 1");
+            const meta = userRows[0].meta_diaria || 200;
+
             const [cuentas] = await db.query("SELECT nombre, saldo_actual FROM cuentas");
             
             // ... (Ahorro y Gastos los dejamos igual, o podrías filtrarlos también si quieres) ...
@@ -58,6 +63,7 @@ class FinanzasController {
             res.json({
                 success: true,
                 data: {
+                    meta_diaria: meta, // <--- NUEVO CAMPO
                     cuentas,
                     ahorro_total: ahorro[0].total || 0,
                     gasto_mensual: gastos[0].total || 0,
