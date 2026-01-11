@@ -1,7 +1,7 @@
 // UBICACIÓN: src/controllers/ViajeController.js
 const ViajeModel = require('../models/ViajeModel');
 const db = require('../config/db');
-const https = require('https'); // Usamos librería nativa para máxima compatibilidad
+const https = require('https'); 
 
 class ViajeController {
 
@@ -20,16 +20,17 @@ class ViajeController {
                 await ViajeModel.guardarRastro(idViaje, lat, lng, 'INICIO');
             }
 
-            // 3. RESPONDEMOS YA (Velocidad)
+            // 3. RESPONDEMOS AL CELULAR INMEDIATAMENTE
             res.json({
                 success: true,
                 message: 'Carrera iniciada',
                 data: { id_viaje: idViaje }
             });
 
-            // 4. FONDO: Buscar calle (si no se escribió manual)
+            // 4. TAREA DE FONDO: Buscar nombre de calle
             if (!origen_texto && lat && lng) {
-                this.resolverDireccionBackground(idViaje, lat, lng, 'ORIGEN');
+                // CORRECCIÓN AQUÍ: Usamos el nombre de la clase, no 'this'
+                ViajeController.resolverDireccionBackground(idViaje, lat, lng, 'ORIGEN');
             }
 
         } catch (error) {
@@ -72,12 +73,13 @@ class ViajeController {
 
             await connection.commit();
 
-            // 5. RESPONDEMOS YA
+            // 5. RESPONDEMOS RÁPIDO
             res.json({ success: true, message: 'Cobrado' });
 
-            // 6. FONDO: Buscar calle destino
+            // 6. TAREA DE FONDO: Buscar nombre de calle destino
             if (!destino_texto && lat && lng) {
-                this.resolverDireccionBackground(id_viaje, lat, lng, 'DESTINO');
+                // CORRECCIÓN AQUÍ: Usamos el nombre de la clase, no 'this'
+                ViajeController.resolverDireccionBackground(id_viaje, lat, lng, 'DESTINO');
             }
 
         } catch (error) {
@@ -159,16 +161,14 @@ class ViajeController {
         
         const options = {
             headers: { 
-                // IMPORTANTE: Nominatim exige un User-Agent con email válido o te bloquea
-                'User-Agent': 'TaxiManagerApp/1.0 (micorreo@gmail.com)', 
-                'Accept-Language': 'es' // Pedimos la dirección en Español
+                'User-Agent': 'TaxiManagerApp/1.0 (raul@taxi.com)', 
+                'Accept-Language': 'es' 
             } 
         };
 
         https.get(url, options, (res) => {
             let data = '';
             
-            // Si el servidor nos rechaza (403 o 429), lo anotamos
             if (res.statusCode !== 200) {
                 console.error(`❌ Error Nominatim: Código ${res.statusCode}`);
                 res.resume();
@@ -182,27 +182,18 @@ class ViajeController {
                     const json = JSON.parse(data);
                     
                     if (json && json.address) {
-                        // Lógica para armar dirección corta
                         const calle = json.address.road || json.address.pedestrian || json.address.construction || '';
                         const numero = json.address.house_number || '';
                         const barrio = json.address.neighbourhood || json.address.residential || json.address.suburb || '';
                         
-                        // Priorizamos: Calle + Número. Si no hay número, ponemos el barrio.
                         let direccion = `${calle} ${numero}`.trim();
-                        if (direccion.length < 3 && barrio) direccion = barrio; // Si solo sale número, ponemos barrio
-                        if (direccion.length > 5) {
-                            if (barrio && !direccion.includes(barrio)) direccion += `, ${barrio}`;
-                        }
+                        if (direccion.length < 3 && barrio) direccion = barrio;
+                        if (direccion.length > 5 && barrio && !direccion.includes(barrio)) direccion += `, ${barrio}`;
 
-                        // Si Nominatim devolvió algo útil, actualizamos la BD
                         if (direccion.length > 2) {
                             const campo = tipo === 'ORIGEN' ? 'origen_texto' : 'destino_texto';
-                            
-                            // UPDATE en la base de datos
                             await db.query(`UPDATE viajes SET ${campo} = ? WHERE id = ?`, [direccion, idViaje]);
                             console.log(`✅ Dirección GUARDADA (${tipo}): ${direccion}`);
-                        } else {
-                            console.log(`⚠️ Dirección muy corta o vacía: ${direccion}`);
                         }
                     }
                 } catch (e) { 
