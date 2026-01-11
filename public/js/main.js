@@ -14,35 +14,6 @@ let miGrafico = null;
 let miGraficoBarras = null;
 
 // --- UTILIDADES ---
-// Función para convertir GPS a Texto (Calle/Avenida) GRATIS
-async function obtenerDireccionGPS(lat, lng) {
-    try {
-        // Usamos la API de OpenStreetMap (Nominatim)
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-        
-        const response = await fetch(url, {
-            headers: { 'User-Agent': 'TaxiManagerApp/1.0' } // Es buena práctica identificarse
-        });
-        const data = await response.json();
-
-        if (data && data.address) {
-            // Tratamos de armar una dirección corta y útil
-            const calle = data.address.road || data.address.pedestrian || '';
-            const numero = data.address.house_number || '';
-            const barrio = data.address.neighbourhood || data.address.suburb || '';
-            
-            // Ej: "Av. Arequipa 500, Lince"
-            let direccion = `${calle} ${numero}`.trim();
-            if (barrio) direccion += `, ${barrio}`;
-            
-            return direccion || "Dirección desconocida";
-        }
-        return "Ubicación sin nombre";
-    } catch (error) {
-        console.error("Error obteniendo dirección:", error);
-        return "Error GPS Red"; // Si falla internet, guardamos esto
-    }
-}
 // Función matemática para calcular distancia entre dos coordenadas (Haversine)
 function calcularDistancia(lat1, lon1, lat2, lon2) {
     if(!lat1 || !lat2) return 0;
@@ -77,39 +48,35 @@ function mostrarPanelInicio() {
 // ==========================================
 // 1. INICIAR CARRERA (V3.0 con Texto y GPS)
 // ==========================================
+// 1. INICIAR CARRERA (Versión TURBO: Solo GPS, sin esperar dirección)
 async function iniciarCarrera() {
     if (!navigator.geolocation) return alert("Tu navegador no soporta GPS");
 
     const appSeleccionada = document.querySelector('input[name="appOrigen"]:checked').value;
-    
+    // Si escribiste algo manual, lo enviamos. Si no, enviamos vacío (el servidor lo buscará después)
+    const origenTexto = document.getElementById('inputOrigen')?.value || '';
+
     const btn = document.getElementById('btnIniciar');
     const textoOriginal = btn.innerHTML;
     
-    // Feedback visual
-    btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Detectando Calle...';
+    btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> GPS...';
     btn.disabled = true;
 
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             try {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-
-                // 1. GUARDAR INICIO PARA CÁLCULOS
-                viajeInicioCoords = { lat, lng };
+                // Guardamos inicio para calcular distancia al final
+                viajeInicioCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
                 viajeInicioTime = new Date();
-
-                // 2. ¡MAGIA! OBTENER NOMBRE DE LA CALLE AUTOMÁTICAMENTE
-                const direccionDetectada = await obtenerDireccionGPS(lat, lng);
-                console.log("Origen detectado:", direccionDetectada);
 
                 const datos = {
                     origen_tipo: appSeleccionada,
-                    origen_texto: direccionDetectada, // <--- Enviamos lo que detectó el satélite
-                    lat: lat, 
-                    lng: lng
+                    origen_texto: origenTexto, 
+                    lat: position.coords.latitude, 
+                    lng: position.coords.longitude
                 };
 
+                // Enviamos al servidor
                 const response = await fetch(`${API_URL}/iniciar`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -121,11 +88,7 @@ async function iniciarCarrera() {
                 if (resultado.success) {
                     viajeActualId = resultado.data.id_viaje;
                     document.getElementById('selectorApps').classList.add('d-none');
-                    
-                    // Opcional: Mostrar un toast o alerta pequeña de dónde estás
-                    // alert(`Carrera iniciada en: ${direccionDetectada}`); 
-                    
-                    mostrarPanelCarrera();
+                    mostrarPanelCarrera(); // ¡CAMBIO DE PANTALLA INSTANTÁNEO!
                 } else {
                     alert("Error: " + resultado.message);
                 }
@@ -172,17 +135,19 @@ async function registrarParada() {
 // ==========================================
 // 3. FINALIZAR Y COBRAR (V3.0 Completo)
 // ==========================================
+// 3. FINALIZAR Y COBRAR (Versión TURBO)
 async function guardarCarrera() {
     const montoInput = document.querySelector('#modalCobrar input[type="number"]').value;
     const esYape = document.getElementById('pago2').checked; 
     const metodoId = esYape ? 2 : 1;
+    const destinoManual = document.getElementById('inputDestino')?.value || '';
 
     if (!montoInput || montoInput <= 0) return alert("Ingresa un monto válido");
 
     const btnCobrar = document.querySelector('#modalCobrar .btn-success');
     const textoBtn = btnCobrar.innerText;
     btnCobrar.disabled = true;
-    btnCobrar.innerHTML = '<i class="fas fa-sync fa-spin"></i> Finalizando...';
+    btnCobrar.innerHTML = '<i class="fas fa-check"></i> Guardando...';
 
     // Obtenemos GPS Final
     navigator.geolocation.getCurrentPosition(async (position) => {
@@ -190,7 +155,7 @@ async function guardarCarrera() {
             const latFin = position.coords.latitude;
             const lngFin = position.coords.longitude;
 
-            // 1. CÁLCULOS AUTOMÁTICOS DE DISTANCIA/TIEMPO
+            // Cálculos matemáticos (Esto es rapidísimo, no demora nada)
             let distancia = 0;
             if (viajeInicioCoords) {
                 distancia = calcularDistancia(viajeInicioCoords.lat, viajeInicioCoords.lng, latFin, lngFin);
@@ -202,10 +167,6 @@ async function guardarCarrera() {
                 duracion = Math.floor(diffMs / 60000); 
             }
 
-            // 2. ¡MAGIA! DETECTAR DESTINO AUTOMÁTICAMENTE
-            const destinoDetectado = await obtenerDireccionGPS(latFin, lngFin);
-            console.log("Destino detectado:", destinoDetectado);
-
             const datos = {
                 id_viaje: viajeActualId,
                 monto: parseFloat(montoInput),
@@ -214,7 +175,7 @@ async function guardarCarrera() {
                 lng: lngFin,
                 distancia_km: distancia,
                 duracion_min: duracion,
-                destino_texto: destinoDetectado // <--- Enviamos la calle detectada
+                destino_texto: destinoManual // Si no escribiste nada, el servidor buscará la calle
             };
 
             const response = await fetch(`${API_URL}/finalizar`, { 
@@ -226,8 +187,8 @@ async function guardarCarrera() {
             const resultado = await response.json();
 
             if (resultado.success) {
-                // Mensaje informativo bonito
-                alert(`✅ Completado\n🏁 Destino: ${destinoDetectado}\n📏 Distancia: ${distancia} km\n⏱️ Tiempo: ${duracion} min`);
+                // Alerta simple y rápida
+                alert(`✅ ¡Cobrado S/ ${montoInput}!`);
                 
                 var modal = bootstrap.Modal.getInstance(document.getElementById('modalCobrar'));
                 modal.hide();
@@ -596,33 +557,72 @@ async function pagarDeuda(id, monto, titulo) {
 
 // Historial y Reporte
 async function cargarHistorial() {
-    const res = await fetch(`${API_URL}/historial`);
-    const json = await res.json();
-    const div = document.getElementById('listaHistorial');
-    div.innerHTML = '';
-    
-    if(json.success && json.data.length > 0) {
-        document.getElementById('msgVacio').classList.add('d-none');
-        json.data.forEach(v => {
-            // Mostrar texto de origen si existe, sino el tipo
-            const titulo = v.origen_texto ? `<small>${v.origen_texto}</small>` : v.origen_tipo;
-            
-            div.innerHTML += `
-            <div class="card bg-dark border-secondary mb-2">
-                <div class="card-body p-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-bold text-white">${titulo}</div>
-                        <div class="small text-muted">${v.hora_fin} (${v.dia_mes})</div>
+    try {
+        const response = await fetch(`${API_URL}/historial`);
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            const lista = resultado.data;
+            const contenedor = document.getElementById('listaHistorial');
+            const mensajeVacio = document.getElementById('msgVacio');
+
+            // Limpiar lo que había antes
+            contenedor.innerHTML = '';
+
+            if (lista.length === 0) {
+                mensajeVacio.classList.remove('d-none');
+                return;
+            }
+            mensajeVacio.classList.add('d-none');
+
+            // Recorrer cada viaje y dibujar su tarjeta ESTILO CLÁSICO
+            lista.forEach(viaje => {
+                // 1. Definir color del Badge según la App
+                let badgeColor = 'bg-secondary';
+                if(viaje.origen_tipo === 'INDRIVER') badgeColor = 'bg-success';
+                if(viaje.origen_tipo === 'UBER') badgeColor = 'bg-light text-dark';
+                if(viaje.origen_tipo === 'CALLE') badgeColor = 'bg-warning text-dark';
+                if(viaje.origen_tipo === 'OTROS') badgeColor = 'bg-info text-dark';
+
+                // 2. Definir icono de pago (1=Efectivo, 2=Yape)
+                const iconoPago = viaje.metodo_cobro_id === 1 
+                    ? '<i class="fas fa-money-bill-wave text-success"></i>' // Billete Verde
+                    : '<i class="fas fa-qrcode text-warning"></i>';        // QR Amarillo
+
+                // 3. Estructura HTML (Flexbox: Izquierda - Centro - Derecha)
+                const html = `
+                <div class="card bg-dark border-secondary mb-2">
+                    <div class="card-body p-2 d-flex align-items-center">
+                        
+                        <div class="me-3">
+                            <button class="btn btn-outline-danger btn-sm border-0 p-2" onclick="anularCarrera(${viaje.id})">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+
+                        <div class="d-flex flex-column flex-grow-1">
+                            <div class="mb-1">
+                                <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
+                            </div>
+                            <div class="text-info small fw-bold" style="font-size: 0.8rem;">
+                                <i class="far fa-clock me-1"></i>${viaje.hora_fin} <span class="text-muted ms-1">(${viaje.dia_mes})</span>
+                            </div>
+                            ${viaje.origen_texto ? `<div class="text-muted" style="font-size: 0.65rem;">📍 ${viaje.origen_texto.substring(0,25)}...</div>` : ''}
+                        </div>
+
+                        <div class="text-end ms-2">
+                            <div class="fw-bold text-white fs-5 lh-1">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
+                            <div class="mt-1 fs-5">${iconoPago}</div>
+                        </div>
+
                     </div>
-                    <div class="text-end">
-                        <div class="fs-5 text-white fw-bold">S/ ${parseFloat(v.monto_cobrado).toFixed(2)}</div>
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="anularCarrera(${v.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>`;
-        });
-    } else {
-        document.getElementById('msgVacio').classList.remove('d-none');
+                </div>`;
+                
+                contenedor.innerHTML += html;
+            });
+        }
+    } catch (error) {
+        console.error("Error cargando historial:", error);
     }
 }
 
