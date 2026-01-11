@@ -147,6 +147,27 @@ class ViajeModel {
         const [rows] = await db.query(query);
         return rows;
     }
+
+    static async obtenerGananciasUltimos7Dias() {
+        // Esta consulta es mágica:
+        // 1. Agrupa por FECHA.
+        // 2. Ordena cronológicamente.
+        // 3. Muestra el nombre del día (Lunes, Martes...) en español si el servidor está configurado, 
+        //    sino lo traduciremos en JS.
+        const query = `
+            SELECT 
+                DATE(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) as fecha,
+                DAYNAME(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) as dia_nombre,
+                SUM(monto_cobrado) as total
+            FROM viajes
+            WHERE estado = 'COMPLETADO'
+            AND fecha_hora_fin >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY fecha
+            ORDER BY fecha ASC
+        `;
+        const [rows] = await db.query(query);
+        return rows;
+    }
 }
 
 module.exports = ViajeModel;

@@ -59,6 +59,9 @@ class FinanzasController {
             // --- USAMOS EL NUEVO MÉTODO CON FILTRO ---
             const estadisticas = await ViajeModel.obtenerEstadisticas(periodo);
             // ----------------------------------------
+            // --- NUEVO: Pedimos los datos de la semana ---
+            const semana = await ViajeModel.obtenerGananciasUltimos7Dias();
+            // ---------------------------------------------
 
             res.json({
                 success: true,
@@ -67,7 +70,8 @@ class FinanzasController {
                     cuentas,
                     ahorro_total: ahorro[0].total || 0,
                     gasto_mensual: gastos[0].total || 0,
-                    estadisticas // Enviamos los datos filtrados
+                    estadisticas,
+                    semana // Enviamos los datos filtrados
                 }
             });
 

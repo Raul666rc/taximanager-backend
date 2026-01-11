@@ -268,6 +268,7 @@ async function guardarGasto() {
 
 // En public/js/main.js (al final)
 let miGrafico = null; // Variable global para controlar el gráfico
+let miGraficoBarras = null;
 
 // Modificamos la función para aceptar el periodo (por defecto 'mes')
 async function abrirBilletera(periodo = 'mes') {
@@ -355,6 +356,60 @@ async function abrirBilletera(periodo = 'mes') {
                                     return `${label}: S/ ${value} (${percentage})`;
                                 }
                             }
+                        }
+                    }
+                }
+            });
+
+            // ==========================================
+            //       NUEVO: GRÁFICO DE BARRAS
+            // ==========================================
+            const ctxBarras = document.getElementById('graficoSemana').getContext('2d');
+            
+            // Variable global para destruir el gráfico anterior si existe (agrégala al inicio del archivo junto a let miGrafico)
+            if (window.miGraficoBarras) {
+                window.miGraficoBarras.destroy();
+            }
+
+            // Procesar datos de la semana
+            // data.semana viene del backend: [{dia_nombre: 'Monday', total: 120}, ...]
+            // Traducir días al español y extraer valores
+            const diasIngles = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const diasEsp = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+            const etiquetasSemana = (data.semana || []).map(item => {
+                // Truco simple para traducir
+                const index = diasIngles.indexOf(item.dia_nombre);
+                return index >= 0 ? diasEsp[index] : item.dia_nombre;
+            });
+            const valoresSemana = (data.semana || []).map(item => item.total);
+
+            window.miGraficoBarras = new Chart(ctxBarras, {
+                type: 'bar', // Tipo BARRAS
+                data: {
+                    labels: etiquetasSemana,
+                    datasets: [{
+                        label: 'Producción (S/)',
+                        data: valoresSemana,
+                        backgroundColor: '#ffc107', // Amarillo Taxi
+                        borderRadius: 4 // Bordes redondeados modernos
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false } // No necesitamos leyenda para esto
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#333' }, // Líneas de fondo oscuras
+                            ticks: { color: '#aaa' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#fff' }
                         }
                     }
                 }
