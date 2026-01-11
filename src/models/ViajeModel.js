@@ -186,6 +186,18 @@ class ViajeModel {
             return [];
         }
     }
+    // NUEVO: Calcula la ganancia exacta del día actual (Hora Perú)
+    static async obtenerGananciaHoyPeru() {
+        const query = `
+            SELECT SUM(monto_cobrado) as total
+            FROM viajes
+            WHERE estado = 'COMPLETADO'
+            /* Truco: Restamos 5 horas tanto a la fecha del viaje como a la fecha actual */
+            AND DATE(DATE_SUB(fecha_hora_fin, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+        `;
+        const [rows] = await db.query(query);
+        return rows[0].total || 0;
+    }
 }
 
 module.exports = ViajeModel;

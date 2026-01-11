@@ -494,57 +494,50 @@ function cerrarSesion() {
 
 async function cargarMetaDiaria() {
     try {
-        // 1. Traemos el historial (que ahora trae las últimas 20)
-        const response = await fetch(`${API_URL}/historial`);
+        // Pedimos los datos a la Billetera (que ahora trae el cálculo exacto de Perú)
+        // Usamos '?periodo=hoy' para que sea ligero
+        const response = await fetch(`${API_URL}/billetera?periodo=hoy`);
         const resultado = await response.json();
-        
-        let gananciaHoy = 0;
-        
+
         if (resultado.success) {
-            // --- FILTRO INTELIGENTE ---
-            // Obtenemos la fecha de "Hoy" en formato DD/MM (ej: "11/01")
-            const hoy = new Date();
-            const dia = String(hoy.getDate()).padStart(2, '0');
-            const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-            const fechaHoyTexto = `${dia}/${mes}`;
+            const data = resultado.data;
+            
+            // DATOS EXACTOS DESDE EL SERVIDOR
+            // Ya no calculamos nada aquí, confiamos en la BD
+            const gananciaHoy = parseFloat(data.ganancia_hoy) || 0; 
+            const meta = parseFloat(data.meta_diaria) || 200;
 
-            // Sumamos SOLO las carreras que coincidan con la fecha de hoy
-            gananciaHoy = resultado.data.reduce((sum, viaje) => {
-                // viaje.dia_mes viene del SQL (ej: "11/01")
-                if (viaje.dia_mes === fechaHoyTexto) {
-                    return sum + parseFloat(viaje.monto_cobrado);
-                }
-                return sum;
-            }, 0);
+            // Calcular porcentaje
+            let porcentaje = (gananciaHoy / meta) * 100;
+            if (porcentaje > 100) porcentaje = 100;
+
+            // Actualizar la Barra (Visual)
+            document.getElementById('txtProgreso').innerText = `S/ ${gananciaHoy.toFixed(0)} / ${meta}`;
+            document.getElementById('txtPorcentaje').innerText = `${porcentaje.toFixed(0)}%`;
+            
+            const barra = document.getElementById('barraMeta');
+            barra.style.width = `${porcentaje}%`;
+
+            // Actualizar Frases y Colores
+            const frase = document.getElementById('fraseMotivacional');
+            
+            // Reiniciamos clases
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated fw-bold';
+
+            if (porcentaje < 20) {
+                barra.classList.add('bg-warning', 'text-dark');
+                frase.innerText = "☕ Arrancando motores (Hora Perú 🇵🇪)";
+            } else if (porcentaje < 50) {
+                barra.classList.add('bg-info', 'text-dark');
+                frase.innerText = "🚕 Vamos a buen ritmo.";
+            } else if (porcentaje < 99) {
+                barra.classList.add('bg-primary');
+                frase.innerText = "🔥 ¡Ya casi llegas!";
+            } else {
+                barra.classList.add('bg-success');
+                frase.innerText = "🎉 ¡META CUMPLIDA! A descansar o seguir sumando.";
+            }
         }
-
-        // 2. Pedimos la Meta
-        const respBilletera = await fetch(`${API_URL}/billetera?periodo=hoy`);
-        const resBilletera = await respBilletera.json();
-        const meta = parseFloat(resBilletera.data.meta_diaria) || 200;
-
-        // 3. Pintamos la barra (Igual que antes)
-        let porcentaje = (gananciaHoy / meta) * 100;
-        if (porcentaje > 100) porcentaje = 100;
-
-        document.getElementById('txtProgreso').innerText = `S/ ${gananciaHoy.toFixed(0)} / ${meta}`;
-        document.getElementById('txtPorcentaje').innerText = `${porcentaje.toFixed(0)}%`;
-        const barra = document.getElementById('barraMeta');
-        barra.style.width = `${porcentaje}%`;
-
-        // Colores
-        const frase = document.getElementById('fraseMotivacional');
-        if (porcentaje < 20) {
-            barra.className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold';
-            frase.innerText = "☕ Calentando motores...";
-        } else if (porcentaje < 80) {
-            barra.className = 'progress-bar progress-bar-striped progress-bar-animated bg-info text-dark fw-bold';
-            frase.innerText = "🚕 Buen ritmo.";
-        } else {
-            barra.className = 'progress-bar progress-bar-striped progress-bar-animated bg-success fw-bold';
-            frase.innerText = "🎉 ¡META CUMPLIDA!";
-        }
-
     } catch (error) {
         console.error("Error meta:", error);
     }

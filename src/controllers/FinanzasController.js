@@ -47,40 +47,46 @@ class FinanzasController {
 
             // 1. OBTENER META DEL USUARIO (Asumimos ID 1 o lo sacamos del login si tuvieramos el token a mano)
             // Para simplificar por ahora, usaremos el ID 1 (Admin)
+            // 1. Pedimos la Meta (si no existe, 200)
             const [userRows] = await db.query("SELECT meta_diaria FROM usuarios WHERE id = 1");
-            const meta = userRows[0].meta_diaria || 200;
+            const meta = userRows[0]?.meta_diaria || 200;
 
             const [cuentas] = await db.query("SELECT nombre, saldo_actual FROM cuentas");
             
             // ... (Ahorro y Gastos los dejamos igual, o podrías filtrarlos también si quieres) ...
             const [ahorro] = await db.query("SELECT SUM(monto) as total FROM transacciones WHERE descripcion LIKE '%Ahorro%'");
             const [gastos] = await db.query("SELECT SUM(monto) as total FROM transacciones WHERE tipo = 'GASTO' AND MONTH(fecha) = MONTH(DATE_SUB(NOW(), INTERVAL 5 HOUR))");
-
-            // --- USAMOS EL NUEVO MÉTODO CON FILTRO ---
-            const estadisticas = await ViajeModel.obtenerEstadisticas(periodo);
             // ----------------------------------------
             // --- NUEVO: Pedimos los datos de la semana ---
             //const semana = await ViajeModel.obtenerGananciasUltimos7Dias();
             // ---------------------------------------------
 
             let semana = [];
+            let estadisticas = [];
             try {
                 // Intentamos obtener el gráfico
                 if (ViajeModel.obtenerGananciasUltimos7Dias) {
                      semana = await ViajeModel.obtenerGananciasUltimos7Dias();
                 }
+                if (ViajeModel.obtenerEstadisticas) {
+                    estadisticas = await ViajeModel.obtenerEstadisticas(req.query.periodo || 'mes');
+                }
             } catch (err) {
                 // Si falla, solo imprimimos el error en la consola del servidor
                 // PERO NO DETENEMOS LA APP. Enviamos lista vacía.
-                console.error("⚠️ Error calculando gráfico semana:", err.message);
-                semana = []; 
+                console.error("⚠️ Error calculando gráficos", err.message);
+                semana = [];
+                estadisticas=[];
             }
             // --------------------------------------------------
-
+            // --- 3. NUEVO: PEDIMOS LA GANANCIA EXACTA DE HOY (PERÚ) ---
+            const gananciaHoy = await ViajeModel.obtenerGananciaHoyPeru();
+            // ----------------------------------------------------------
             res.json({
                 success: true,
                 data: {
                     meta_diaria: meta, // <--- NUEVO CAMPO
+                    ganancia_hoy: gananciaHoy,
                     cuentas,
                     ahorro_total: ahorro[0].total || 0,
                     gasto_mensual: gastos[0].total || 0,
