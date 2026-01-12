@@ -416,21 +416,34 @@
                     </div>
 
                     <div class="p-3 bg-dark border-top border-secondary mt-2">
-                        <h6 class="text-warning mb-2"><i class="fas fa-hand-holding-usd"></i> Registrar Préstamo Grande</h6>
-                        <small class="text-muted d-block mb-2">Genera todas las cuotas automáticamente.</small>
+                        <h6 class="text-warning mb-2"><i class="fas fa-hand-holding-usd"></i> Registrar Contrato / Servicio</h6>
+                        
                         <div class="row g-2">
-                            <div class="col-12">
-                                <input type="text" id="presTitulo" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Ej: Préstamo Auto">
+                            <div class="col-12 mb-2">
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="tipoCompromiso" id="tipoPrestamo" value="PRESTAMO" checked onclick="toggleTipoCompromiso()">
+                                    <label class="btn btn-outline-secondary btn-sm" for="tipoPrestamo">🏦 Préstamo (Finito)</label>
+
+                                    <input type="radio" class="btn-check" name="tipoCompromiso" id="tipoServicio" value="SERVICIO" onclick="toggleTipoCompromiso()">
+                                    <label class="btn btn-outline-secondary btn-sm" for="tipoServicio">📱 Servicio (Mensual)</label>
+                                </div>
+                            </div>
+
+                            <div class="col-8">
+                                <input type="text" id="presTitulo" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Ej: Auto / Plan Celular">
                             </div>
                             <div class="col-4">
-                                <input type="number" id="presMonto" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Total">
+                                <input type="number" id="presMonto" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Monto S/">
                             </div>
-                            <div class="col-4">
-                                <input type="number" id="presCuotas" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="# Cuotas">
+                            
+                            <div class="col-6">
+                                <input type="number" id="presCuotas" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="N° Cuotas">
                             </div>
-                            <div class="col-4">
-                                <input type="number" id="presDia" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Día Pago">
+                            
+                            <div class="col-6">
+                                <input type="number" id="presDia" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Día Pago (Ej: 5)">
                             </div>
+
                             <div class="col-12 d-grid">
                                 <button class="btn btn-sm btn-outline-warning" onclick="crearPrestamo()">
                                     <i class="fas fa-cogs me-1"></i> GENERAR CRONOGRAMA

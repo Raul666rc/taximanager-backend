@@ -212,6 +212,7 @@ class FinanzasController {
         }
     }
 
+    // Crear Compromiso (Préstamo o Servicio Recurrente)
     static async crearCompromiso(req, res) {
         const connection = await db.getConnection();
         try {
@@ -223,6 +224,7 @@ class FinanzasController {
             } = req.body;
 
             // 1. Crear PADRE
+            // Nota: Si es SERVICIO, guardamos 'cuotas_totales' como referencia (ej: 12 meses renovables)
             const [resCompromiso] = await connection.query(`
                 INSERT INTO compromisos 
                 (titulo, tipo, monto_total, monto_cuota_aprox, cuotas_totales, dia_pago_mensual, origen_sugerido_id)
@@ -231,34 +233,41 @@ class FinanzasController {
             
             const compromisoId = resCompromiso.insertId;
 
-            // 2. Generar HIJOS (Cuotas) - LÓGICA CORREGIDA
-            const numCuotasAGenerar = cuotas_totales || 1; 
+            // 2. Generar HIJOS (Cronograma)
+            const numCuotasAGenerar = cuotas_totales || 12; // Por defecto generamos un año si es servicio
 
-            // A. Determinamos la fecha de la PRIMERA cuota
-            let fechaBase = new Date(); // Hoy
+            // A. Determinamos fecha inicio (Lógica inteligente de fechas)
+            let fechaBase = new Date(); 
             const diaHoy = fechaBase.getDate();
 
-            // Si hoy es 11 y el pago es el 20 -> Pagas este mes (No sumamos mes)
-            // Si hoy es 25 y el pago es el 20 -> Ya pasó, pagas el próximo mes (Sumamos 1 mes)
+            // Si hoy es 11 y pagas el 20 -> Toca este mes.
+            // Si hoy es 25 y pagas el 20 -> Toca el próximo.
             if (diaHoy > dia_pago) {
                 fechaBase.setMonth(fechaBase.getMonth() + 1);
             }
-            
-            // Fijamos el día de pago
             fechaBase.setDate(dia_pago);
 
+            // Nombres de meses para Servicios
+            const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
             for (let i = 0; i < numCuotasAGenerar; i++) {
-                // Clonamos la fecha base para no alterarla
                 let fechaCuota = new Date(fechaBase);
-                // Sumamos 'i' meses (0 para la primera, 1 para la segunda, etc.)
                 fechaCuota.setMonth(fechaBase.getMonth() + i);
                 
                 const fechaSQL = fechaCuota.toISOString().split('T')[0];
-                
-                // Mejoramos el título: "Préstamo Auto - Cuota 1/12"
-                const tituloCuota = cuotas_totales 
-                    ? `${titulo} - Cuota ${i + 1}/${cuotas_totales}` 
-                    : `${titulo} - Mensualidad ${i + 1}`;
+                let tituloCuota = "";
+
+                // --- AQUÍ ESTÁ LA MAGIA ---
+                if (tipo === 'SERVICIO') {
+                    // Formato: "Netflix - Ene 2026"
+                    const nombreMes = nombresMeses[fechaCuota.getMonth()];
+                    const anio = fechaCuota.getFullYear();
+                    tituloCuota = `${titulo} - ${nombreMes} ${anio}`;
+                } else {
+                    // Formato: "Préstamo - Cuota 1/24"
+                    tituloCuota = `${titulo} - Cuota ${i + 1}/${numCuotasAGenerar}`;
+                }
+                // ---------------------------
 
                 await connection.query(`
                     INSERT INTO obligaciones 

@@ -687,30 +687,50 @@ async function crearObligacion() {
 async function crearPrestamo() {
     const titulo = document.getElementById('presTitulo').value;
     const monto = document.getElementById('presMonto').value;
-    const cuotas = document.getElementById('presCuotas').value;
     const dia = document.getElementById('presDia').value;
+    
+    // Detectar Tipo
+    const esServicio = document.getElementById('tipoServicio').checked;
+    const tipo = esServicio ? 'SERVICIO' : 'PRESTAMO';
+    
+    // Si es servicio, forzamos 12 si está vacío o bloqueado
+    let cuotas = document.getElementById('presCuotas').value;
+    if (esServicio) cuotas = 12; 
 
-    if (!titulo || !monto || !cuotas) return alert("Completa datos");
+    if (!titulo || !monto || !cuotas || !dia) {
+        alert("Completa todos los datos del contrato");
+        return;
+    }
 
-    if(confirm(`Generar ${cuotas} cuotas para ${titulo}?`)) {
-        const res = await fetch(`${API_URL}/compromisos`, { // Ruta correcta
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                titulo, 
-                tipo: 'PRESTAMO',
-                monto_total: monto,
-                monto_cuota: (monto/cuotas).toFixed(2),
-                cuotas_totales: cuotas,
-                dia_pago: dia
-            })
-        });
-        const data = await res.json();
-        if(data.success) {
-            alert("Cronograma creado");
-            cargarObligaciones();
-        } else {
-            alert(data.message);
+    if(confirm(`¿Generar cronograma para "${titulo}"?\nTipo: ${tipo}\nMonto: S/ ${monto}\nInicio: Día ${dia}`)) {
+        
+        try {
+            const res = await fetch(`${API_URL}/compromisos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    titulo, 
+                    tipo: tipo, // Enviamos el tipo
+                    monto_total: (tipo === 'PRESTAMO' ? (monto * cuotas) : 0), // Solo relevante en préstamos
+                    monto_cuota: monto, // En este form, el usuario ingresa la cuota mensual
+                    cuotas_totales: cuotas,
+                    dia_pago: dia
+                })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                alert("✅ Cronograma creado exitosamente");
+                // Limpiar
+                document.getElementById('presTitulo').value = '';
+                document.getElementById('presMonto').value = '';
+                cargarObligaciones();
+            } else {
+                alert("Error: " + data.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
         }
     }
 }
@@ -910,6 +930,23 @@ async function verMapa(idViaje) {
     } catch (e) {
         console.error(e);
         alert("Error de conexión");
+    }
+}
+
+
+// Función visual para cambiar el placeholder según selección
+function toggleTipoCompromiso() {
+    const esServicio = document.getElementById('tipoServicio').checked;
+    const inputCuotas = document.getElementById('presCuotas');
+    
+    if (esServicio) {
+        inputCuotas.value = 12; // Por defecto 1 año
+        inputCuotas.disabled = true; // Bloqueamos para que sea rápido
+        inputCuotas.placeholder = "12 Meses";
+    } else {
+        inputCuotas.value = '';
+        inputCuotas.disabled = false;
+        inputCuotas.placeholder = "N° Cuotas";
     }
 }
 
