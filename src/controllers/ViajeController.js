@@ -132,11 +132,23 @@ class ViajeController {
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
+    // Acción: Obtener total del día Y la meta para la barra de progreso
     static async obtenerResumen(req, res) {
         try {
             const total = await ViajeModel.obtenerTotalDia();
-            res.json({ success: true, total: total });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+            
+            // Consultamos la meta del usuario (Asumimos ID 1 por ahora)
+            const [rows] = await db.query("SELECT meta_diaria FROM usuarios WHERE id = 1");
+            const meta = rows[0]?.meta_diaria || 200; // 200 por defecto si no hay dato
+
+            res.json({ 
+                success: true, 
+                total: total, 
+                meta: meta 
+            });
+        } catch (e) { 
+            res.status(500).json({ error: e.message }); 
+        }
     }
 
     static async registrarGasto(req, res) {

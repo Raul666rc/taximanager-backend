@@ -61,6 +61,10 @@ router.post('/obligaciones/pagar', FinanzasController.pagarObligacion);
 // En la sección de Finanzas
 router.get('/reparto/sugerencia', FinanzasController.obtenerSugerenciaReparto);
 
+
+// Ruta para descargar el Excel/CSV
+router.get('/reporte/descargar', ViajeController.descargarReporte);
+
 router.get('/ruta/:id', ViajeController.obtenerRutaGPS);
 
 module.exports = router;

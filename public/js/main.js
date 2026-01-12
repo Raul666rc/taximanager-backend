@@ -253,12 +253,40 @@ async function guardarCarrera() {
 
 async function cargarResumenDia() {
     try {
-        const response = await fetch(`${API_URL}/resumen`);
-        const resultado = await response.json();
-        if (resultado.success) {
-            document.getElementById('gananciaDia').innerText = `S/ ${parseFloat(resultado.total).toFixed(2)}`;
+        const response = await fetch(`${API_URL}/resumen`); // Asegúrate que la ruta coincida
+        const result = await response.json();
+
+        if (result.success) {
+            const total = parseFloat(result.total);
+            const meta = parseFloat(result.meta);
+
+            // 1. Actualizar Número Grande
+            document.getElementById('lblTotalDia').innerText = total.toFixed(2);
+
+            // 2. Actualizar Barra de Progreso
+            const porcentaje = (total / meta) * 100;
+            const barra = document.getElementById('barraMeta');
+            const textoMeta = document.getElementById('lblMetaTexto');
+
+            // Limitamos al 100% visualmente para que no se salga, pero cambiamos color si superamos
+            const anchoVisual = porcentaje > 100 ? 100 : porcentaje;
+            
+            barra.style.width = `${anchoVisual}%`;
+            textoMeta.innerText = `Meta: S/ ${meta} (${porcentaje.toFixed(0)}%)`;
+
+            // Efectos visuales de éxito
+            if (porcentaje >= 100) {
+                barra.classList.remove('bg-warning');
+                barra.classList.add('bg-success'); // Se pone verde si cumples
+                textoMeta.innerHTML = `<i class="fas fa-trophy text-warning"></i> ¡META SUPERADA! S/ ${meta}`;
+            } else {
+                barra.classList.remove('bg-success');
+                barra.classList.add('bg-warning');
+            }
         }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 async function cargarMetaDiaria() {
