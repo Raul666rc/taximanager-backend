@@ -156,11 +156,19 @@ class ViajeController {
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
+    // Acción: Obtener lista de carreras (Con filtro de fecha opcional)
     static async obtenerHistorialHoy(req, res) {
         try {
-            const historial = await ViajeModel.obtenerHistorialHoy();
+            // Leemos el parámetro de la URL (ej: /api/historial?fecha=2026-01-12)
+            const { fecha } = req.query; 
+            
+            const historial = await ViajeModel.obtenerHistorial(fecha);
+            
             res.json({ success: true, data: historial });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { 
+            console.error(e);
+            res.status(500).json({ success: false, message: 'Error al obtener historial' }); 
+        }
     }
 
     static async anularCarrera(req, res) {

@@ -95,8 +95,21 @@ class ViajeModel {
     //      REPORTES Y LECTURA
     // ==========================================
 
-    // Historial de Hoy
-    static async obtenerHistorialHoy() {
+    // 4. HISTORIAL POR FECHA (Flexible)
+    static async obtenerHistorial(fecha = null) {
+        // Si no mandan fecha, usamos HOY (Hora Perú)
+        // Si mandan fecha ('2025-12-20'), la usamos directo.
+        
+        let filtroFecha = "";
+        
+        if (!fecha) {
+            // Defecto: Hoy Perú
+            filtroFecha = "DATE(fecha_hora_inicio) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))";
+        } else {
+            // Fecha específica elegida por el usuario
+            filtroFecha = `DATE(fecha_hora_inicio) = '${fecha}'`;
+        }
+
         const query = `
             SELECT 
                 id, origen_tipo, monto_cobrado, metodo_cobro_id, 
@@ -104,8 +117,8 @@ class ViajeModel {
                 DATE_FORMAT(fecha_hora_fin, '%d/%m') as dia_mes,
                 origen_texto, destino_texto
             FROM viajes 
-            WHERE DATE(fecha_hora_inicio) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
-            AND estado = 'COMPLETADO'
+            WHERE estado = 'COMPLETADO'
+            AND ${filtroFecha}
             ORDER BY id DESC
         `;
         const [rows] = await db.query(query);

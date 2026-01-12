@@ -804,8 +804,22 @@ async function pagarDeuda(id, monto, titulo) {
 
 // Historial y Reporte
 async function cargarHistorial() {
+    // 1. Obtener la fecha del input
+    const inputFecha = document.getElementById('filtroFechaHistorial');
+    let fechaSeleccionada = inputFecha.value;
+
+    // Si el input está vacío (primera carga), ponemos la fecha de HOY automáticamente
+    if (!fechaSeleccionada) {
+        const hoy = new Date();
+        // Ajuste zona horaria Perú manual para el valor del input
+        hoy.setHours(hoy.getHours() - 5); 
+        fechaSeleccionada = hoy.toISOString().split('T')[0];
+        inputFecha.value = fechaSeleccionada;
+    }
+
     try {
-        const response = await fetch(`${API_URL}/historial`);
+        // 2. Enviamos la fecha al servidor
+        const response = await fetch(`${API_URL}/historial?fecha=${fechaSeleccionada}`);
         const resultado = await response.json();
 
         if (resultado.success) {
@@ -813,7 +827,6 @@ async function cargarHistorial() {
             const contenedor = document.getElementById('listaHistorial');
             const mensajeVacio = document.getElementById('msgVacio');
 
-            // Limpiar lo que había antes
             contenedor.innerHTML = '';
 
             if (lista.length === 0) {
@@ -822,21 +835,18 @@ async function cargarHistorial() {
             }
             mensajeVacio.classList.add('d-none');
 
-            // Recorrer cada viaje y dibujar su tarjeta ESTILO CLÁSICO
+            // Dibujar tarjetas (Tu código de diseño clásico se mantiene igual)
             lista.forEach(viaje => {
-                // 1. Definir color del Badge según la App
                 let badgeColor = 'bg-secondary';
                 if(viaje.origen_tipo === 'INDRIVER') badgeColor = 'bg-success';
                 if(viaje.origen_tipo === 'UBER') badgeColor = 'bg-light text-dark';
                 if(viaje.origen_tipo === 'CALLE') badgeColor = 'bg-warning text-dark';
-                if(viaje.origen_tipo === 'OTROS') badgeColor = 'bg-info text-dark';
-
-                // 2. Definir icono de pago (1=Efectivo, 2=Yape)
+                
                 const iconoPago = viaje.metodo_cobro_id === 1 
-                    ? '<i class="fas fa-money-bill-wave text-success"></i>' // Billete Verde
-                    : '<i class="fas fa-qrcode text-warning"></i>';        // QR Amarillo
+                    ? '<i class="fas fa-money-bill-wave text-success"></i>' 
+                    : '<i class="fas fa-qrcode text-warning"></i>';
 
-                // 3. Estructura HTML (Flexbox: Izquierda - Centro - Derecha)
+                // Usamos viaje.id para el mapa y anular
                 const html = `
                 <div class="card bg-dark border-secondary mb-2">
                     <div class="card-body p-2 d-flex align-items-center">
@@ -855,9 +865,9 @@ async function cargarHistorial() {
                                 <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
                             </div>
                             <div class="text-info small fw-bold" style="font-size: 0.8rem;">
-                                <i class="far fa-clock me-1"></i>${viaje.hora_fin} <span class="text-muted ms-1">(${viaje.dia_mes})</span>
+                                <i class="far fa-clock me-1"></i>${viaje.hora_fin}
                             </div>
-                            ${viaje.origen_texto ? `<div class="text-muted" style="font-size: 0.65rem;">📍 ${viaje.origen_texto.substring(0,25)}...</div>` : ''}
+                            ${viaje.origen_texto ? `<div class="text-muted text-truncate" style="font-size: 0.65rem; max-width: 150px;">📍 ${viaje.origen_texto}</div>` : ''}
                         </div>
 
                         <div class="text-end ms-2">
@@ -867,7 +877,6 @@ async function cargarHistorial() {
 
                     </div>
                 </div>`;
-                
                 contenedor.innerHTML += html;
             });
         }
