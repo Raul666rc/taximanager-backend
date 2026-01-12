@@ -503,14 +503,25 @@ async function cargarObligaciones() {
             let html = '';
             result.data.forEach(item => {
                 
+                // CORRECCIÓN DE FECHA:
+                // 1. Nos aseguramos de tener un objeto fecha válido
+                const fechaObj = new Date(item.fecha_vencimiento);
+                
+                // 2. Ajustamos la zona horaria para que no se atrase un día por culpa del UTC
+                // (Sumamos la diferencia horaria de tu zona)
+                const userTimezoneOffset = fechaObj.getTimezoneOffset() * 60000;
+                const fechaAjustada = new Date(fechaObj.getTime() + userTimezoneOffset);
+
+                // 3. Formateamos bonito (Ej: 20/01/2026)
+                const fechaBonita = fechaAjustada.toLocaleDateString('es-PE', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric' 
+                });
+
                 // CÁLCULOS DE VISUALIZACIÓN
                 const dias = parseInt(item.dias_restantes);
                 
-                // Formatear fecha bonita: "20/01/2026"
-                // Truco: Agregamos 'T00:00' para evitar problemas de zona horaria al visualizar
-                const fechaObj = new Date(item.fecha_vencimiento + 'T00:00:00');
-                const fechaBonita = fechaObj.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
                 // Semáforo de colores
                 let bordeColor = 'border-secondary';
                 let badgeEstado = '';
@@ -574,18 +585,52 @@ async function cargarObligaciones() {
 }
 
 async function crearObligacion() {
-    // Lógica simple para crear deuda puntual
     const titulo = document.getElementById('nuevaObliTitulo').value;
     const monto = document.getElementById('nuevaObliMonto').value;
     const fecha = document.getElementById('nuevaObliFecha').value;
-    if(!titulo || !monto) return;
+    const prioridad = document.getElementById('nuevaObliPrioridad').value;
 
-    await fetch(`${API_URL}/obligaciones`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ titulo, monto, fecha, prioridad: 'NORMAL' })
-    });
-    cargarObligaciones();
+    if (!titulo || !monto || !fecha) {
+        alert("⚠️ Por favor completa Título, Monto y Fecha.");
+        return;
+    }
+
+    const btnGuardar = document.querySelector('#modalObligaciones button.btn-success');
+    const textoOriginal = btnGuardar.innerHTML;
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+    try {
+        const response = await fetch(`${API_URL}/obligaciones`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ titulo, monto, fecha, prioridad })
+        });
+        
+        // LEEMOS LA RESPUESTA REAL DEL SERVIDOR
+        const result = await response.json();
+
+        if (result.success) {
+            // ¡Éxito!
+            document.getElementById('nuevaObliTitulo').value = '';
+            document.getElementById('nuevaObliMonto').value = '';
+            document.getElementById('nuevaObliFecha').value = '';
+            
+            // Recargar lista
+            await cargarObligaciones();
+            alert("✅ Gasto registrado correctamente");
+        } else {
+            // Error del Servidor
+            alert("❌ Error al guardar: " + (result.message || "Error desconocido"));
+        }
+
+    } catch (e) { 
+        console.error(e);
+        alert("❌ Error de Conexión: Verifica tu internet o el servidor."); 
+    } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = textoOriginal;
+    }
 }
 
 // NUEVO: CREAR PRÉSTAMO GRANDE (COMPROMISO)

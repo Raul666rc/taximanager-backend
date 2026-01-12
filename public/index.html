@@ -374,26 +374,33 @@
                     </div>
 
                     <div class="p-3 bg-secondary bg-opacity-10 border-top border-secondary">
-                        <h6 class="text-white mb-2"><i class="fas fa-plus-circle text-success"></i> Agregar Gasto Puntual</h6>
+                        <h6 class="text-white mb-3"><i class="fas fa-plus-circle text-success"></i> Agregar Gasto Puntual</h6>
+                        
                         <div class="row g-2">
                             <div class="col-7">
-                                <input type="text" id="nuevaObliTitulo" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Ej: Luz, Aceite...">
+                                <label class="small text-info mb-1">Concepto</label>
+                                <input type="text" id="nuevaObliTitulo" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Ej: Papeleta, Luz...">
                             </div>
                             <div class="col-5">
-                                <input type="number" id="nuevaObliMonto" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="S/ 0.00">
+                                <label class="small text-info mb-1">Monto (S/)</label>
+                                <input type="number" id="nuevaObliMonto" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="0.00">
                             </div>
                             <div class="col-6">
+                                <label class="small text-info mb-1">Vencimiento</label>
                                 <input type="date" id="nuevaObliFecha" class="form-control form-control-sm bg-dark text-white border-secondary">
                             </div>
                             <div class="col-6">
+                                <label class="small text-info mb-1">Prioridad</label>
                                 <select id="nuevaObliPrioridad" class="form-select form-select-sm bg-dark text-white border-secondary">
                                     <option value="NORMAL">Normal</option>
                                     <option value="ALTA">Alta</option>
                                     <option value="URGENTE">🚨 URGENTE</option>
                                 </select>
                             </div>
-                            <div class="col-12 d-grid">
-                                <button class="btn btn-sm btn-success" onclick="crearObligacion()">GUARDAR</button>
+                            <div class="col-12 d-grid mt-2">
+                                <button class="btn btn-sm btn-success fw-bold" onclick="crearObligacion()">
+                                    <i class="fas fa-save me-1"></i> GUARDAR RECORDATORIO
+                                </button>
                             </div>
                         </div>
                     </div>

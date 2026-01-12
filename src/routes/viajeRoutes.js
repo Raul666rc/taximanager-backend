@@ -55,6 +55,7 @@ router.post('/transferir', FinanzasController.realizarTransferencia);
 
 // RUTAS ACTUALIZADAS
 router.get('/obligaciones', FinanzasController.obtenerObligaciones); // (Asegúrate de tener este método en el Controller, es igual al anterior)
+router.post('/obligaciones', FinanzasController.crearObligacion);
 router.post('/compromisos', FinanzasController.crearCompromiso);     // <--- Cambio de nombre
 router.post('/obligaciones/pagar', FinanzasController.pagarObligacion);
 
