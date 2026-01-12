@@ -78,14 +78,18 @@ class FinanzasController {
         }
     }
 
+    // Actualizar Meta Diaria
     static async actualizarMeta(req, res) {
         try {
-            const { nueva_meta } = req.body;
-            await db.query("UPDATE usuarios SET meta_diaria = ? WHERE id = 1", [nueva_meta]);
-            res.json({ success: true, message: "Meta actualizada" });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, message: "Error al actualizar meta" });
+            const { meta } = req.body;
+            if (!meta) return res.status(400).json({ error: 'Falta meta' });
+
+            // Asumimos usuario ID 1
+            await db.query("UPDATE usuarios SET meta_diaria = ? WHERE id = 1", [meta]);
+            
+            res.json({ success: true, message: 'Meta actualizada' });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
         }
     }
 

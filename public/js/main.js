@@ -251,37 +251,57 @@ async function guardarCarrera() {
 
 // --- CARGA DE DATOS ---
 
+// 1. ACTUALIZAR TARJETA Y FRASES
 async function cargarResumenDia() {
     try {
-        const response = await fetch(`${API_URL}/resumen`); // Asegúrate que la ruta coincida
+        const response = await fetch(`${API_URL}/resumen`);
         const result = await response.json();
 
         if (result.success) {
             const total = parseFloat(result.total);
-            const meta = parseFloat(result.meta);
+            const meta = parseFloat(result.meta) || 200; // 200 si es 0
 
-            // 1. Actualizar Número Grande
+            // Actualizar Montos
             document.getElementById('lblTotalDia').innerText = total.toFixed(2);
+            document.getElementById('lblMetaNum').innerText = `Meta: S/ ${meta.toFixed(0)}`;
 
-            // 2. Actualizar Barra de Progreso
-            const porcentaje = (total / meta) * 100;
+            // Calcular Porcentaje
+            let porcentaje = (total / meta) * 100;
+            if (porcentaje > 100) porcentaje = 100; // Tope visual
+
+            // Actualizar Barra y Badge
             const barra = document.getElementById('barraMeta');
-            const textoMeta = document.getElementById('lblMetaTexto');
+            barra.style.width = `${porcentaje}%`;
+            document.getElementById('lblPorcentaje').innerText = `${(total/meta*100).toFixed(0)}%`;
 
-            // Limitamos al 100% visualmente para que no se salga, pero cambiamos color si superamos
-            const anchoVisual = porcentaje > 100 ? 100 : porcentaje;
+            // --- LÓGICA DE FRASES MOTIVACIONALES ---
+            const lblFrase = document.getElementById('lblFrase');
             
-            barra.style.width = `${anchoVisual}%`;
-            textoMeta.innerText = `Meta: S/ ${meta} (${porcentaje.toFixed(0)}%)`;
-
-            // Efectos visuales de éxito
-            if (porcentaje >= 100) {
-                barra.classList.remove('bg-warning');
-                barra.classList.add('bg-success'); // Se pone verde si cumples
-                textoMeta.innerHTML = `<i class="fas fa-trophy text-warning"></i> ¡META SUPERADA! S/ ${meta}`;
-            } else {
-                barra.classList.remove('bg-success');
+            // Reiniciar colores
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated';
+            
+            if (porcentaje < 10) {
+                barra.classList.add('bg-danger');
+                lblFrase.innerText = "¡Arrancamos motores! 🚦";
+                lblFrase.className = "text-muted small fst-italic";
+            } else if (porcentaje < 40) {
                 barra.classList.add('bg-warning');
+                lblFrase.innerText = "¡Buen ritmo, sigue así! 🚕";
+                lblFrase.className = "text-white small fw-bold";
+            } else if (porcentaje < 75) {
+                barra.classList.add('bg-info');
+                lblFrase.innerText = "¡Ya pasamos la mitad! 💪";
+                lblFrase.className = "text-info small fw-bold";
+            } else if (porcentaje < 100) {
+                barra.classList.add('bg-primary');
+                lblFrase.innerText = "¡La meta está cerca! 🔥";
+                lblFrase.className = "text-warning small fw-bold";
+            } else {
+                barra.classList.add('bg-success');
+                lblFrase.innerText = "¡ERES UNA MÁQUINA! 🏆";
+                lblFrase.className = "text-success small fw-bold text-uppercase";
+                document.getElementById('lblPorcentaje').classList.replace('bg-dark', 'bg-success');
+                document.getElementById('lblPorcentaje').classList.add('text-white');
             }
         }
     } catch (e) {
@@ -325,19 +345,34 @@ async function cargarMetaDiaria() {
     } catch (error) { console.error("Error meta:", error); }
 }
 
+// 2. FUNCIÓN PARA CAMBIAR LA META (CLICK EN LA TARJETA)
 async function cambiarMeta() {
-    const actual = document.getElementById('txtProgreso').innerText.split('/')[1]?.trim() || "200";
-    const nuevaMeta = prompt("¿Meta para hoy?", actual);
-    if (!nuevaMeta || isNaN(nuevaMeta)) return;
-
-    try {
-        await fetch(`${API_URL}/meta`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nueva_meta: nuevaMeta })
-        });
-        cargarMetaDiaria();
-    } catch (e) { alert("Error"); }
+    // Obtenemos la meta actual del texto para ponerla en el prompt
+    const textoActual = document.getElementById('lblMetaNum').innerText.replace('Meta: S/ ', '');
+    
+    const nuevaMeta = prompt("🎯 DEFINIR OBJETIVO DE HOY\n\n¿Cuánto quieres ganar hoy?", textoActual);
+    
+    if (nuevaMeta && !isNaN(nuevaMeta) && nuevaMeta > 0) {
+        try {
+            const response = await fetch(`${API_URL}/meta`, { // Ruta simplificada
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ meta: nuevaMeta })
+            });
+            
+            const res = await response.json();
+            if (res.success) {
+                // Recargamos la tarjeta para ver el cambio y la nueva frase
+                cargarResumenDia();
+                // Feedback sutil
+                const cardBody = document.querySelector('.card-body');
+                cardBody.style.backgroundColor = '#2ecc71';
+                setTimeout(() => cardBody.style.backgroundColor = '', 300);
+            }
+        } catch (e) {
+            alert("Error al guardar meta");
+        }
+    }
 }
 
 // --- GASTOS Y TRANSFERENCIAS ---
