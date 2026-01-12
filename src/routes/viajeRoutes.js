@@ -59,4 +59,6 @@ router.post('/obligaciones', FinanzasController.crearObligacion);
 router.post('/compromisos', FinanzasController.crearCompromiso);     // <--- Cambio de nombre
 router.post('/obligaciones/pagar', FinanzasController.pagarObligacion);
 
+router.get('/ruta/:id', ViajeController.obtenerRutaGPS);
+
 module.exports = router;

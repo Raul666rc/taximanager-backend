@@ -205,6 +205,25 @@ class ViajeController {
             console.error("Error de conexión con mapas:", err.message);
         });
     }
+
+    // Acción: Obtener puntos GPS de un viaje para el mapa
+    static async obtenerRutaGPS(req, res) {
+        try {
+            const { id } = req.params;
+            // Consultamos la tabla 'rastros' que guarda INICIO, FIN y PARADAS
+            const [puntos] = await db.query(`
+                SELECT lat, lng, tipo, fecha 
+                FROM rastros 
+                WHERE viaje_id = ? 
+                ORDER BY id ASC
+            `, [id]);
+            
+            res.json({ success: true, data: puntos });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: 'Error al obtener ruta' });
+        }
+    }
 }
 
 module.exports = ViajeController;

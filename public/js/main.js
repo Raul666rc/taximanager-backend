@@ -12,6 +12,7 @@ let viajeInicioCoords = null; // Para calcular distancia
 let viajeInicioTime = null;   // Para calcular duración
 let miGrafico = null; 
 let miGraficoBarras = null;
+let mapaGlobal = null; // Para guardar la instancia del mapa y no crear duplicados
 
 // --- UTILIDADES ---
 // Función matemática para calcular distancia entre dos coordenadas (Haversine)
@@ -771,8 +772,11 @@ async function cargarHistorial() {
                 <div class="card bg-dark border-secondary mb-2">
                     <div class="card-body p-2 d-flex align-items-center">
                         
-                        <div class="me-3">
-                            <button class="btn btn-outline-danger btn-sm border-0 p-2" onclick="anularCarrera(${viaje.id})">
+                        <div class="me-3 d-flex flex-column gap-2">
+                            <button class="btn btn-outline-warning btn-sm border-0 p-1" onclick="verMapa(${viaje.id})">
+                                <i class="fas fa-map-marked-alt fa-lg"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm border-0 p-1" onclick="anularCarrera(${viaje.id})">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
@@ -820,6 +824,92 @@ function cerrarSesion() {
     if(confirm("¿Salir?")) {
         localStorage.removeItem('taxi_user');
         window.location.href = 'login.html';
+    }
+}
+
+async function verMapa(idViaje) {
+    // 1. Abrir Modal
+    const modalEl = document.getElementById('modalMapa');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    // 2. Pedir datos al servidor
+    try {
+        const response = await fetch(`${API_URL}/ruta/${idViaje}`); // Usamos la nueva ruta
+        const resultado = await response.json();
+
+        if (resultado.success) {
+            const puntos = resultado.data;
+            if (puntos.length === 0) {
+                document.getElementById('mapaLeaflet').innerHTML = '<div class="text-white p-5 text-center">No hay datos GPS para este viaje.</div>';
+                return;
+            }
+
+            // 3. Inicializar Mapa (Si ya existe, lo limpiamos)
+            // Esperamos un poco a que el modal cargue para que el mapa calcule su tamaño
+            setTimeout(() => {
+                if (mapaGlobal) {
+                    mapaGlobal.remove(); // Borramos el mapa anterior para no sobreponer
+                }
+                
+                // Centramos el mapa en el primer punto
+                const latInicio = parseFloat(puntos[0].lat);
+                const lngInicio = parseFloat(puntos[0].lng);
+                mapaGlobal = L.map('mapaLeaflet').setView([latInicio, lngInicio], 15);
+
+                // Capa de Mapa (Usamos OpenStreetMap - Gratis)
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(mapaGlobal);
+
+                // 4. Dibujar Marcadores
+                let coordenadasLinea = [];
+
+                puntos.forEach(p => {
+                    const lat = parseFloat(p.lat);
+                    const lng = parseFloat(p.lng);
+                    coordenadasLinea.push([lat, lng]);
+
+                    let color = 'blue';
+                    let titulo = 'Parada';
+
+                    if (p.tipo === 'INICIO') { 
+                        color = 'green'; titulo = 'Inicio Carrera'; 
+                        // Icono Verde
+                        L.marker([lat, lng], { title: titulo }).addTo(mapaGlobal)
+                            .bindPopup(`<b>🏁 Inicio</b><br>${p.fecha}`);
+                    } 
+                    else if (p.tipo === 'FIN') { 
+                        color = 'red'; titulo = 'Fin Carrera'; 
+                         // Icono Rojo (Leaflet no tiene colores nativos fáciles, usaremos popup para diferenciar)
+                         L.marker([lat, lng], { title: titulo }).addTo(mapaGlobal)
+                            .bindPopup(`<b>🏁 Destino</b><br>${p.fecha}`).openPopup();
+                    } 
+                    else {
+                        // Parada intermedia
+                        L.circleMarker([lat, lng], { color: 'yellow', radius: 5 }).addTo(mapaGlobal)
+                            .bindPopup('Parada');
+                    }
+                });
+
+                // 5. Dibujar Línea Azul conectando puntos
+                if (coordenadasLinea.length > 1) {
+                    const polyline = L.polyline(coordenadasLinea, { color: 'blue', weight: 4 }).addTo(mapaGlobal);
+                    // Ajustar zoom para ver toda la ruta
+                    mapaGlobal.fitBounds(polyline.getBounds());
+                }
+
+                // Truco para arreglar bug de Leaflet en Modales (si sale gris)
+                mapaGlobal.invalidateSize();
+
+            }, 300); // 300ms de retraso para asegurar que el modal se abrió
+
+        } else {
+            alert("Error cargando ruta");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión");
     }
 }
 
