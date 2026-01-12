@@ -441,6 +441,55 @@ async function abrirBilletera(periodo = 'mes') {
             document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
             document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
 
+            // --- NUEVO: LLENAR LISTA DE MOVIMIENTOS ---
+            const divMovimientos = document.getElementById('listaMovimientos');
+            if (divMovimientos) {
+                if (data.movimientos && data.movimientos.length > 0) {
+                    let htmlMovs = '';
+                    data.movimientos.forEach(mov => {
+                        // Definir iconos y colores según tipo
+                        let icono = 'fa-circle';
+                        let color = 'text-white';
+                        let signo = '';
+
+                        if (mov.tipo === 'INGRESO') {
+                            icono = 'fa-arrow-up';
+                            color = 'text-success';
+                            signo = '+';
+                        } else if (mov.tipo === 'GASTO') {
+                            icono = 'fa-arrow-down';
+                            color = 'text-danger';
+                            signo = '-';
+                        } else if (mov.tipo === 'PAGO_DEUDA') {
+                            icono = 'fa-check-double';
+                            color = 'text-info'; // Celeste para pagos de deuda
+                            signo = '-';
+                        } else if (mov.tipo === 'TRANSFERENCIA') {
+                            icono = 'fa-exchange-alt';
+                            color = 'text-warning';
+                            signo = ' ';
+                        }
+
+                        htmlMovs += `
+                        <div class="d-flex justify-content-between align-items-center border-bottom border-secondary py-2">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3 ${color}"><i class="fas ${icono}"></i></div>
+                                <div>
+                                    <div class="small fw-bold text-white">${mov.descripcion}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">${mov.fecha_fmt}</div>
+                                </div>
+                            </div>
+                            <div class="fw-bold ${color}">${signo} S/ ${parseFloat(mov.monto).toFixed(2)}</div>
+                        </div>`;
+                    });
+                    divMovimientos.innerHTML = htmlMovs;
+                } else {
+                    divMovimientos.innerHTML = '<div class="text-center text-muted small py-3">Sin movimientos recientes</div>';
+                }
+            }
+            // -------------------------------------------
+            
+            
             // Gráfico Dona
             dibujarDona(data.estadisticas);
             // Gráfico Barras

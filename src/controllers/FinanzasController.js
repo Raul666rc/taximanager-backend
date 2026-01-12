@@ -30,6 +30,14 @@ class FinanzasController {
                 AND MONTH(DATE_SUB(fecha, INTERVAL 5 HOUR)) = MONTH(DATE_SUB(NOW(), INTERVAL 5 HOUR))
             `);
 
+            // --- NUEVO: 4. ÚLTIMOS MOVIMIENTOS (HISTORIAL) ---
+            const [movimientos] = await db.query(`
+                SELECT id, tipo, monto, descripcion, DATE_FORMAT(DATE_SUB(fecha, INTERVAL 5 HOUR), '%d/%m %h:%i %p') as fecha_fmt 
+                FROM transacciones 
+                ORDER BY id DESC 
+                LIMIT 15
+            `);
+
             // 4. GRÁFICOS (Protegidos con try/catch para no tumbar la app si fallan)
             let semana = [];
             let estadisticas = [];
@@ -58,6 +66,7 @@ class FinanzasController {
                     cuentas,
                     ahorro_total: ahorro[0]?.total || 0,
                     gasto_mensual: gastos[0]?.total || 0,
+                    movimientos,
                     estadisticas,
                     semana
                 }
