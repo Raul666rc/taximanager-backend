@@ -1,10 +1,11 @@
 // UBICACIÓN: src/controllers/ViajeController.js
 const ViajeModel = require('../models/ViajeModel');
 const db = require('../config/db');
-const https = require('https'); 
+const https = require('https'); // Importante para las direcciones en segundo plano
 
 class ViajeController {
 
+    // Método: Iniciar Carrera
     static async iniciarCarrera(req, res) {
         try {
             const { origen_tipo, lat, lng, origen_texto } = req.body;
@@ -15,7 +16,7 @@ class ViajeController {
             const textoInicial = origen_texto || 'Ubicación GPS...';
             const idViaje = await ViajeModel.iniciar(origen_tipo, textoInicial);
 
-            // 2. Guardamos GPS
+            // 2. Guardamos GPS en tu tabla 'ruta_gps_logs'
             if (lat && lng) {
                 await ViajeModel.guardarRastro(idViaje, lat, lng, 'INICIO');
             }
@@ -27,9 +28,9 @@ class ViajeController {
                 data: { id_viaje: idViaje }
             });
 
-            // 4. TAREA DE FONDO: Buscar nombre de calle
+            // 4. TAREA DE FONDO: Buscar nombre de calle (si no se escribió manual)
             if (!origen_texto && lat && lng) {
-                // CORRECCIÓN AQUÍ: Usamos el nombre de la clase, no 'this'
+                // Usamos el nombre de la clase para evitar el error de 'undefined'
                 ViajeController.resolverDireccionBackground(idViaje, lat, lng, 'ORIGEN');
             }
 
@@ -39,6 +40,7 @@ class ViajeController {
         }
     }
 
+    // Método: Terminar Carrera
     static async terminarCarrera(req, res) {
         const connection = await db.getConnection();
         try {
@@ -59,13 +61,15 @@ class ViajeController {
                 distancia_km || 0, duracion_min || 0, textoDestinoInicial, null
             );
 
-            // 2. Guardar GPS Fin
+            // 2. Guardar GPS Fin en 'ruta_gps_logs'
             if (lat && lng) await ViajeModel.guardarRastro(id_viaje, lat, lng, 'FIN');
 
-            // 3. Registrar Dinero
+            // 3. Registrar Dinero (Transacción con hora ajustada en la Query si fuera necesario, 
+            //    pero aquí usamos NOW() y confiamos en la configuración del server o lo ajustamos en la query)
+            //    Para ser consistentes con tu modelo, usaremos NOW(). Si necesitas ajuste manual aquí también: DATE_SUB(NOW(), INTERVAL 5 HOUR)
             await connection.query(`
                 INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, viaje_id, fecha, ambito, categoria) 
-                VALUES ('INGRESO', ?, 'Ingreso por Carrera', ?, ?, NOW(), 'TAXI', 'Servicio')
+                VALUES ('INGRESO', ?, 'Ingreso por Carrera', ?, ?, DATE_SUB(NOW(), INTERVAL 5 HOUR), 'TAXI', 'Servicio')
             `, [monto, metodo_pago_id, id_viaje]);
 
             // 4. Actualizar Saldo
@@ -78,7 +82,6 @@ class ViajeController {
 
             // 6. TAREA DE FONDO: Buscar nombre de calle destino
             if (!destino_texto && lat && lng) {
-                // CORRECCIÓN AQUÍ: Usamos el nombre de la clase, no 'this'
                 ViajeController.resolverDireccionBackground(id_viaje, lat, lng, 'DESTINO');
             }
 
@@ -88,6 +91,32 @@ class ViajeController {
             if (!res.headersSent) res.status(500).json({ success: false, message: 'Error server' });
         } finally {
             connection.release();
+        }
+    }
+
+    // --- NUEVO: OBTENER RUTA PARA EL MAPA (Adaptado a TU tabla) ---
+    static async obtenerRutaGPS(req, res) {
+        try {
+            const { id } = req.params;
+            
+            // TRUCO: Usamos 'AS' para que el frontend reciba 'lat' y 'lng' 
+            // aunque en tu BD se llamen 'latitud' y 'longitud'.
+            // También adaptamos 'tipo_punto' a 'tipo' y 'hora_registro' a 'fecha'
+            const [puntos] = await db.query(`
+                SELECT 
+                    latitud as lat, 
+                    longitud as lng, 
+                    tipo_punto as tipo, 
+                    hora_registro as fecha 
+                FROM ruta_gps_logs 
+                WHERE viaje_id = ? 
+                ORDER BY id ASC
+            `, [id]);
+            
+            res.json({ success: true, data: puntos });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: 'Error al obtener ruta' });
         }
     }
 
@@ -115,7 +144,12 @@ class ViajeController {
             const { monto, descripcion, cuenta_id } = req.body;
             if (!monto) return res.status(400).json({ error: 'Falta monto' });
             
-            await db.query(`INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, ambito, categoria) VALUES ('GASTO', ?, ?, ?, NOW(), 'TAXI', 'Gasto')`, [monto, descripcion, cuenta_id||1]);
+            // Gasto con Hora Perú
+            await db.query(`
+                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, ambito, categoria) 
+                VALUES ('GASTO', ?, ?, ?, DATE_SUB(NOW(), INTERVAL 5 HOUR), 'TAXI', 'Gasto')
+            `, [monto, descripcion, cuenta_id||1]);
+            
             await db.query(`UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?`, [monto, cuenta_id||1]);
             
             res.json({ success: true });
@@ -152,7 +186,7 @@ class ViajeController {
     }
 
     // ==========================================
-    // MAGIA DE FONDO: BUSCADOR ROBUSTO
+    // MAGIA DE FONDO: BUSCADOR ROBUSTO (HTTPS)
     // ==========================================
     static resolverDireccionBackground(idViaje, lat, lng, tipo) {
         console.log(`📡 Buscando dirección ${tipo} para ID: ${idViaje}...`);
@@ -204,25 +238,6 @@ class ViajeController {
         }).on('error', (err) => {
             console.error("Error de conexión con mapas:", err.message);
         });
-    }
-
-    // Acción: Obtener puntos GPS de un viaje para el mapa
-    static async obtenerRutaGPS(req, res) {
-        try {
-            const { id } = req.params;
-            // Consultamos la tabla 'rastros' que guarda INICIO, FIN y PARADAS
-            const [puntos] = await db.query(`
-                SELECT lat, lng, tipo, fecha 
-                FROM rastros 
-                WHERE viaje_id = ? 
-                ORDER BY id ASC
-            `, [id]);
-            
-            res.json({ success: true, data: puntos });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, message: 'Error al obtener ruta' });
-        }
     }
 }
 
