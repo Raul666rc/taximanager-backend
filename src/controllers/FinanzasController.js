@@ -183,16 +183,23 @@ class FinanzasController {
     // Crear obligación simple (Gasto único / Inoportuno)
     static async crearObligacion(req, res) {
         try {
-            const { titulo, monto, fecha, prioridad, warda_id } = req.body;
-            // Insertamos sin compromiso_id (es huérfano, gasto único)
+            const { titulo, monto, fecha, prioridad } = req.body;
+            
+            // CORRECCIÓN: Quitamos 'origen_sugerido_id' y 'warda_id' porque esa columna 
+            // no existe en la tabla 'obligaciones' del script V3.0.
+            // Solo insertamos los datos básicos.
+            
             await db.query(`
-                INSERT INTO obligaciones (titulo, monto, fecha_vencimiento, prioridad, origen_sugerido_id)
-                VALUES (?, ?, ?, ?, ?)
-            `, [titulo, monto, fecha, prioridad, warda_id]);
+                INSERT INTO obligaciones (titulo, monto, fecha_vencimiento, prioridad, estado)
+                VALUES (?, ?, ?, ?, 'PENDIENTE')
+            `, [titulo, monto, fecha, prioridad]);
+
             res.json({ success: true, message: "Obligación registrada" });
+            
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ success: false, message: "Error al crear obligación" });
+            console.error("Error SQL Obligaciones:", error); // Esto imprimirá el error real en los logs
+            // Devolvemos el mensaje técnico para que sepas qué pasó si vuelve a fallar
+            res.status(500).json({ success: false, message: "Error al crear obligación: " + error.message });
         }
     }
 
