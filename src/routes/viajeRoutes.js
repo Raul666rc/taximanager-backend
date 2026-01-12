@@ -58,6 +58,8 @@ router.get('/obligaciones', FinanzasController.obtenerObligaciones); // (Asegúr
 router.post('/obligaciones', FinanzasController.crearObligacion);
 router.post('/compromisos', FinanzasController.crearCompromiso);     // <--- Cambio de nombre
 router.post('/obligaciones/pagar', FinanzasController.pagarObligacion);
+// En la sección de Finanzas
+router.get('/reparto/sugerencia', FinanzasController.obtenerSugerenciaReparto);
 
 router.get('/ruta/:id', ViajeController.obtenerRutaGPS);
 

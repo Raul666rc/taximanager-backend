@@ -319,6 +319,49 @@ class FinanzasController {
             connection.release();
         }
     }
+
+
+    // Acción: Calcular el monto sugerido para el reparto (Cierre del día)
+    static async obtenerSugerenciaReparto(req, res) {
+        try {
+            // 1. Sumamos todos los viajes completados de HOY (Hora Perú)
+            const [ingresos] = await db.query(`
+                SELECT SUM(monto_cobrado) as total 
+                FROM viajes 
+                WHERE estado = 'COMPLETADO' 
+                AND DATE(fecha_hora_fin) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+            `);
+
+            // 2. Sumamos los gastos operativos de HOY (Gasolina, Menu, etc)
+            // OJO: Excluimos 'TRANSFERENCIA' y 'PAGO_DEUDA' para no duplicar restas
+            const [gastos] = await db.query(`
+                SELECT SUM(monto) as total 
+                FROM transacciones 
+                WHERE tipo = 'GASTO' 
+                AND categoria NOT IN ('Anulación Carrera') 
+                AND DATE(DATE_SUB(fecha, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+            `);
+
+            const totalIngresos = ingresos[0].total || 0;
+            const totalGastos = gastos[0].total || 0;
+            
+            // La ganancia neta real del día
+            const neto = totalIngresos - totalGastos;
+
+            res.json({
+                success: true,
+                data: {
+                    ingresos: totalIngresos,
+                    gastos: totalGastos,
+                    sugerido: neto > 0 ? neto : 0 // Si es negativo, sugerimos 0
+                }
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al calcular reparto" });
+        }
+    }
 }
 
 module.exports = FinanzasController;

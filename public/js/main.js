@@ -396,33 +396,82 @@ async function ejecutarTransferencia() {
 }
 
 // ASISTENTE BABILONIA (Actualizado con IDs correctos)
-function calcularRepartoBabilonia() {
-    const ingresoTotal = prompt("¿Producción TOTAL de hoy?", "200");
-    if (!ingresoTotal || isNaN(ingresoTotal)) return;
+async function calcularRepartoBabilonia() {
+    const btn = document.querySelector('button[onclick="calcularRepartoBabilonia()"]');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-calculator fa-spin"></i> Calculando...';
+    btn.disabled = true;
 
-    const total = parseFloat(ingresoTotal);
-    const pagoPersonal = total * 0.10;
-    const ahorroRiqueza = total * 0.10;
-    const operativo = total * 0.80; 
-    
-    const paraMantenimiento = operativo * 0.20;
-    const paraDeuda = operativo * 0.30;
-    const paraGasolina = operativo * 0.50;
+    try {
+        // 1. Consultar al cerebro cuánto hay en caja hoy
+        const response = await fetch(`${API_URL.replace('/viajes', '')}/reparto/sugerencia`); 
+        // Nota: Ajustamos la URL base si API_URL apunta a /viajes. 
+        // Si API_URL es '/api/viajes', esto lo cambia a '/api/reparto/sugerencia' si la ruta está bien definida, 
+        // O mejor, usa la ruta absoluta: '/api/reparto/sugerencia' si definiste la ruta base en server.js.
+        // ASUMIENDO QUE TUS RUTAS ESTÁN TODAS EN EL MISMO ROUTER:
+        // Usaremos '/api/reparto/sugerencia' directo.
+        
+        const res = await fetch('/api/viajes/reparto/sugerencia'); // Asegúrate que coincida con tu server.js
+        const json = await res.json();
 
-    const mensaje = `
-    🏛️ REPARTO SUGERIDO (10-10-80):
-    
-    👑 10% TÚ (Yape): S/ ${pagoPersonal.toFixed(0)}
-    💰 10% ARCA (Warda 3): S/ ${ahorroRiqueza.toFixed(0)}
-    
-    🚜 80% OPERATIVO (S/ ${operativo.toFixed(0)}):
-       - ⛽ Gasolina (Efec): S/ ${paraGasolina.toFixed(0)}
-       - 🛠️ Taller (Warda 4): S/ ${paraMantenimiento.toFixed(0)}
-       - 📉 Deuda (Warda 5): S/ ${paraDeuda.toFixed(0)}
-    
-    ¿Abrir transferencias?`;
+        if (!json.success) throw new Error(json.message);
 
-    if (confirm(mensaje)) abrirModalTransferencia();
+        const { ingresos, gastos, sugerido } = json.data;
+
+        // 2. Mostrar la sugerencia
+        const ingresoTotal = prompt(
+            `📊 CIERRE DEL DÍA\n\n` +
+            `🟢 Ingresos: S/ ${parseFloat(ingresos).toFixed(2)}\n` +
+            `🔴 Gastos: S/ ${parseFloat(gastos).toFixed(2)}\n` +
+            `-------------------------\n` +
+            `💰 GANANCIA NETA: S/ ${parseFloat(sugerido).toFixed(2)}\n\n` +
+            `¿Qué monto deseas repartir?`, 
+            sugerido // Valor por defecto
+        );
+
+        if (!ingresoTotal || isNaN(ingresoTotal)) return;
+
+        const total = parseFloat(ingresoTotal);
+
+        // 3. Aplicar Regla 10-10-80
+        const pagoPersonal = total * 0.10;
+        const ahorroRiqueza = total * 0.10;
+        const operativo = total * 0.80; 
+        
+        // Sub-reparto del operativo (Ajustable)
+        const paraMantenimiento = operativo * 0.20;
+        const paraDeuda = operativo * 0.30;
+        // El resto se queda en efectivo para mañana (Gasolina, sencillo)
+        const paraSiguienteDia = operativo * 0.50; 
+
+        const mensaje = `
+        🏛️ PLAN DE REPARTO (Sobre S/ ${total}):
+        
+        👑 10% TÚ (Bolsillo): S/ ${pagoPersonal.toFixed(2)}
+        💰 10% ARCA (Ahorro): S/ ${ahorroRiqueza.toFixed(2)}
+        
+        🚜 80% OPERACIÓN (S/ ${operativo.toFixed(2)}):
+           - 🛠️ Taller: S/ ${paraMantenimiento.toFixed(2)}
+           - 📉 Deudas: S/ ${paraDeuda.toFixed(2)}
+           - ⛽ Caja Mañana: S/ ${paraSiguienteDia.toFixed(2)}
+        
+        ¿Abrir transferencias para mover el dinero?`;
+
+        if (confirm(mensaje)) {
+            abrirModalTransferencia();
+            // Truco: Podríamos pre-llenar el monto en el modal de transferencia si quisieras
+            document.getElementById('montoTransferencia').value = paraDeuda.toFixed(2); // Sugerimos pagar deuda primero
+        }
+
+    } catch (error) {
+        console.error(error);
+        // Fallback manual si falla el servidor
+        const manual = prompt("No se pudo calcular automático.\n¿Monto a repartir?", "0");
+        if(manual) abrirModalTransferencia();
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+    }
 }
 
 // --- BILLETERA Y GRÁFICOS ---
