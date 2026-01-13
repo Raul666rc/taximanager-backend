@@ -84,9 +84,14 @@
                     <h6 class="text-white mb-0 text-uppercase small">
                         <i class="fas fa-car-crash text-info me-2"></i>Mi Auto
                     </h6>
-                    <button class="btn btn-sm btn-outline-secondary py-0 text-white" onclick="actualizarOdometro()">
-                        <i class="fas fa-edit me-1"></i> Actualizar Km
-                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary text-white" onclick="actualizarOdometro()" title="Actualizar Kilometraje">
+                            <i class="fas fa-edit"></i> Km
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="registrarMantenimiento()" title="Registrar Cambio de Aceite">
+                            <i class="fas fa-oil-can"></i> Cambio
+                        </button>
+                    </div>
                 </div>
 
                 <div class="position-relative mb-2">
@@ -106,7 +111,7 @@
                         <span id="lblOdometro" class="text-white fw-bold">0</span> km
                     </div>
                     <div class="text-end">
-                        <i class="fas fa-oil-can me-1"></i>Cambio a: 
+                        <i class="fas fa-flag-checkered me-1"></i>Meta: 
                         <span id="lblProximoCambio" class="text-white">0</span> km
                     </div>
                 </div>

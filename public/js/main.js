@@ -1178,6 +1178,40 @@ async function actualizarOdometro() {
             alert("Error de conexión con el servidor.");
         }
     }
+
+    // 3. REGISTRAR MANTENIMIENTO (RESET ACEITE)
+async function registrarMantenimiento() {
+    if (!confirm("⚠️ ¿Confirmas que REALIZASTE el cambio de aceite hoy?\n\nEsto reiniciará la barra de vida al 100%.")) {
+        return;
+    }
+
+    // Preguntamos el intervalo (por defecto 5000)
+    const intervaloInput = prompt("¿Cada cuántos Km haces el cambio?", "5000");
+    
+    if (intervaloInput && !isNaN(intervaloInput)) {
+        const intervalo = parseInt(intervaloInput);
+
+        try {
+            const res = await fetch(`${API_URL}/vehiculo/mantenimiento`, { // Ruta MVC
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ intervalo_km: intervalo })
+            });
+            
+            const result = await res.json();
+
+            if (result.success) {
+                alert(`✅ ¡Mantenimiento Registrado!\n\nTu aceite está nuevo. Próximo cambio en +${intervalo} km.`);
+                cargarEstadoVehiculo(); // La barra vuelve a verde (100%)
+            } else {
+                alert("Error: " + result.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        }
+    }
+}
 }
 
 // INIT
