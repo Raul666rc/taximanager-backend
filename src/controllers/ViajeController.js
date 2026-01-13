@@ -153,19 +153,29 @@ class ViajeController {
 
     static async registrarGasto(req, res) {
         try {
-            const { monto, descripcion, cuenta_id } = req.body;
+            // Recibimos 'categoria' del frontend
+            const { monto, descripcion, cuenta_id, categoria } = req.body;
+            
             if (!monto) return res.status(400).json({ error: 'Falta monto' });
             
-            // Gasto con Hora Perú
+            // Categoría por defecto si falla el envío
+            const catFinal = categoria || 'Gasto';
+
+            // Insertamos en BD con la categoría correcta y Hora Perú
             await db.query(`
-                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, ambito, categoria) 
-                VALUES ('GASTO', ?, ?, ?, DATE_SUB(NOW(), INTERVAL 5 HOUR), 'TAXI', 'Gasto')
-            `, [monto, descripcion, cuenta_id||1]);
+                INSERT INTO transacciones 
+                (tipo, monto, descripcion, cuenta_id, fecha, ambito, categoria) 
+                VALUES ('GASTO', ?, ?, ?, DATE_SUB(NOW(), INTERVAL 5 HOUR), 'TAXI', ?)
+            `, [monto, descripcion, cuenta_id || 1, catFinal]);
             
-            await db.query(`UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?`, [monto, cuenta_id||1]);
+            // Restamos el saldo de la cuenta
+            await db.query(`UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?`, [monto, cuenta_id || 1]);
             
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { 
+            console.error(e);
+            res.status(500).json({ error: e.message }); 
+        }
     }
 
     // Acción: Obtener lista de carreras (Con filtro de fecha opcional)

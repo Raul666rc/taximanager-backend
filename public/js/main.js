@@ -378,31 +378,58 @@ async function cambiarMeta() {
 // --- GASTOS Y TRANSFERENCIAS ---
 
 async function guardarGasto() {
-    const montoInput = document.getElementById('montoGasto');
-    const monto = parseFloat(montoInput.value);
-    const categoria = document.querySelector('input[name="tipoGasto"]:checked').value;
-    const cuentaId = 1; // Por defecto Efectivo (Podríamos agregar un select en el futuro)
+    const monto = document.getElementById('montoGasto').value;
+    let descripcion = document.getElementById('descGasto').value;
+    const cuentaId = document.getElementById('cuentaGasto').value;
+    
+    // 1. OBTENER CATEGORÍA SELECCIONADA (Radio Button)
+    const categoriaSeleccionada = document.querySelector('input[name="catGasto"]:checked').value;
 
-    if (!monto || monto <= 0) return alert("Monto inválido");
+    if (!monto) {
+        alert("Ingresa el monto");
+        return;
+    }
+
+    // Si no puso descripción, usamos la categoría por defecto (Ej: "Combustible")
+    if (!descripcion) {
+        descripcion = categoriaSeleccionada; 
+    }
 
     try {
-        // Usamos la ruta simplificada del Controller
-        const response = await fetch(`${API_URL}/gasto`, { // Asegúrate que la ruta en router sea /gasto
+        const response = await fetch(`${API_URL}/gastos`, { // Ruta simplificada
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ monto, descripcion: `Gasto - ${categoria}`, cuenta_id: cuentaId })
+            body: JSON.stringify({ 
+                monto, 
+                descripcion, 
+                cuenta_id: cuentaId,
+                categoria: categoriaSeleccionada // ENVIAMOS LA NUEVA DATA
+            })
         });
 
-        const res = await response.json();
-        if (res.success) {
-            alert(`💸 Gasto registrado`);
-            montoInput.value = '';
-            bootstrap.Modal.getInstance(document.getElementById('modalGasto')).hide();
-            cargarMetaDiaria();
+        const result = await response.json();
+
+        if (result.success) {
+            // Limpiar y cerrar
+            document.getElementById('montoGasto').value = '';
+            document.getElementById('descGasto').value = '';
+            
+            // Cerrar modal correctamente con Bootstrap 5
+            const modalEl = document.getElementById('modalGasto');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            // Actualizar interfaz
+            cargarResumenDia(); // Para que baje el neto si tienes esa lógica
+            cargarHistorial();  // Por si mostramos gastos ahí
+            alert(`✅ Gasto de ${categoriaSeleccionada} registrado.`);
         } else {
-            alert(res.message);
+            alert("Error: " + result.error);
         }
-    } catch (e) { alert("Error conexión"); }
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión");
+    }
 }
 
 // ABRIR TRANSFERENCIA CON LAS CUENTAS CORRECTAS (V3.0)

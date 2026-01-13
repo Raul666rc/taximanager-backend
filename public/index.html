@@ -228,46 +228,72 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small text-center mb-3">Selecciona el concepto:</p>
-                    
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoGas" value="Combustible" checked>
-                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoGas">
-                                <i class="fas fa-gas-pump text-warning fs-3 mb-2"></i><br>GLP / GNV
+                
+                <div class="mb-3">
+                    <label class="form-label text-warning small">Tipo de Gasto</label>
+                    <div class="row g-2" id="selectorCategoria">
+                        
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="catGasto" id="catCombustible" value="Combustible" checked>
+                            <label class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center py-2" for="catCombustible">
+                                <i class="fas fa-gas-pump fa-2x mb-1 text-danger"></i>
+                                <span style="font-size: 0.7rem;">GLP/GNV</span>
                             </label>
                         </div>
-                        <div class="col-6">
-                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoComida" value="Alimentación">
-                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoComida">
-                                <i class="fas fa-utensils text-success fs-3 mb-2"></i><br>Menu / Agua
-                            </label>
-                        </div>
-                        <div class="col-6">
-                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoTaller" value="Mantenimiento">
-                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoTaller">
-                                <i class="fas fa-tools text-info fs-3 mb-2"></i><br>Taller / Lavado
-                            </label>
-                        </div>
-                        <div class="col-6">
-                            <input type="radio" class="btn-check" name="tipoGasto" id="gastoOtros" value="Otros">
-                            <label class="btn btn-outline-secondary w-100 py-3" for="gastoOtros">
-                                <i class="fas fa-receipt text-danger fs-3 mb-2"></i><br>Otros / Papeletas
-                            </label>
-                        </div>
-                    </div>
 
-                    <div class="form-floating mb-3">
-                        <input type="number" class="form-control bg-dark text-white border-secondary" id="montoGasto" placeholder="0.00">
-                        <label for="montoGasto" class="text-muted">Monto (S/)</label>
-                    </div>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="catGasto" id="catAlimentos" value="Alimentos">
+                            <label class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center py-2" for="catAlimentos">
+                                <i class="fas fa-utensils fa-2x mb-1 text-warning"></i>
+                                <span style="font-size: 0.7rem;">Menú</span>
+                            </label>
+                        </div>
 
-                    <div class="d-grid">
-                        <button class="btn btn-danger btn-lg" onclick="guardarGasto()">
-                            CONFIRMAR SALIDA <i class="fas fa-sign-out-alt ms-2"></i>
-                        </button>
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="catGasto" id="catMantenimiento" value="Mantenimiento">
+                            <label class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center py-2" for="catMantenimiento">
+                                <i class="fas fa-tools fa-2x mb-1 text-info"></i>
+                                <span style="font-size: 0.7rem;">Taller</span>
+                            </label>
+                        </div>
+
+                        <div class="col-4">
+                            <input type="radio" class="btn-check" name="catGasto" id="catLimpieza" value="Limpieza">
+                            <label class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center py-2" for="catLimpieza">
+                                <i class="fas fa-soap fa-2x mb-1 text-primary"></i>
+                                <span style="font-size: 0.7rem;">Lavado</span>
+                            </label>
+                        </div>
+
+                        <div class="col-8">
+                            <input type="radio" class="btn-check" name="catGasto" id="catOtros" value="Otros">
+                            <label class="btn btn-outline-secondary w-100 h-100 d-flex align-items-center justify-content-center gap-2" for="catOtros">
+                                <i class="fas fa-ellipsis-h fa-lg"></i>
+                                <span style="font-size: 0.8rem;">Otro Gasto</span>
+                            </label>
+                        </div>
+
                     </div>
                 </div>
+
+                <div class="form-floating mb-3">
+                    <input type="number" class="form-control bg-dark text-white border-secondary" id="montoGasto" placeholder="0.00">
+                    <label for="montoGasto" class="text-muted">Monto (S/)</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control bg-dark text-white border-secondary" id="descGasto" placeholder="Ej: Almuerzo">
+                    <label for="descGasto" class="text-muted">Descripción (Opcional)</label>
+                </div>
+
+                <div class="mb-2">
+                    <label class="text-muted small mb-1">¿De dónde sale el dinero?</label>
+                    <select class="form-select bg-dark text-white border-secondary" id="cuentaGasto">
+                        <option value="1">💵 Efectivo (Bolsillo)</option>
+                        <option value="2">📱 Yape / Plin</option>
+                    </select>
+                </div>
+
+            </div>
             </div>
         </div>
     </div>
