@@ -27,6 +27,29 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
     return (R * c).toFixed(2); // Retorna Km con 2 decimales
 }
 
+/// --- FUNCIÓN DE NOTIFICACIONES (TOASTS) ---
+function notificar(mensaje, tipo = 'info') {
+    let colorFondo;
+    // Colores tipo "Semáforo"
+    if (tipo === 'exito') colorFondo = "linear-gradient(to right, #00b09b, #96c93d)"; // Verde
+    if (tipo === 'error') colorFondo = "linear-gradient(to right, #ff5f6d, #ffc371)"; // Rojo
+    if (tipo === 'info')  colorFondo = "linear-gradient(to right, #2193b0, #6dd5ed)"; // Azul
+
+    Toastify({
+        text: mensaje,
+        duration: 3000,       // 3 segundos
+        gravity: "top",       // Arriba
+        position: "center",   // Centro
+        style: {
+            background: colorFondo,
+            borderRadius: "12px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            fontWeight: "bold",
+            fontSize: "1.1rem" // Un poco más grande para leer fácil
+        },
+        stopOnFocus: false // Que desaparezca igual aunque lo toques
+    }).showToast();
+}
 // --- UI ---
 function mostrarPanelCarrera() {
     document.getElementById('btnIniciar').classList.add('d-none');
@@ -51,7 +74,7 @@ function mostrarPanelInicio() {
 // ==========================================
 // 1. INICIAR CARRERA (RÁPIDO)
 async function iniciarCarrera() {
-    if (!navigator.geolocation) return alert("Tu navegador no soporta GPS");
+    if (!navigator.geolocation) return notificar("❌ Tu navegador no soporta GPS", "error");
 
     const appSeleccionada = document.querySelector('input[name="appOrigen"]:checked').value;
     
@@ -99,22 +122,23 @@ async function iniciarCarrera() {
                     // Ocultar selector si existe
                     const sel = document.getElementById('selectorApps');
                     if(sel) sel.classList.add('d-none');
-                    
+                    // JUSTO DESPUÉS DE QUE EL SERVIDOR RESPONDE OK:
+                    notificar("🚖 Carrera iniciada. ¡Buen viaje!", "info"); // <--- AGREGAR ESTO
                     mostrarPanelCarrera();
                 } else {
-                    alert("Error: " + resultado.message);
+                    notificar("❌ Error al iniciar carrera", "error");
                 }
 
             } catch (error) {
                 console.error(error);
-                alert("Error de conexión");
+                notificar("Error de conexión", "error");
             } finally {
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             }
         },
         (error) => {
-            alert("⚠️ Error GPS: " + error.message);
+            notificar("⚠️ Error GPS: " + error.message, "error");
             btn.innerHTML = textoOriginal;
             btn.disabled = false;
         },
@@ -167,11 +191,11 @@ async function registrarParada() {
             })
         });
 
-        alert("📍 Parada registrada");
+        notificar("📍 Parada registrada", "exito");
 
     } catch (e) {
         console.error(e);
-        alert("❌ No se pudo registrar la parada. Verifica tu GPS.");
+        notificar("❌ No se pudo registrar la parada. Verifica tu GPS.", "error");
     } finally {
         const btn = document.getElementById('btnParada');
         if(btn) btn.disabled = false;
@@ -240,7 +264,8 @@ async function guardarCarrera() {
             if (resultado.success) {
                 // ¡AQUÍ ESTÁ EL CAMBIO!
                 // NO mostramos alert(). Simplemente cerramos todo.
-                
+                // JUSTO DESPUÉS DE QUE EL SERVIDOR RESPONDE OK:
+                notificar("🏁 Carrera finalizada. Calculando cobro...", "exito");
                 // 1. Ocultar Modal
                 const modalEl = document.getElementById('modalCobrar');
                 const modal = bootstrap.Modal.getInstance(modalEl);
@@ -261,7 +286,7 @@ async function guardarCarrera() {
 
             } else {
                 // Solo mostramos alerta si hubo ERROR REAL
-                alert("Error: " + resultado.message);
+                notificar("❌ Error al finalizar carrera: " + resultado.message, "error");
                 btnCobrar.disabled = false;
                 btnCobrar.innerHTML = textoBtn;
                 btnCobrar.className = 'btn btn-success w-100 btn-lg fw-bold';
@@ -269,14 +294,14 @@ async function guardarCarrera() {
 
         } catch (error) {
             console.error(error);
-            alert("Error de conexión");
+            notificar("❌ Error de conexión", "error");
             btnCobrar.disabled = false;
         }
     }, (err) => {
         // Si falla el GPS final, guardamos igual con lat 0 (Para no trabarte)
         console.warn("GPS falló al cerrar, guardando sin coords fin");
         // ... (Podrías repetir la lógica de fetch aquí, pero para simplificar dejamos que intente de nuevo)
-        alert("GPS Lento: Intenta de nuevo (Acércate a la ventana)");
+        notificar("GPS Lento: Intenta de nuevo (Acércate a la ventana)", "info");
         btnCobrar.disabled = false;
         btnCobrar.innerHTML = textoBtn;
         btnCobrar.className = 'btn btn-success w-100 btn-lg fw-bold';
@@ -404,7 +429,7 @@ async function cambiarMeta() {
                 setTimeout(() => cardBody.style.backgroundColor = '', 300);
             }
         } catch (e) {
-            alert("Error al guardar meta");
+            notificar("Error al guardar meta", "error");
         }
     }
 }
@@ -420,7 +445,7 @@ async function guardarGasto() {
     const categoriaSeleccionada = document.querySelector('input[name="catGasto"]:checked').value;
 
     if (!monto) {
-        alert("Ingresa el monto");
+        notificar("Ingresa el monto", "info");
         return;
     }
 
@@ -456,13 +481,13 @@ async function guardarGasto() {
             // Actualizar interfaz
             cargarResumenDia(); // Para que baje el neto si tienes esa lógica
             cargarHistorial();  // Por si mostramos gastos ahí
-            alert(`✅ Gasto de ${categoriaSeleccionada} registrado.`);
+            notificar(`✅ Gasto de ${categoriaSeleccionada} registrado.`, "exito");
         } else {
-            alert("Error: " + result.error);
+            notificar("Error: " + result.error, "error");
         }
     } catch (e) {
         console.error(e);
-        alert("Error de conexión");
+        notificar("Error de conexión", "error");
     }
 }
 
@@ -498,8 +523,8 @@ async function ejecutarTransferencia() {
     const destino = document.getElementById('selectDestino').value;
     const monto = document.getElementById('montoTransferencia').value;
 
-    if (origen === destino) return alert("Origen y destino iguales");
-    if (!monto || monto <= 0) return alert("Monto inválido");
+    if (origen === destino) return notificar("Origen y destino iguales", "error");
+    if (!monto || monto <= 0) return notificar("Monto inválido", "error");
 
     try {
         const response = await fetch(`${API_URL}/transferir`, {
@@ -510,13 +535,13 @@ async function ejecutarTransferencia() {
         
         const res = await response.json();
         if (res.success) {
-            alert("✅ Transferencia realizada");
+            notificar("✅ Transferencia realizada", "exito");
             bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
             abrirBilletera(); 
         } else {
-            alert(res.message);
+            notificar("Error: " + res.message, "error");
         }
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { notificar("Error: " + e.message, "error"); }
 }
 
 // ASISTENTE BABILONIA (Actualizado con IDs correctos)
@@ -814,7 +839,7 @@ async function crearObligacion() {
     const prioridad = document.getElementById('nuevaObliPrioridad').value;
 
     if (!titulo || !monto || !fecha) {
-        alert("⚠️ Por favor completa Título, Monto y Fecha.");
+        notificar("⚠️ Por favor completa Título, Monto y Fecha.", "error");
         return;
     }
 
@@ -841,15 +866,15 @@ async function crearObligacion() {
             
             // Recargar lista
             await cargarObligaciones();
-            alert("✅ Gasto registrado correctamente");
+            notificar("✅ Gasto registrado correctamente", "exito");
         } else {
             // Error del Servidor
-            alert("❌ Error al guardar: " + (result.message || "Error desconocido"));
+            notificar("❌ Error al guardar: " + (result.message || "Error desconocido"), "error");
         }
 
     } catch (e) { 
         console.error(e);
-        alert("❌ Error de Conexión: Verifica tu internet o el servidor."); 
+        notificar("❌ Error de Conexión: Verifica tu internet o el servidor.", "error"); 
     } finally {
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = textoOriginal;
@@ -871,7 +896,7 @@ async function crearPrestamo() {
     if (esServicio) cuotas = 12; 
 
     if (!titulo || !monto || !cuotas || !dia) {
-        alert("Completa todos los datos del contrato");
+        notificar("Completa todos los datos del contrato","error");
         return;
     }
 
@@ -893,17 +918,17 @@ async function crearPrestamo() {
             const data = await res.json();
             
             if(data.success) {
-                alert("✅ Cronograma creado exitosamente");
+                notificar("✅ Cronograma creado exitosamente","exito");
                 // Limpiar
                 document.getElementById('presTitulo').value = '';
                 document.getElementById('presMonto').value = '';
                 cargarObligaciones();
             } else {
-                alert("Error: " + data.message);
+                notificar("❌ Error al guardar: " + data.message,"error");
             }
         } catch (e) {
             console.error(e);
-            alert("Error de conexión");
+            notificar("❌ Error de Conexión: Verifica tu internet o el servidor.","error");
         }
     }
 }
@@ -920,9 +945,9 @@ async function pagarDeuda(id, monto, titulo) {
         });
         const data = await res.json();
         if(data.success) {
-            alert("✅ Pagado");
+            notificar("✅ Pagado","exito");
             cargarObligaciones();
-        } else alert(data.message);
+        } else notificar("❌ Error al pagar: " + data.message,"error");
     }
 }
 
@@ -1107,11 +1132,11 @@ async function verMapa(idViaje) {
             }, 300); // 300ms de retraso para asegurar que el modal se abrió
 
         } else {
-            alert("Error cargando ruta");
+            notificar("Error cargando ruta","error");
         }
     } catch (e) {
         console.error(e);
-        alert("Error de conexión");
+        notificar("Error de conexión","error");
     }
 }
 
@@ -1189,7 +1214,7 @@ async function actualizarOdometro() {
 
         // Validación simple frontend
         if (nuevoKm < actual) {
-            alert("❌ Error: No puedes poner un kilometraje menor al actual (el auto no viaja al pasado).");
+            notificar("❌ Error: No puedes poner un kilometraje menor al actual (el auto no viaja al pasado).","error");
             return;
         }
 
@@ -1203,13 +1228,13 @@ async function actualizarOdometro() {
 
             if (result.success) {
                 // Éxito: Mostramos cuánto recorrió hoy
-                alert(`✅ ¡Actualizado!\n\nRecorrido registrado hoy: ${result.recorrido_hoy} km`);
+                notificar(`✅ ¡Actualizado!\n\nRecorrido registrado hoy: ${result.recorrido_hoy} km`, "exito");
                 cargarEstadoVehiculo(); // Recargamos la barra visualmente
             } else {
-                alert("Error: " + result.message);
+                notificar("❌ Error al actualizar: " + result.message,"error");
             }
         } catch (e) {
-            alert("Error de conexión con el servidor.");
+            notificar("Error de conexión con el servidor.","error");
         }
     }    
 }
@@ -1250,14 +1275,14 @@ async function registrarMantenimiento() {
         const result = await res.json();
 
         if (result.success) {
-            alert("✅ " + result.message);
+            notificar("✅ " + result.message,"exito");
             cargarEstadoVehiculo(); // Recargar todo (Barra verde y Km actualizado)
         } else {
-            alert("Error: " + result.message);
+            notificar("❌ Error al registrar: " + result.message,"error");
         }
     } catch (e) {
         console.error(e);
-        alert("Error de conexión");
+        notificar("Error de conexión con el servidor.","error");
     }
 }
 
