@@ -1,8 +1,11 @@
 // public/js/main.js
 
-// --- 1. VERIFICACIÓN DE SEGURIDAD ---
+// 🔒 SEGURIDAD: Verificar si hay usuario logueado
 const usuarioLogueado = localStorage.getItem('taxi_user');
-if (!usuarioLogueado) window.location.href = 'login.html';
+if (!usuarioLogueado) {
+    // Si no hay usuario, lo mandamos al login
+    window.location.href = 'login.html';
+}
 
 const API_URL = '/api/viajes';
 
@@ -989,9 +992,9 @@ function descargarExcel() {
 }
 
 function cerrarSesion() {
-    if(confirm("¿Salir?")) {
-        localStorage.removeItem('taxi_user');
-        window.location.href = 'login.html';
+    if(confirm("¿Cerrar sesión?")) {
+        localStorage.removeItem('taxi_user'); // Borramos la llave
+        window.location.href = 'login.html';  // Adiós
     }
 }
 

@@ -1,37 +1,38 @@
 // UBICACIÓN: src/controllers/AuthController.js
-const db = require('../config/db');
+const UsuarioModel = require('../models/UsuarioModel');
 
 class AuthController {
-    
+
     static async login(req, res) {
         try {
             const { username, password } = req.body;
 
-            // Buscamos al usuario
-            // Nota: En un futuro, aquí deberíamos encriptar la contraseña, 
-            // pero para tu uso personal funciona bien así.
-            const query = "SELECT * FROM usuarios WHERE username = ? AND password = ?";
-            const [rows] = await db.query(query, [username, password]);
+            // 1. Validar que enviaron datos
+            if (!username || !password) {
+                return res.status(400).json({ success: false, message: 'Faltan credenciales' });
+            }
 
-            if (rows.length > 0) {
-                // ¡Éxito! Devolvemos los datos del usuario
+            // 2. Consultar al Modelo
+            const usuario = await UsuarioModel.verificarCredenciales(username, password);
+
+            if (usuario) {
+                // --- ÉXITO ---
                 res.json({ 
                     success: true, 
+                    message: 'Bienvenido',
                     user: { 
-                        id: rows[0].id, 
-                        nombre: rows[0].nombre,
-                        // AGREGADO: Enviamos la meta para que la App la sepa al instante
-                        meta_diaria: rows[0].meta_diaria || 200 
+                        id: usuario.id, 
+                        nombre: usuario.username 
                     } 
                 });
             } else {
-                // Falló
-                res.status(401).json({ success: false, message: 'Usuario o clave incorrectos' });
+                // --- ERROR DE CREDENCIALES ---
+                res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
             }
 
         } catch (error) {
             console.error(error);
-            res.status(500).json({ success: false, message: 'Error en el servidor' });
+            res.status(500).json({ success: false, message: 'Error interno del servidor' });
         }
     }
 }
