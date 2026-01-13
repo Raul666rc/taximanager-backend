@@ -125,40 +125,57 @@ async function iniciarCarrera() {
 // 2. REGISTRAR PARADA
 async function registrarParada() {
     if (!viajeActualId) return;
-    
-    // --- AQUÍ ESTÁ EL TRUCO DE VELOCIDAD ---
-    const opcionesRapidas = {
-        enableHighAccuracy: false, // FALSE = Prioriza velocidad (antenas) sobre precisión exacta
-        timeout: 5000,             // Si demora más de 5s, cancela
-        maximumAge: 0              // Intenta obtener una fresca, no caché vieja
+
+    // Función interna para intentar obtener ubicación con plan B
+    const obtenerUbicacionRobusta = () => {
+        return new Promise((resolve, reject) => {
+            
+            // INTENTO 1: Rápido (Sin satélite, 3 segundos máximo)
+            navigator.geolocation.getCurrentPosition(
+                (pos) => resolve(pos),
+                (err) => {
+                    console.warn("⚠️ Falló ubicación rápida. Activando GPS Satelital...", err.message);
+                    
+                    // INTENTO 2 (Plan B): Satélite (Si falla el rápido, usamos el lento pero seguro)
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => resolve(pos),
+                        (errFinal) => reject(errFinal),
+                        { enableHighAccuracy: true, timeout: 10000 } // 10 seg tiempo espera
+                    );
+                },
+                { enableHighAccuracy: false, timeout: 3000 }
+            );
+        });
     };
 
-    // Usamos GPS rápido
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            try {
-                await fetch(`${API_URL}/parada`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id_viaje: viajeActualId,
-                        lat: position.coords.latitude, 
-                        lng: position.coords.longitude,
-                        tipo: 'PARADA'
-                    })
-                });
-                // Podrías usar un Toastify en vez de alert para que no interrumpa
-                alert("📍 Parada registrada"); 
-            } catch (e) { 
-                console.error(e); 
-            }
-        }, 
-        (error) => {
-            console.error("Error obteniendo ubicación rápida:", error);
-            alert("⚠️ No se pudo registrar la ubicación de la parada.");
-        },
-        opcionesRapidas // <--- IMPORTANTE: Aquí pasamos la configuración
-    );
+    try {
+        // Feedback visual inmediato
+        const btn = document.getElementById('btnParada'); // Asegúrate que tu botón tenga este ID o usa el evento
+        if(btn) btn.disabled = true;
+
+        // Ejecutamos la lógica inteligente
+        const position = await obtenerUbicacionRobusta();
+
+        await fetch(`${API_URL}/parada`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id_viaje: viajeActualId,
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                tipo: 'PARADA'
+            })
+        });
+
+        alert("📍 Parada registrada");
+
+    } catch (e) {
+        console.error(e);
+        alert("❌ No se pudo registrar la parada. Verifica tu GPS.");
+    } finally {
+        const btn = document.getElementById('btnParada');
+        if(btn) btn.disabled = false;
+    }
 }
 
 // ==========================================
