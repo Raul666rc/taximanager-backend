@@ -7,6 +7,8 @@ const ViajeController = require('../controllers/ViajeController');
 const FinanzasController = require('../controllers/FinanzasController');
 const AuthController = require('../controllers/AuthController');
 
+const VehiculoController = require('../controllers/VehiculoController');
+
 // Definimos las URLs
 // POST http://localhost:3000/api/viajes/iniciar
 router.post('/iniciar', ViajeController.iniciarCarrera);
@@ -66,5 +68,10 @@ router.get('/reparto/sugerencia', FinanzasController.obtenerSugerenciaReparto);
 router.get('/reporte/descargar', ViajeController.descargarReporte);
 
 router.get('/ruta/:id', ViajeController.obtenerRutaGPS);
+
+
+router.get('/vehiculo', VehiculoController.obtenerEstado);
+router.post('/vehiculo/actualizar', VehiculoController.actualizarKilometraje);
+router.post('/vehiculo/mantenimiento', VehiculoController.registrarCambioAceite);
 
 module.exports = router;

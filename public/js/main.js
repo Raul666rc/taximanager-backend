@@ -1098,9 +1098,92 @@ function toggleTipoCompromiso() {
     }
 }
 
+// public/js/main.js
+
+// 1. OBTENER ESTADO DEL AUTO (GET)
+async function cargarEstadoVehiculo() {
+    try {
+        // Usamos la API_URL que ya tienes definida
+        const res = await fetch(`${API_URL}/vehiculo`); 
+        const result = await res.json();
+
+        if (result.success) {
+            const d = result.data;
+            
+            // 1. Llenar Textos (toLocaleString pone las comas de miles: 100,000)
+            document.getElementById('lblOdometro').innerText = d.odometro.toLocaleString();
+            document.getElementById('lblProximoCambio').innerText = d.proximo_cambio.toLocaleString();
+            document.getElementById('lblPorcentajeAceite').innerText = d.porcentaje_vida.toFixed(0) + '%';
+
+            // 2. Configurar Barra
+            const barra = document.getElementById('barraAceite');
+            const alerta = document.getElementById('lblAlertaAceite');
+            
+            barra.style.width = `${d.porcentaje_vida}%`;
+
+            // 3. Semáforo de Colores (Lógica Visual)
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated'; // Clase base
+            
+            if (d.porcentaje_vida > 50) {
+                barra.classList.add('bg-success'); // Verde
+                alerta.style.display = 'none';
+            } else if (d.porcentaje_vida > 20) {
+                barra.classList.add('bg-warning'); // Amarillo
+                barra.classList.add('text-dark');
+                alerta.style.display = 'none';
+            } else {
+                barra.classList.add('bg-danger'); // Rojo Peligro
+                alerta.style.display = 'block';
+            }
+        }
+    } catch (e) {
+        console.error("Error cargando vehículo:", e);
+    }
+}
+
+// 2. ACTUALIZAR KILOMETRAJE (POST)
+async function actualizarOdometro() {
+    // Leemos el valor actual del HTML y quitamos las comas para que sea número
+    const actualTexto = document.getElementById('lblOdometro').innerText.replace(/,/g, '');
+    const actual = parseInt(actualTexto) || 0;
+
+    // Pedimos el dato al usuario
+    const nuevo = prompt(`🚗 ACTUALIZAR TABLERO\n\nEl tablero marca actualmente: ${actual} km\n\n¿Qué dice hoy tu tablero?`, actual);
+
+    if (nuevo && !isNaN(nuevo)) {
+        const nuevoKm = parseInt(nuevo);
+
+        // Validación simple frontend
+        if (nuevoKm < actual) {
+            alert("❌ Error: No puedes poner un kilometraje menor al actual (el auto no viaja al pasado).");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/vehiculo/actualizar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nuevo_km: nuevoKm })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                // Éxito: Mostramos cuánto recorrió hoy
+                alert(`✅ ¡Actualizado!\n\nRecorrido registrado hoy: ${result.recorrido_hoy} km`);
+                cargarEstadoVehiculo(); // Recargamos la barra visualmente
+            } else {
+                alert("Error: " + result.message);
+            }
+        } catch (e) {
+            alert("Error de conexión con el servidor.");
+        }
+    }
+}
+
 // INIT
 window.onload = function() {
     cargarResumenDia();
     cargarHistorial();
     cargarMetaDiaria();
+    cargarEstadoVehiculo();
 };
