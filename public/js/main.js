@@ -1,11 +1,8 @@
 // public/js/main.js
 
-// 🔒 SEGURIDAD: Verificar si hay usuario logueado
+// --- 1. VERIFICACIÓN DE SEGURIDAD ---
 const usuarioLogueado = localStorage.getItem('taxi_user');
-if (!usuarioLogueado) {
-    // Si no hay usuario, lo mandamos al login
-    window.location.href = 'login.html';
-}
+if (!usuarioLogueado) window.location.href = 'login.html';
 
 const API_URL = '/api/viajes';
 
@@ -992,9 +989,9 @@ function descargarExcel() {
 }
 
 function cerrarSesion() {
-    if(confirm("¿Cerrar sesión?")) {
-        localStorage.removeItem('taxi_user'); // Borramos la llave
-        window.location.href = 'login.html';  // Adiós
+    if(confirm("¿Salir?")) {
+        localStorage.removeItem('taxi_user');
+        window.location.href = 'login.html';
     }
 }
 
@@ -1183,52 +1180,7 @@ async function actualizarOdometro() {
     }    
 }
 
-// 3. REGISTRAR MANTENIMIENTO (VERSIÓN 2.0 - COMBO COMPLETO)
-async function registrarMantenimiento() {
-    // 1. Confirmación de seguridad
-    if (!confirm("⚠️ ¿Confirmas que REALIZASTE el cambio de aceite hoy?\n\nEsto actualizará tu tablero y reiniciará la vida del aceite.")) {
-        return;
-    }
 
-    // 2. Pregunta 1: Kilometraje ACTUAL (Para calibrar exacto)
-    // Obtenemos el valor actual solo como sugerencia visual
-    const actualTexto = document.getElementById('lblOdometro').innerText.replace(/,/g, '');
-    const sugerencia = parseInt(actualTexto) || 0;
-
-    const nuevoKmInput = prompt("1️⃣ PASO 1:\nIngresa el KILOMETRAJE EXACTO de tu tablero ahora mismo:", sugerencia);
-    
-    if (!nuevoKmInput || isNaN(nuevoKmInput)) return; // Si cancela, salimos
-    const nuevoKm = parseInt(nuevoKmInput);
-
-    // 3. Pregunta 2: Intervalo
-    const intervaloInput = prompt("2️⃣ PASO 2:\n¿Cada cuántos Km haces el cambio?", "5000");
-    if (!intervaloInput || isNaN(intervaloInput)) return;
-    const intervalo = parseInt(intervaloInput);
-
-    // 4. Enviamos TODO al servidor
-    try {
-        const res = await fetch(`${API_URL}/vehiculo/mantenimiento`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                nuevo_km: nuevoKm,      // Dato 1
-                intervalo_km: intervalo // Dato 2
-            })
-        });
-        
-        const result = await res.json();
-
-        if (result.success) {
-            alert("✅ " + result.message);
-            cargarEstadoVehiculo(); // Recargar todo (Barra verde y Km actualizado)
-        } else {
-            alert("Error: " + result.message);
-        }
-    } catch (e) {
-        console.error(e);
-        alert("Error de conexión");
-    }
-}
 
 // INIT
 window.onload = function() {
