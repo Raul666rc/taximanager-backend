@@ -79,23 +79,30 @@ class VehiculoController {
         }
     }
 
-    // POST: Registrar Mantenimiento (Aceite cambiado)
+    // POST: Registrar Mantenimiento (Actualiza Km Y Resetea Aceite)
     static async registrarCambioAceite(req, res) {
         try {
-            const { intervalo_km } = req.body; 
-            const intervalo = intervalo_km || 5000; // Por defecto cada 5000km
+            // Recibimos DOS datos: El intervalo (5000) y el Km exacto de hoy
+            const { intervalo_km, nuevo_km } = req.body; 
+            
+            if (!nuevo_km) return res.status(400).json({ success: false, message: 'Falta el kilometraje actual' });
 
-            // 1. Obtener km actual
-            const auto = await VehiculoModel.obtener();
-            if (!auto) return res.status(400).json({ message: 'Error datos vehículo' });
+            const intervalo = intervalo_km || 5000; // Por defecto 5000
 
-            // 2. Calcular nueva meta (Actual + Intervalo)
-            const nuevaMeta = auto.odometro_actual + parseInt(intervalo);
+            // 1. PRIMERO: Actualizamos el tablero con el dato fresco (Usamos el Modelo existente)
+            await VehiculoModel.actualizarOdometro(nuevo_km);
 
-            // 3. Guardar
+            // 2. SEGUNDO: Calculamos la nueva meta basándonos en ese dato fresco
+            // Meta = Kilometraje HOY + 5000
+            const nuevaMeta = parseInt(nuevo_km) + parseInt(intervalo);
+
+            // 3. TERCERO: Guardamos la nueva meta
             await VehiculoModel.actualizarProximoCambio(nuevaMeta);
 
-            res.json({ success: true, message: '¡Mantenimiento registrado! Aceite al 100%.' });
+            res.json({ 
+                success: true, 
+                message: `¡Mantenimiento Listo! Aceite nuevo al Km ${nuevo_km}. Próximo cambio: ${nuevaMeta} km.` 
+            });
 
         } catch (error) {
             console.error(error);
