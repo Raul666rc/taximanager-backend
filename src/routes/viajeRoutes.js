@@ -20,7 +20,7 @@ router.post('/finalizar', ViajeController.terminarCarrera);
 router.get('/resumen', ViajeController.obtenerResumen);
 
 // --- AGREGAR ESTA LÍNEA ---
-router.post('/gasto', ViajeController.registrarGasto);
+router.post('/gastos', ViajeController.registrarGasto);
 // --------------------------
 // --- 2. AGREGAR ESTA RUTA NUEVA ---
 router.get('/billetera', FinanzasController.obtenerBilletera);
