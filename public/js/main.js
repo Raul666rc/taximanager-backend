@@ -126,22 +126,39 @@ async function iniciarCarrera() {
 async function registrarParada() {
     if (!viajeActualId) return;
     
-    // Usamos GPS real para la parada
-    navigator.geolocation.getCurrentPosition(async (position) => {
-        try {
-            await fetch(`${API_URL}/parada`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id_viaje: viajeActualId,
-                    lat: position.coords.latitude, 
-                    lng: position.coords.longitude,
-                    tipo: 'PARADA'
-                })
-            });
-            alert("📍 Parada registrada");
-        } catch (e) { console.error(e); }
-    });
+    // --- AQUÍ ESTÁ EL TRUCO DE VELOCIDAD ---
+    const opcionesRapidas = {
+        enableHighAccuracy: false, // FALSE = Prioriza velocidad (antenas) sobre precisión exacta
+        timeout: 5000,             // Si demora más de 5s, cancela
+        maximumAge: 0              // Intenta obtener una fresca, no caché vieja
+    };
+
+    // Usamos GPS rápido
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            try {
+                await fetch(`${API_URL}/parada`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_viaje: viajeActualId,
+                        lat: position.coords.latitude, 
+                        lng: position.coords.longitude,
+                        tipo: 'PARADA'
+                    })
+                });
+                // Podrías usar un Toastify en vez de alert para que no interrumpa
+                alert("📍 Parada registrada"); 
+            } catch (e) { 
+                console.error(e); 
+            }
+        }, 
+        (error) => {
+            console.error("Error obteniendo ubicación rápida:", error);
+            alert("⚠️ No se pudo registrar la ubicación de la parada.");
+        },
+        opcionesRapidas // <--- IMPORTANTE: Aquí pasamos la configuración
+    );
 }
 
 // ==========================================
