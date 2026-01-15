@@ -263,7 +263,7 @@ class FinanzasController {
                 const fechaSQL = fechaCuota.toISOString().split('T')[0];
                 let tituloCuota = "";
 
-                if (tipo === 'SERVICIO') {
+                if (tipo === 'SERVICIO_FIJO') {
                     // Formato: "Netflix - Ene 2026"
                     const nombreMes = nombresMeses[fechaCuota.getMonth()];
                     const anio = fechaCuota.getFullYear();

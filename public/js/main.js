@@ -903,7 +903,7 @@ async function crearPrestamo() {
     
     // Detectar Tipo
     const esServicio = document.getElementById('tipoServicio').checked;
-    const tipo = esServicio ? 'SERVICIO' : 'PRESTAMO';
+    const tipo = esServicio ? 'SERVICIO_FIJO' : 'PRESTAMO';
     
     // Si es servicio, forzamos 12 cuotas
     let cuotasStr = document.getElementById('presCuotas').value;
