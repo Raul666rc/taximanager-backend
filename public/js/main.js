@@ -632,42 +632,58 @@ async function abrirBilletera(periodo = 'mes') {
 
         if (res.success) {
             const data = res.data;
-            // Llenar saldos
-            const saldoEfectivo = data.cuentas.find(c => c.id === 1)?.saldo_actual || 0;
-            const saldoYape = data.cuentas.find(c => c.id === 2)?.saldo_actual || 0;
+            const cuentas = data.cuentas; // Array con todas tus cuentas
+
+            // 1. ASIGNACIÓN EXACTA POR ID (Para que no salga 0.00)
+            // Usamos .find() para buscar la cuenta específica por su ID de Base de Datos
             
+            // ID 1: Efectivo
+            const saldoEfectivo = cuentas.find(c => c.id === 1)?.saldo_actual || 0;
+            // ID 2: Yape
+            const saldoYape = cuentas.find(c => c.id === 2)?.saldo_actual || 0;
+            
+            // ID 3: Arca (Ahorro 10%) - Tarjeta Grande
+            const saldoArca = cuentas.find(c => c.id === 3)?.saldo_actual || 0;
+
+            // ID 4, 5, 6: Wardas Específicas
+            const saldoTaller = cuentas.find(c => c.id === 4)?.saldo_actual || 0;
+            const saldoDeuda = cuentas.find(c => c.id === 5)?.saldo_actual || 0;
+            const saldoEmergencia = cuentas.find(c => c.id === 6)?.saldo_actual || 0;
+
+            // 2. RENDERIZAR EN EL HTML
+            // Dinero Real
             document.getElementById('txtEfectivo').innerText = `S/ ${parseFloat(saldoEfectivo).toFixed(2)}`;
             document.getElementById('txtYape').innerText = `S/ ${parseFloat(saldoYape).toFixed(2)}`;
-            document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(data.ahorro_total).toFixed(2)}`;
+            
+            // El Arca (Tarjeta Grande)
+            document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(saldoArca).toFixed(2)}`;
+
+            // Las Wardas (Nueva Sección)
+            document.getElementById('txtWardaTaller').innerText = `S/ ${parseFloat(saldoTaller).toFixed(2)}`;
+            document.getElementById('txtWardaDeuda').innerText = `S/ ${parseFloat(saldoDeuda).toFixed(2)}`;
+            document.getElementById('txtWardaEmergencia').innerText = `S/ ${parseFloat(saldoEmergencia).toFixed(2)}`;
+
+            // Info General
             document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
 
-            // --- NUEVO: LLENAR LISTA DE MOVIMIENTOS ---
+            // --- LLENAR LISTA DE MOVIMIENTOS (Igual que antes) ---
             const divMovimientos = document.getElementById('listaMovimientos');
             if (divMovimientos) {
                 if (data.movimientos && data.movimientos.length > 0) {
                     let htmlMovs = '';
                     data.movimientos.forEach(mov => {
-                        // Definir iconos y colores según tipo
                         let icono = 'fa-circle';
                         let color = 'text-white';
                         let signo = '';
 
                         if (mov.tipo === 'INGRESO') {
-                            icono = 'fa-arrow-up';
-                            color = 'text-success';
-                            signo = '+';
+                            icono = 'fa-arrow-up'; color = 'text-success'; signo = '+';
                         } else if (mov.tipo === 'GASTO') {
-                            icono = 'fa-arrow-down';
-                            color = 'text-danger';
-                            signo = '-';
+                            icono = 'fa-arrow-down'; color = 'text-danger'; signo = '-';
                         } else if (mov.tipo === 'PAGO_DEUDA') {
-                            icono = 'fa-check-double';
-                            color = 'text-info'; // Celeste para pagos de deuda
-                            signo = '-';
+                            icono = 'fa-check-double'; color = 'text-info'; signo = '-';
                         } else if (mov.tipo === 'TRANSFERENCIA') {
-                            icono = 'fa-exchange-alt';
-                            color = 'text-warning';
-                            signo = ' ';
+                            icono = 'fa-exchange-alt'; color = 'text-warning'; signo = ' ';
                         }
 
                         htmlMovs += `
@@ -687,12 +703,9 @@ async function abrirBilletera(periodo = 'mes') {
                     divMovimientos.innerHTML = '<div class="text-center text-muted small py-3">Sin movimientos recientes</div>';
                 }
             }
-            // -------------------------------------------
             
-            
-            // Gráfico Dona
+            // Gráficos
             dibujarDona(data.estadisticas);
-            // Gráfico Barras
             dibujarBarras(data.semana);
 
             // Mostrar Modal

@@ -404,27 +404,46 @@
                     
                     <div class="card bg-success text-white mb-3 shadow">
                         <div class="card-body text-center">
-                            <h6 class="card-title text-uppercase opacity-75">Fondo Ahorro (Arca)</h6>
+                            <h6 class="card-title text-uppercase opacity-75">Fondo Ahorro (Arca 10%)</h6>
                             <h2 class="display-4 fw-bold" id="txtAhorro">S/ 0.00</h2>
-                            <small>¡No tocar este dinero!</small>
+                            <small><i class="fas fa-lock me-1"></i>¡Capital Intangible!</small>
                         </div>
                     </div>
 
-                    <h6 class="text-muted border-bottom border-secondary pb-2 mb-3">Dinero Disponible Real</h6>
+                    <h6 class="text-muted border-bottom border-secondary pb-2 mb-3">Dinero Disponible (Bolsillo)</h6>
                     
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span><i class="fas fa-money-bill-wave text-success"></i> Efectivo (Bolsillo)</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><i class="fas fa-money-bill-wave text-success"></i> Efectivo</span>
                         <span class="h4 mb-0" id="txtEfectivo">S/ 0.00</span>
                     </div>
                     
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
                         <span><i class="fas fa-mobile-alt text-warning"></i> Yape / Plin</span>
                         <span class="h4 mb-0" id="txtYape">S/ 0.00</span>
                     </div>
 
+                    <h6 class="text-muted border-bottom border-secondary pb-2 mb-3">
+                        <i class="fas fa-piggy-bank"></i> Fondos Warda (Objetivos)
+                    </h6>
+
+                    <div class="bg-secondary bg-opacity-10 p-3 rounded mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-info"><i class="fas fa-tools me-2"></i>Warda Taller</span>
+                            <span class="h5 mb-0 fw-bold" id="txtWardaTaller">S/ 0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-danger"><i class="fas fa-university me-2"></i>Warda Deuda 8k</span>
+                            <span class="h5 mb-0 fw-bold" id="txtWardaDeuda">S/ 0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-warning"><i class="fas fa-first-aid me-2"></i>Warda Emergencia</span>
+                            <span class="h5 mb-0 fw-bold" id="txtWardaEmergencia">S/ 0.00</span>
+                        </div>
+                    </div>
+
                     <div class="d-grid mb-4">
                         <button class="btn btn-outline-primary" onclick="abrirModalTransferencia()">
-                            <i class="fas fa-exchange-alt me-2"></i> Mover Dinero / Depositar
+                            <i class="fas fa-exchange-alt me-2"></i> Mover Dinero / Repartir
                         </button>
                     </div>
 
