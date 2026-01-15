@@ -898,51 +898,62 @@ async function crearObligacion() {
 // NUEVO: CREAR PRÉSTAMO GRANDE (COMPROMISO)
 async function crearPrestamo() {
     const titulo = document.getElementById('presTitulo').value;
-    const monto = document.getElementById('presMonto').value;
-    const dia = document.getElementById('presDia').value;
+    const montoStr = document.getElementById('presMonto').value;
+    const diaStr = document.getElementById('presDia').value;
     
     // Detectar Tipo
     const esServicio = document.getElementById('tipoServicio').checked;
     const tipo = esServicio ? 'SERVICIO' : 'PRESTAMO';
     
-    // Si es servicio, forzamos 12 si está vacío o bloqueado
-    let cuotas = document.getElementById('presCuotas').value;
-    if (esServicio) cuotas = 12; 
+    // Si es servicio, forzamos 12 cuotas
+    let cuotasStr = document.getElementById('presCuotas').value;
+    if (esServicio) cuotasStr = "12"; 
 
-    if (!titulo || !monto || !cuotas || !dia) {
-        notificar("Completa todos los datos del contrato","error");
+    if (!titulo || !montoStr || !cuotasStr || !diaStr) {
+        notificar("Completa todos los datos del contrato", "error");
         return;
     }
 
-    if(confirm(`¿Generar cronograma para "${titulo}"?\nTipo: ${tipo}\nMonto: S/ ${monto}\nInicio: Día ${dia}`)) {
+    // CONVERSIÓN A NÚMEROS (Vital para evitar errores)
+    const monto = parseFloat(montoStr);
+    const cuotas = parseInt(cuotasStr);
+    const dia = parseInt(diaStr);
+
+    // CÁLCULO DE MONTO TOTAL
+    // Si es Servicio, proyectamos el costo de 1 año (monto * 12) para que no vaya en 0
+    const montoTotal = monto * cuotas;
+
+    if(confirm(`¿Generar cronograma para "${titulo}"?\nTipo: ${tipo}\nMonto Mensual: S/ ${monto}\nInicio: Día ${dia}`)) {
         
         try {
             const res = await fetch(`${API_URL}/compromisos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    titulo, 
-                    tipo: tipo, // Enviamos el tipo
-                    monto_total: (tipo === 'PRESTAMO' ? (monto * cuotas) : 0), // Solo relevante en préstamos
-                    monto_cuota: monto, // En este form, el usuario ingresa la cuota mensual
+                    titulo: titulo, 
+                    tipo: tipo, 
+                    monto_total: montoTotal,   // Ahora siempre envía valor > 0
+                    monto_cuota: monto, 
                     cuotas_totales: cuotas,
-                    dia_pago: dia
+                    dia_pago: dia,
+                    warda_origen_id: null      // Enviamos null explícito para evitar undefined
                 })
             });
             const data = await res.json();
             
             if(data.success) {
-                notificar("✅ Cronograma creado exitosamente","exito");
-                // Limpiar
+                notificar("✅ Cronograma generado correctamente", "exito");
+                // Limpiar formulario
                 document.getElementById('presTitulo').value = '';
                 document.getElementById('presMonto').value = '';
+                // Recargar lista
                 cargarObligaciones();
             } else {
-                notificar("❌ Error al guardar: " + data.message,"error");
+                notificar("❌ Error al guardar: " + data.message, "error");
             }
         } catch (e) {
             console.error(e);
-            notificar("❌ Error de Conexión: Verifica tu internet o el servidor.","error");
+            notificar("❌ Error de Conexión", "error");
         }
     }
 }

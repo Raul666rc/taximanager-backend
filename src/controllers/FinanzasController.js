@@ -227,31 +227,33 @@ class FinanzasController {
                 cuotas_totales, dia_pago, warda_origen_id 
             } = req.body;
 
+            // Aseguramos que el día sea entero
+            const diaPagoInt = parseInt(dia_pago); 
+
             // 1. Crear PADRE
-            // Nota: Si es SERVICIO, guardamos 'cuotas_totales' como referencia (ej: 12 meses renovables)
             const [resCompromiso] = await connection.query(`
                 INSERT INTO compromisos 
                 (titulo, tipo, monto_total, monto_cuota_aprox, cuotas_totales, dia_pago_mensual, origen_sugerido_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            `, [titulo, tipo, monto_total, monto_cuota, cuotas_totales, dia_pago, warda_origen_id]);
+            `, [titulo, tipo, monto_total, monto_cuota, cuotas_totales, diaPagoInt, warda_origen_id || null]);
             
             const compromisoId = resCompromiso.insertId;
 
             // 2. Generar HIJOS (Cronograma)
-            const numCuotasAGenerar = cuotas_totales || 12; // Por defecto generamos un año si es servicio
+            const numCuotasAGenerar = cuotas_totales || 12;
 
-            // A. Determinamos fecha inicio (Lógica inteligente de fechas)
+            // A. Determinamos fecha inicio
             let fechaBase = new Date(); 
             const diaHoy = fechaBase.getDate();
 
-            // Si hoy es 11 y pagas el 20 -> Toca este mes.
-            // Si hoy es 25 y pagas el 20 -> Toca el próximo.
-            if (diaHoy > dia_pago) {
+            // Lógica de fechas corregida con enteros
+            if (diaHoy > diaPagoInt) {
                 fechaBase.setMonth(fechaBase.getMonth() + 1);
             }
-            fechaBase.setDate(dia_pago);
+            // Importante: setDate puede fallar si ponemos 31 en febrero, 
+            // pero JS lo corrige automáticamente al siguiente mes válido.
+            fechaBase.setDate(diaPagoInt); 
 
-            // Nombres de meses para Servicios
             const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
             for (let i = 0; i < numCuotasAGenerar; i++) {
@@ -261,7 +263,6 @@ class FinanzasController {
                 const fechaSQL = fechaCuota.toISOString().split('T')[0];
                 let tituloCuota = "";
 
-                // --- AQUÍ ESTÁ LA MAGIA ---
                 if (tipo === 'SERVICIO') {
                     // Formato: "Netflix - Ene 2026"
                     const nombreMes = nombresMeses[fechaCuota.getMonth()];
@@ -271,7 +272,6 @@ class FinanzasController {
                     // Formato: "Préstamo - Cuota 1/24"
                     tituloCuota = `${titulo} - Cuota ${i + 1}/${numCuotasAGenerar}`;
                 }
-                // ---------------------------
 
                 await connection.query(`
                     INSERT INTO obligaciones 
@@ -285,8 +285,8 @@ class FinanzasController {
 
         } catch (error) {
             await connection.rollback();
-            console.error(error);
-            res.status(500).json({ success: false, message: "Error al crear compromiso" });
+            console.error("Error backend:", error); // Ver el error real en consola
+            res.status(500).json({ success: false, message: error.message || "Error al generar el compromiso" });
         } finally {
             connection.release();
         }
