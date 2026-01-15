@@ -54,6 +54,8 @@ router.get('/reporte', ViajeController.descargarReporte);
 // --------------------
 
 router.get('/reporte', ReporteController.descargarHistorial);
+// NUEVA RUTA PARA FINANZAS
+router.get('/reporte/finanzas', ReporteController.descargarFinanzas);
 
 router.post('/transaccion', FinanzasController.registrarTransaccion);
 

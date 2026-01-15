@@ -1346,6 +1346,13 @@ function renderizarGrafico(etiquetas, valores) {
     });
 }
 
+function descargarReporteFinanciero() {
+    if(confirm("¿Descargar Reporte de Gastos e Ingresos?")) {
+        // Apunta a la nueva ruta que creamos
+        window.location.href = `${API_URL}/reporte/finanzas`;
+    }
+}
+
 // INIT
 window.onload = function() {
     cargarResumenDia();

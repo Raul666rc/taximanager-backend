@@ -49,6 +49,55 @@ class ReporteController {
             res.status(500).send("Error generando el reporte");
         }
     }
+    // NUEVO: Descargar Reporte de Movimientos (Ingresos vs Gastos)
+    static async descargarFinanzas(req, res) {
+        try {
+            // 1. Consultamos la tabla 'transacciones' unida con 'cuentas'
+            // Queremos ver fecha, si entró o salió plata, la categoría y de qué cuenta (Yape/Efectivo)
+            const query = `
+                SELECT 
+                    t.id,
+                    t.fecha,
+                    t.tipo,         -- INGRESO, GASTO, TRANSFERENCIA
+                    t.categoria,    -- Combustible, Alimentos, etc.
+                    t.descripcion,
+                    t.monto,
+                    c.nombre as cuenta_nombre
+                FROM transacciones t
+                LEFT JOIN cuentas c ON t.cuenta_id = c.id
+                ORDER BY t.fecha DESC, t.id DESC
+            `;
+
+            const [movimientos] = await db.query(query);
+
+            // 2. Cabeceras del Excel (CSV)
+            let csv = "ID;FECHA;TIPO;CATEGORIA;DESCRIPCION;CUENTA;MONTO (S/)\n";
+
+            // 3. Llenar filas
+            movimientos.forEach(m => {
+                // Formato de fecha local
+                const fechaFmt = new Date(m.fecha).toLocaleDateString('es-PE');
+                
+                // Limpiamos la descripción para que no rompa el CSV si tiene punto y coma
+                const descLimpia = (m.descripcion || '').replace(/;/g, ',');
+
+                // Si es GASTO, ponemos el monto en negativo visualmente para Excel
+                let montoVisual = parseFloat(m.monto).toFixed(2);
+                if (m.tipo === 'GASTO') montoVisual = `-${montoVisual}`;
+
+                csv += `${m.id};${fechaFmt};${m.tipo};${m.categoria};${descLimpia};${m.cuenta_nombre};${montoVisual}\n`;
+            });
+
+            // 4. Enviar archivo
+            res.header('Content-Type', 'text/csv'); 
+            res.attachment('Reporte_Financiero.csv'); 
+            return res.send(csv);
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).send("Error generando reporte financiero");
+        }
+    }
 }
 
 module.exports = ReporteController;
