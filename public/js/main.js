@@ -1377,6 +1377,85 @@ function descargarReporteFinanciero() {
     }
 }
 
+// --- GESTIÓN DE CONTRATOS / SUSCRIPCIONES ---
+
+async function abrirModalContratos() {
+    // Cerramos el de obligaciones para abrir este encima (o cambias el z-index, pero esto es más limpio)
+    bootstrap.Modal.getInstance(document.getElementById('modalObligaciones')).hide();
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalContratos'));
+    modal.show();
+
+    cargarContratos();
+}
+
+async function cargarContratos() {
+    const contenedor = document.getElementById('listaContratos');
+    contenedor.innerHTML = '<div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+
+    try {
+        const res = await fetch(`${API_URL}/compromisos`);
+        const result = await res.json();
+
+        if (result.success && result.data.length > 0) {
+            let html = '';
+            result.data.forEach(c => {
+                // Icono según tipo
+                let icono = c.tipo === 'SERVICIO_FIJO' ? 'fa-mobile-alt' : 'fa-university';
+                
+                html += `
+                <div class="list-group-item bg-dark text-white p-3 border-secondary d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold text-warning">
+                            <i class="fas ${icono} me-2"></i>${c.titulo}
+                        </div>
+                        <div class="small text-muted">
+                            ${c.tipo === 'SERVICIO_FIJO' ? 'Suscripción Mensual' : 'Préstamo a Plazos'}
+                        </div>
+                        <div class="small text-white">
+                            Cuota aprox: <strong>S/ ${parseFloat(c.monto_cuota_aprox).toFixed(2)}</strong>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-danger btn-sm" onclick="darBajaContrato(${c.id}, '${c.titulo}')">
+                            <i class="fas fa-ban me-1"></i> Cancelar
+                        </button>
+                    </div>
+                </div>`;
+            });
+            contenedor.innerHTML = html;
+        } else {
+            contenedor.innerHTML = '<div class="text-center p-4 text-muted">No tienes contratos activos.</div>';
+        }
+
+    } catch (e) {
+        console.error(e);
+        contenedor.innerHTML = '<div class="text-danger text-center p-3">Error cargando datos</div>';
+    }
+}
+
+async function darBajaContrato(id, titulo) {
+    if (confirm(`⚠️ ¿Estás seguro de cancelar "${titulo}"?\n\nEsto eliminará todas las cuotas futuras de tu lista de pagos.`)) {
+        try {
+            const res = await fetch(`${API_URL}/compromisos/cancelar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                notificar("✅ " + result.message, "exito");
+                cargarContratos(); // Recargar la lista para ver que desapareció
+            } else {
+                notificar("Error: " + result.message, "error");
+            }
+        } catch (e) {
+            notificar("Error de conexión", "error");
+        }
+    }
+}
+
 // INIT
 window.onload = function() {
     cargarResumenDia();

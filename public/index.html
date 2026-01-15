@@ -527,6 +527,13 @@
                     <h5 class="modal-title text-info"><i class="fas fa-tasks me-2"></i>Cuentas por Pagar</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 px-3 pt-3">
+                    <h6 class="m-0 text-white">Lista de Pagos</h6>
+                    <button class="btn btn-sm btn-outline-info" onclick="abrirModalContratos()">
+                        <i class="fas fa-file-contract me-1"></i> Ver Mis Contratos
+                    </button>
+                </div>
                 <div class="modal-body p-0">
                     
                     <div id="listaObligaciones" class="list-group list-group-flush mb-3">
@@ -602,6 +609,29 @@
                         </div>
                     </div>
 
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalContratos" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="fas fa-file-signature text-warning me-2"></i>Mis Suscripciones</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="listaContratos" class="list-group list-group-flush">
+                        <div class="text-center p-3 text-muted">Cargando...</div>
+                    </div>
+                    
+                    <div class="p-3 text-center text-muted small border-top border-secondary">
+                        * Al cancelar, se borrarán todos los pagos futuros pendientes.
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Volver</button>
                 </div>
             </div>
         </div>

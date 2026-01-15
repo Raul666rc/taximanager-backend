@@ -292,6 +292,59 @@ class FinanzasController {
         }
     }
 
+    // LISTAR CONTRATOS ACTIVOS
+    static async listarCompromisos(req, res) {
+        try {
+            const query = `
+                SELECT * FROM compromisos 
+                WHERE estado = 'ACTIVO' 
+                ORDER BY id DESC
+            `;
+            const [rows] = await db.query(query);
+            res.json({ success: true, data: rows });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al listar contratos" });
+        }
+    }
+
+    // DAR DE BAJA (CANCELAR SERVICIO/PRÉSTAMO)
+    static async cancelarCompromiso(req, res) {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+            
+            const { id } = req.body; // ID del Compromiso (Padre)
+
+            // 1. Marcar el Papá como CANCELADO
+            await connection.query(
+                "UPDATE compromisos SET estado = 'CANCELADO' WHERE id = ?", 
+                [id]
+            );
+
+            // 2. Eliminar los HIJOS (Cuotas) que estén PENDIENTES
+            // OJO: No borramos las que ya pagaste (historial), solo las futuras.
+            const [resDelete] = await connection.query(
+                "DELETE FROM obligaciones WHERE compromiso_id = ? AND estado = 'PENDIENTE'",
+                [id]
+            );
+
+            await connection.commit();
+            
+            res.json({ 
+                success: true, 
+                message: `Servicio cancelado. Se eliminaron ${resDelete.affectedRows} cuotas futuras.` 
+            });
+
+        } catch (error) {
+            await connection.rollback();
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al cancelar contrato" });
+        } finally {
+            connection.release();
+        }
+    }
+
     // Pagar una Obligación (Cierra la deuda y resta dinero)
     static async pagarObligacion(req, res) {
         const connection = await db.getConnection();
