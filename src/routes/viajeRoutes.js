@@ -7,6 +7,8 @@ const ViajeController = require('../controllers/ViajeController');
 const FinanzasController = require('../controllers/FinanzasController');
 const AuthController = require('../controllers/AuthController');
 
+const ReporteController = require('../controllers/ReporteController');
+
 const VehiculoController = require('../controllers/VehiculoController');
 
 // Definimos las URLs
@@ -50,6 +52,8 @@ router.post('/meta', FinanzasController.actualizarMeta);
 // --- AGREGAR ESTO ---
 router.get('/reporte', ViajeController.descargarReporte);
 // --------------------
+
+router.get('/reporte', ReporteController.descargarHistorial);
 
 router.post('/transaccion', FinanzasController.registrarTransaccion);
 
