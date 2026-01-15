@@ -366,6 +366,39 @@ class FinanzasController {
             res.status(500).json({ success: false, message: "Error al calcular reparto" });
         }
     }
+    
+    // ==========================================
+    // 3. ESTADÍSTICAS
+    // ==========================================
+    // Obtener desglose de gastos para el gráfico
+    static async obtenerEstadisticasGastos(req, res) {
+        try {
+            // Consulta SQL: Sumar montos agrupados por categoría (del mes actual)
+            const query = `
+                SELECT categoria, SUM(monto) as total 
+                FROM transacciones 
+                WHERE tipo = 'GASTO' 
+                AND MONTH(fecha) = MONTH(CURRENT_DATE())
+                AND YEAR(fecha) = YEAR(CURRENT_DATE())
+                GROUP BY categoria
+            `;
+            
+            const [rows] = await db.query(query);
+            
+            // Preparamos los datos para Chart.js
+            // Arrays separados: Etiquetas (["Comida", "Gas"]) y Valores ([15, 50])
+            const labels = rows.map(r => r.categoria);
+            const data = rows.map(r => r.total);
+
+            res.json({ success: true, labels, data });
+
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ error: e.message });
+        }
+    }
 }
+    
+
 
 module.exports = FinanzasController;

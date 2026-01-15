@@ -10,7 +10,8 @@ const API_URL = '/api/viajes';
 let viajeActualId = null; 
 let viajeInicioCoords = null; // Para calcular distancia
 let viajeInicioTime = null;   // Para calcular duración
-let miGrafico = null; 
+let miGrafico = null;
+let miGraficoEstadisticas = null;
 let miGraficoBarras = null;
 let mapaGlobal = null; // Para guardar la instancia del mapa y no crear duplicados
 
@@ -191,7 +192,7 @@ async function registrarParada() {
             })
         });
 
-        notificar("📍 Parada registrada", "exito");
+        notificar("📍 Parada registrada", "info");
 
     } catch (e) {
         console.error(e);
@@ -1284,6 +1285,65 @@ async function registrarMantenimiento() {
         console.error(e);
         notificar("Error de conexión con el servidor.","error");
     }
+}
+
+async function abrirEstadisticas() {
+    // 1. Abrir el modal visualmente
+    const modal = new bootstrap.Modal(document.getElementById('modalEstadisticas'));
+    modal.show();
+
+    // 2. Pedir datos al servidor
+    try {
+        const response = await fetch(`${API_URL}/finanzas/grafico-gastos`);
+        const result = await response.json();
+
+        if (result.success) {
+            renderizarGrafico(result.labels, result.data);
+        }
+    } catch (e) {
+        notificar("Error cargando estadísticas", "error");
+    }
+}
+
+function renderizarGrafico(etiquetas, valores) {
+    const ctx = document.getElementById('graficoGastos').getContext('2d');
+
+    // Si ya existe un gráfico previo, lo destruimos para no sobreponer
+    if (miGraficoEstadisticas) {
+        miGraficoEstadisticas.destroy();
+    }
+
+    // Colores para las categorías (Gasolina=Rojo, Comida=Amarillo, etc.)
+    const coloresFondo = [
+        'rgba(255, 99, 132, 0.7)',  // Rojo
+        'rgba(255, 205, 86, 0.7)',  // Amarillo
+        'rgba(54, 162, 235, 0.7)',  // Azul
+        'rgba(75, 192, 192, 0.7)',  // Verde
+        'rgba(153, 102, 255, 0.7)'  // Morado
+    ];
+
+    miGraficoEstadisticas = new Chart(ctx, {
+        type: 'doughnut', // Tipo "Dona" o Torta
+        data: {
+            labels: etiquetas, // Ej: ["Combustible", "Alimentos"]
+            datasets: [{
+                label: 'S/ Gastados',
+                data: valores,     // Ej: [120, 45]
+                backgroundColor: coloresFondo,
+                borderColor: '#000', // Borde negro para estilo dark
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: 'white' } // Texto blanco
+                }
+            }
+        }
+    });
 }
 
 // INIT

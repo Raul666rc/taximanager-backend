@@ -24,6 +24,8 @@ router.get('/resumen', ViajeController.obtenerResumen);
 // --- AGREGAR ESTA LÍNEA ---
 router.post('/gastos', ViajeController.registrarGasto);
 // --------------------------
+router.get('/finanzas/grafico-gastos', FinanzasController.obtenerEstadisticasGastos);
+
 // --- 2. AGREGAR ESTA RUTA NUEVA ---
 router.get('/billetera', FinanzasController.obtenerBilletera);
 // ----------------------------------
