@@ -1613,4 +1613,5 @@ window.onload = function() {
     cargarHistorial();
     cargarMetaDiaria();
     cargarEstadoVehiculo();
+    cargarObligaciones();
 };
