@@ -622,11 +622,9 @@ function verificarCierre() {
     }
 }
 
+// 4. LÓGICA DE REPARTO CON COMIDA FIJA Y SALDO FINAL
 async function procesarAjusteYReparto() {
-    // 1. Ajuste de Efectivo (Solo ajustamos efectivo automáticamente por seguridad)
-    // Si hay diferencia en Yape, asumimos que el usuario lo corregirá o es un error de dedo,
-    // pero para el reparto usamos el monto REAL ingresado.
-    
+    // A. Ajuste en BD (Si hubo diferencia en Efectivo)
     if (difEfe !== 0) {
         try {
             await fetch(`${API_URL}/finanzas/cierre-ajuste`, {
@@ -637,31 +635,68 @@ async function procesarAjusteYReparto() {
         } catch(e) {}
     }
 
-    // 2. CÁLCULOS (Usamos la suma de lo REAL que ingresaste)
-    const realEfe = parseFloat(document.getElementById('inputRealEfectivo').value);
-    const realYape = parseFloat(document.getElementById('inputRealYape').value);
+    // B. DATOS REALES
+    const realEfe = parseFloat(document.getElementById('inputRealEfectivo').value) || 0;
+    const realYape = parseFloat(document.getElementById('inputRealYape').value) || 0;
     const totalDisponible = realEfe + realYape;
 
-    // ESTRATEGIA:
-    const paraEstudios = totalDisponible * 0.10; // Estudios Futuro
-    const paraArca     = totalDisponible * 0.10; // Arca Oro
-    const paraNegocio  = totalDisponible * 0.80; // Negocio
+    // C. CÁLCULOS ESTRATÉGICOS
+    
+    // 1. Pilares Básicos
+    const paraSueldo = totalDisponible * 0.10; // Sueldo Propio
+    const paraArca   = totalDisponible * 0.10; // Arca Oro
+    const paraNegocio = totalDisponible * 0.80; // Total para Negocio
 
-    const detDeuda = paraNegocio * 0.30;
-    const detTaller = paraNegocio * 0.20;
-    const detGasolina = paraNegocio * 0.50;
+    // 2. Desglose del Negocio (PRIORIDAD: COMIDA)
+    const costoComida = 40.00; // Fijo diario
+    let remanenteNegocio = paraNegocio - costoComida;
 
-    // 3. PINTAR
+    // Si no alcanza para la comida con el 80%, priorizamos comida pero mostramos negativo lo demás
+    // (Opcional: podrías restar de otros lados, pero mantenemos la estructura)
+    
+    let paraDeuda = 0;
+    let paraTaller = 0;
+    let paraCajaManana = 0;
+
+    if (remanenteNegocio > 0) {
+        // Si sobra después de la comida, repartimos el resto del negocio:
+        // Ajustamos porcentajes sobre el REMANENTE:
+        // Digamos: 40% Deuda, 20% Taller, 40% Gasolina/Caja
+        paraDeuda = remanenteNegocio * 0.40;
+        paraTaller = remanenteNegocio * 0.20;
+        paraCajaManana = remanenteNegocio * 0.40;
+    } else {
+        // Si no alcanza ni para la comida, todo lo del negocio va a comida
+        // (En la vida real aquí tendrías que sacar de tu sueldo)
+        paraCajaManana = 0; // Alerta: Mañana no hay gas
+    }
+
+    // D. PINTAR RESULTADOS
     document.getElementById('montoFinalReparto').innerText = `S/ ${totalDisponible.toFixed(2)}`;
-    document.getElementById('sugEstudios').innerText = `S/ ${paraEstudios.toFixed(2)}`;
+    
+    document.getElementById('sugPersonal').innerText = `S/ ${paraSueldo.toFixed(2)}`;
     document.getElementById('sugArca').innerText = `S/ ${paraArca.toFixed(2)}`;
-    document.getElementById('sugNegocio').innerText = `S/ ${paraNegocio.toFixed(2)}`;
+    
+    document.getElementById('sugNegocioTotal').innerText = `Total: S/ ${paraNegocio.toFixed(2)}`;
+    
+    document.getElementById('detComida').innerText = `S/ ${costoComida.toFixed(2)}`;
+    document.getElementById('detDeuda').innerText = `S/ ${paraDeuda.toFixed(2)}`;
+    document.getElementById('detTaller').innerText = `S/ ${paraTaller.toFixed(2)}`;
+    document.getElementById('detGasolina').innerText = `S/ ${paraCajaManana.toFixed(2)}`;
 
-    document.getElementById('detDeuda').innerText = `S/ ${detDeuda.toFixed(2)}`;
-    document.getElementById('detTaller').innerText = `S/ ${detTaller.toFixed(2)}`;
-    document.getElementById('detGasolina').innerText = `S/ ${detGasolina.toFixed(2)}`;
+    // E. CÁLCULO DEL SALDO REMANENTE (LO QUE QUEDA EN MANO)
+    // El dinero sale de tu mano hacia: Warda Deuda, Warda Taller, Warda Arca, Warda Sueldo.
+    // La Comida se la das a tu familia (sale de la mano).
+    // LO QUE SE QUEDA: Es la "Caja Mañana".
+    
+    const totalTransferir = paraSueldo + paraArca + paraDeuda + paraTaller + costoComida;
+    const saldoFinalEnMano = totalDisponible - totalTransferir;
 
-    // Vista
+    // Validamos visualmente
+    // Debería coincidir con 'paraCajaManana' + decimales por redondeo
+    document.getElementById('saldoRemanente').innerText = `S/ ${saldoFinalEnMano.toFixed(2)}`;
+
+    // F. TRANSICIÓN
     document.getElementById('paso2_resultado').classList.add('d-none');
     document.getElementById('paso3_reparto').classList.remove('d-none');
 }
