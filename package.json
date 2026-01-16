@@ -1,9 +1,11 @@
 {
   "name": "taxi-app",
   "version": "1.0.0",
-  "description": "",
+  "description": "Sistema de Gestion Taxi",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "build": "echo 'No build step needed' && exit 0",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,5 +17,8 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "mysql2": "^3.16.0"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
