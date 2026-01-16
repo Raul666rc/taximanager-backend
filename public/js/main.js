@@ -719,15 +719,17 @@ function dibujarDona(stats) {
     const ctx = document.getElementById('graficoApps').getContext('2d');
     if (miGrafico) miGrafico.destroy();
     
-    const labels = stats.length ? stats.map(e => e.origen_tipo) : ['Sin datos'];
-    const values = stats.length ? stats.map(e => e.total) : [1];
+    // Validamos que stats no sea null
+    const datosSeguros = stats || [];
+
+    const labels = datosSeguros.length ? datosSeguros.map(e => e.origen_tipo) : ['Sin datos'];
+    const values = datosSeguros.length ? datosSeguros.map(e => parseFloat(e.total)) : [1]; // <--- parseFloat IMPORTANTE
     
-    // Colores personalizados
     const colors = labels.map(n => {
-        if(n === 'INDRIVER') return '#198754'; // Verde
-        if(n === 'UBER') return '#f8f9fa';     // Blanco
-        if(n === 'CALLE') return '#ffc107';    // Amarillo
-        return '#6c757d';                      // Gris (Otros)
+        if(n === 'INDRIVER') return '#198754'; 
+        if(n === 'UBER') return '#f8f9fa';     
+        if(n === 'CALLE') return '#ffc107';    
+        return '#6c757d';                      
     });
 
     miGrafico = new Chart(ctx, {
@@ -742,24 +744,25 @@ function dibujarDona(stats) {
         },
         options: { 
             responsive: true,
+            maintainAspectRatio: false, // <--- ESTO AYUDA A QUE NO SE DEFORME
             plugins: { 
                 legend: { 
                     position: 'right', 
                     labels: { color: 'white' } 
                 },
-                tooltip: { // <--- AGREGAMOS EL MISMO TRUCO AQUÍ
+                tooltip: {
                     callbacks: {
                         label: function(context) {
                             let label = context.label || '';
-                            let value = context.parsed;
+                            let value = parseFloat(context.parsed); // Aseguramos número
                             
-                            // Calculamos total
-                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            // Suma segura de todo el dataset
+                            let total = context.dataset.data.reduce((a, b) => a + (parseFloat(b) || 0), 0);
                             
-                            // Calculamos porcentaje
-                            let porcentaje = ((value / total) * 100).toFixed(1) + '%';
+                            // Calculamos porcentaje protegiendo la división por cero
+                            let porcentaje = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
                             
-                            return `${label}: S/ ${value} (${porcentaje})`;
+                            return `${label}: S/ ${value.toFixed(2)} (${porcentaje})`;
                         }
                     }
                 }
@@ -1404,6 +1407,9 @@ function renderizarGrafico(etiquetas, valores) {
         miGraficoEstadisticas.destroy();
     }
 
+    // Aseguramos que valores sean números puros
+    const valoresNumericos = valores.map(v => parseFloat(v));
+
     // Colores para las categorías (Gasolina=Rojo, Comida=Amarillo, etc.)
     const coloresFondo = [
         'rgba(255, 99, 132, 0.7)',  // Rojo
@@ -1419,7 +1425,7 @@ function renderizarGrafico(etiquetas, valores) {
             labels: etiquetas, // Ej: ["Combustible", "Alimentos"]
             datasets: [{
                 label: 'S/ Gastados',
-                data: valores,     // Ej: [120, 45]
+                data: valoresNumericos,     // Ej: [120, 45]
                 backgroundColor: coloresFondo,
                 borderColor: '#000', // Borde negro para estilo dark
                 borderWidth: 1
@@ -1437,18 +1443,12 @@ function renderizarGrafico(etiquetas, valores) {
                     callbacks: {
                         label: function(context) {
                             let label = context.label || '';
-                            let value = context.parsed; // El monto (Ej: 50)
+                            let value = parseFloat(context.parsed);
                             
-                            // 1. Calculamos el total de todo el gráfico
-                            let dataset = context.dataset;
-                            let total = dataset.data.reduce((acc, data) => acc + data, 0);
+                            let total = context.dataset.data.reduce((acc, data) => acc + (parseFloat(data) || 0), 0);
+                            let porcentaje = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
                             
-                            // 2. Calculamos el porcentaje
-                            let porcentaje = ((value / total) * 100).toFixed(1) + '%';
-                            
-                            // 3. Retornamos el texto bonito
-                            // Ej: "Combustible: S/ 50 (25.0%)"
-                            return `${label}: S/ ${value} (${porcentaje})`;
+                            return `${label}: S/ ${value.toFixed(2)} (${porcentaje})`;
                         }
                     }
                 }
