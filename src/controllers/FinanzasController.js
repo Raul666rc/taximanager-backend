@@ -468,6 +468,94 @@ class FinanzasController {
             res.status(500).json({ error: e.message });
         }
     }
+
+    // ==========================================
+    // 4. CIERRE DE CAJA (NUEVO MÓDULO)
+    // ==========================================
+
+    // A. Obtener datos para el arqueo
+    static async obtenerDatosCierre(req, res) {
+        try {
+            // 1. Obtenemos el saldo ACTUAL de la Billetera (Efectivo - ID 1)
+            // Asumimos que la cuenta ID 1 es "Efectivo"
+            const [rows] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 1");
+            const saldoSistema = rows[0]?.saldo_actual || 0;
+
+            // 2. Datos informativos de HOY (para mostrar en el resumen)
+            // Ingresos de hoy
+            const [ingresos] = await db.query(`
+                SELECT SUM(monto) as total FROM transacciones 
+                WHERE tipo = 'INGRESO' AND cuenta_id = 1 
+                AND DATE(DATE_SUB(fecha, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+            `);
+            
+            // Gastos de hoy (Efectivo)
+            const [gastos] = await db.query(`
+                SELECT SUM(monto) as total FROM transacciones 
+                WHERE tipo = 'GASTO' AND cuenta_id = 1 
+                AND DATE(DATE_SUB(fecha, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+            `);
+
+            res.json({
+                success: true,
+                saldo_sistema: parseFloat(saldoSistema), // Lo que el sistema cree que tienes
+                ingresos_hoy: ingresos[0].total || 0,
+                gastos_hoy: gastos[0].total || 0
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al obtener datos de cierre" });
+        }
+    }
+
+    // B. Procesar el Descuadre (Si falta o sobra plata)
+    static async procesarAjusteCaja(req, res) {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+            
+            const { diferencia } = req.body; // Puede ser negativo (falta plata) o positivo (sobra)
+            
+            // Si la diferencia es 0, no hacemos nada
+            if (diferencia === 0) {
+                await connection.release();
+                return res.json({ success: true, message: "Caja cuadrada perfecta." });
+            }
+
+            if (diferencia < 0) {
+                // FALTA PLATA -> Registramos un GASTO de ajuste
+                const monto = Math.abs(diferencia);
+                // 1. Restar saldo
+                await connection.query("UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = 1", [monto]);
+                // 2. Registrar transacción
+                await connection.query(`
+                    INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, categoria, fecha)
+                    VALUES ('GASTO', ?, 'Ajuste de Cierre (Dinero faltante)', 1, 'Descuadre', NOW())
+                `, [monto]);
+            } else {
+                // SOBRA PLATA -> Registramos un INGRESO de ajuste (ej: propinas olvidadas)
+                const monto = diferencia;
+                // 1. Sumar saldo
+                await connection.query("UPDATE cuentas SET saldo_actual = saldo_actual + ? WHERE id = 1", [monto]);
+                // 2. Registrar transacción
+                await connection.query(`
+                    INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, categoria, fecha)
+                    VALUES ('INGRESO', ?, 'Ajuste de Cierre (Dinero sobrante)', 1, 'Otros Ingresos', NOW())
+                `, [monto]);
+            }
+
+            await connection.commit();
+            res.json({ success: true, message: "Ajuste registrado correctamente." });
+
+        } catch (error) {
+            await connection.rollback();
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al procesar ajuste" });
+        } finally {
+            connection.release();
+        }
+    }
 }
     
 

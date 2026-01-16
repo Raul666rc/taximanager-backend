@@ -545,6 +545,150 @@ async function ejecutarTransferencia() {
     } catch (e) { notificar("Error: " + e.message, "error"); }
 }
 
+// ==========================================
+// MÓDULO CIERRE DE CAJA (WIZARD)
+// ==========================================
+
+let saldoSistemaGlobal = 0;
+let diferenciaGlobal = 0;
+
+// 1. Abrir el modal y cargar saldo esperado
+async function abrirCierreCaja() {
+    const modal = new bootstrap.Modal(document.getElementById('modalCierreCaja'));
+    
+    // Reiniciar visualmente al Paso 1
+    document.getElementById('paso1_conteo').classList.remove('d-none');
+    document.getElementById('paso2_resultado').classList.add('d-none');
+    document.getElementById('paso3_reparto').classList.add('d-none');
+    document.getElementById('inputDineroReal').value = '';
+
+    modal.show();
+
+    try {
+        const res = await fetch(`${API_URL}/finanzas/cierre-datos`);
+        const result = await res.json();
+        
+        if(result.success) {
+            saldoSistemaGlobal = parseFloat(result.saldo_sistema);
+            document.getElementById('lblSaldoSistema').innerText = saldoSistemaGlobal.toFixed(2);
+        }
+    } catch(e) {
+        notificar("Error obteniendo datos de caja", "error");
+    }
+}
+
+// 2. Verificar (Comparar Real vs Sistema)
+function verificarCierre() {
+    const input = document.getElementById('inputDineroReal').value;
+    if(input === '') return notificar("Ingresa cuánto dinero tienes", "error");
+
+    const saldoReal = parseFloat(input);
+    diferenciaGlobal = saldoReal - saldoSistemaGlobal; // Si es negativo, falta plata.
+
+    // Ocultar Paso 1, Mostrar Paso 2
+    document.getElementById('paso1_conteo').classList.add('d-none');
+    document.getElementById('paso2_resultado').classList.remove('d-none');
+
+    // Llenar datos del resumen
+    document.getElementById('resSistema').innerText = `S/ ${saldoSistemaGlobal.toFixed(2)}`;
+    document.getElementById('resReal').innerText = `S/ ${saldoReal.toFixed(2)}`;
+    
+    const lblDif = document.getElementById('resDiferencia');
+    const icono = document.getElementById('iconoResultado');
+    const titulo = document.getElementById('tituloResultado');
+    const mensaje = document.getElementById('mensajeResultado');
+    const btn = document.getElementById('btnAjustarContinuar');
+
+    if (Math.abs(diferenciaGlobal) < 0.50) {
+        // CUADRADO (Tolerancia de 50 céntimos)
+        diferenciaGlobal = 0; // Lo damos por bueno
+        lblDif.className = "fw-bold text-success";
+        lblDif.innerText = "S/ 0.00 (Perfecto)";
+        icono.innerHTML = "✅";
+        titulo.innerText = "¡Todo Cuadra!";
+        titulo.className = "fw-bold mb-2 text-success";
+        mensaje.innerText = "Tus cuentas están en orden. Eres un crack.";
+        btn.innerText = "Continuar al Reparto";
+        btn.className = "btn btn-success";
+    } 
+    else if (diferenciaGlobal < 0) {
+        // FALTA PLATA
+        lblDif.className = "fw-bold text-danger";
+        lblDif.innerText = `S/ ${diferenciaGlobal.toFixed(2)}`;
+        icono.innerHTML = "💸";
+        titulo.innerText = "Falta Dinero";
+        titulo.className = "fw-bold mb-2 text-danger";
+        mensaje.innerText = `Faltan S/ ${Math.abs(diferenciaGlobal).toFixed(2)}. ¿Olvidaste anotar algún gasto? Se registrará un ajuste automático.`;
+        btn.innerText = "Registrar Ajuste y Seguir";
+        btn.className = "btn btn-warning text-dark";
+    } 
+    else {
+        // SOBRA PLATA
+        lblDif.className = "fw-bold text-info";
+        lblDif.innerText = `+ S/ ${diferenciaGlobal.toFixed(2)}`;
+        icono.innerHTML = "🤑";
+        titulo.innerText = "Sobra Dinero";
+        titulo.className = "fw-bold mb-2 text-info";
+        mensaje.innerText = "Tienes dinero extra (¿Propinas?). Se registrará como ingreso extra.";
+        btn.innerText = "Registrar Ingreso y Seguir";
+        btn.className = "btn btn-info";
+    }
+}
+
+// 3. Botón "Me equivoqué"
+function reiniciarCierre() {
+    document.getElementById('paso1_conteo').classList.remove('d-none');
+    document.getElementById('paso2_resultado').classList.add('d-none');
+}
+
+// 4. Procesar el Ajuste y Calcular BABILONIA
+async function procesarAjusteYReparto() {
+    // A. Guardar ajuste si hubo diferencia
+    if (diferenciaGlobal !== 0) {
+        try {
+            await fetch(`${API_URL}/finanzas/cierre-ajuste`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ diferencia: diferenciaGlobal })
+            });
+            notificar("Ajuste registrado. Saldos actualizados.", "info");
+            cargarResumenDia(); 
+        } catch(e) {
+            return notificar("Error al registrar ajuste", "error");
+        }
+    }
+
+    // B. LÓGICA BABILONIA (10-10-80)
+    // Usamos el dinero REAL (Saldo Sistema + Diferencia)
+    const dineroReal = saldoSistemaGlobal + diferenciaGlobal;
+    
+    // 1. Cálculos Principales
+    const pagoPersonal = dineroReal * 0.10;  // 10% Para ti
+    const ahorroRiqueza = dineroReal * 0.10; // 10% Warda
+    const operativo = dineroReal * 0.80;     // 80% Negocio
+
+    // 2. Sub-cálculos del Operativo (Basado en tu código anterior)
+    const paraMantenimiento = operativo * 0.20; // 20% del operativo para taller
+    const paraDeuda = operativo * 0.30;         // 30% del operativo para deudas
+
+    // C. PINTAR EN EL HTML
+    document.getElementById('montoFinalReparto').innerText = `S/ ${dineroReal.toFixed(2)}`;
+    
+    // Tarjetas principales
+    document.getElementById('sugPersonal').innerText = `S/ ${pagoPersonal.toFixed(2)}`;
+    document.getElementById('sugWarda').innerText = `S/ ${ahorroRiqueza.toFixed(2)}`;
+    document.getElementById('sugNegocio').innerText = `S/ ${operativo.toFixed(2)}`;
+
+    // Detalles pequeños
+    document.getElementById('detMantenimiento').innerText = `S/ ${paraMantenimiento.toFixed(2)}`;
+    document.getElementById('detDeuda').innerText = `S/ ${paraDeuda.toFixed(2)}`;
+
+    // D. TRANSICIÓN VISUAL
+    document.getElementById('paso2_resultado').classList.add('d-none');
+    document.getElementById('paso3_reparto').classList.remove('d-none');
+}
+
+
 // ASISTENTE BABILONIA (Actualizado con IDs correctos)
 async function calcularRepartoBabilonia() {
     const btn = document.querySelector('button[onclick="calcularRepartoBabilonia()"]');

@@ -75,6 +75,8 @@ router.get('/compromisos', FinanzasController.listarCompromisos);
 router.post('/compromisos/cancelar', FinanzasController.cancelarCompromiso);
 // En la sección de Finanzas
 router.get('/reparto/sugerencia', FinanzasController.obtenerSugerenciaReparto);
+router.get('/finanzas/cierre-datos', FinanzasController.obtenerDatosCierre);
+router.post('/finanzas/cierre-ajuste', FinanzasController.procesarAjusteCaja);
 
 
 // Ruta para descargar el Excel/CSV

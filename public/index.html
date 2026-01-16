@@ -208,8 +208,8 @@
 
         <div class="row g-2 mb-3">
             <div class="col-6">
-                <button class="btn btn-warning w-100 fw-bold h-100 py-3 shadow-sm" onclick="calcularRepartoBabilonia()">
-                    <i class="fas fa-balance-scale d-block mb-1 fa-lg"></i> Reparto
+                <button class="btn btn-warning w-100 fw-bold h-100 py-3 shadow-sm" onclick="abrirCierreCaja()">
+                    <i class="fas fa-cash-register d-block mb-1 fa-lg"></i> Cierre y Reparto
                 </button>
             </div>
             <div class="col-6">
@@ -757,6 +757,132 @@
                 <div class="modal-footer border-secondary justify-content-between">
                     <small class="text-muted"><i class="fas fa-circle text-success"></i> Inicio &nbsp; <i class="fas fa-flag text-danger"></i> Fin</small>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalCierreCaja" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-light">
+                
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="fas fa-cash-register text-warning me-2"></i>Cierre de Turno</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body">
+                    
+                    <div id="paso1_conteo">
+                        <p class="text-center text-muted small mb-3">Cuenta tus billetes y monedas del bolsillo (Efectivo)</p>
+                        
+                        <div class="card bg-secondary bg-opacity-10 border-0 mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="text-info">El Sistema espera:</h6>
+                                <h2 class="fw-bold mb-0">S/ <span id="lblSaldoSistema">0.00</span></h2>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">¿Cuánto tienes REALMENTE?</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-dark text-white border-secondary">S/</span>
+                                <input type="number" id="inputDineroReal" class="form-control bg-black text-white border-secondary text-center fw-bold" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button class="btn btn-primary btn-lg" onclick="verificarCierre()">
+                                Verificar <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="paso2_resultado" class="d-none text-center">
+                        <div id="iconoResultado" class="display-1 mb-3"></div>
+                        <h4 id="tituloResultado" class="fw-bold mb-2"></h4>
+                        <p id="mensajeResultado" class="text-muted mb-4"></p>
+
+                        <div class="card bg-black border-secondary mb-3">
+                            <div class="card-body py-2 d-flex justify-content-between">
+                                <span>Sistema:</span>
+                                <span class="text-white" id="resSistema">S/ 0.00</span>
+                            </div>
+                            <div class="card-body py-2 d-flex justify-content-between border-top border-secondary">
+                                <span>Tú tienes:</span>
+                                <span class="text-white fw-bold" id="resReal">S/ 0.00</span>
+                            </div>
+                            <div class="card-body py-2 d-flex justify-content-between border-top border-secondary bg-secondary bg-opacity-25">
+                                <span>Diferencia:</span>
+                                <span class="fw-bold" id="resDiferencia">S/ 0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" id="btnAjustarContinuar" onclick="procesarAjusteYReparto()">
+                                Confirmar y Ir al Reparto
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="reiniciarCierre()">
+                                <i class="fas fa-undo me-2"></i>Me equivoqué contando
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="paso3_reparto" class="d-none">
+                        <h6 class="text-center text-success mb-2">✅ Dinero Cuadrado: ¡Hora del Reparto!</h6>
+                        
+                        <div class="alert alert-dark text-center border-secondary py-2 mb-3">
+                            <small class="text-muted text-uppercase">Monto Real Disponible</small>
+                            <h2 class="fw-bold mb-0 text-white" id="montoFinalReparto">S/ 0.00</h2>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <div class="p-2 bg-dark border border-secondary rounded text-center h-100">
+                                    <i class="fas fa-user-circle text-info fa-lg mb-1"></i>
+                                    <div style="font-size: 0.7rem;" class="text-muted">MI SUELDO (10%)</div>
+                                    <h6 class="fw-bold text-white mb-0" id="sugPersonal">S/ 0.00</h6>
+                                </div>
+                            </div>
+                            
+                            <div class="col-4">
+                                <div class="p-2 bg-dark border border-success rounded text-center h-100">
+                                    <i class="fas fa-piggy-bank text-success fa-lg mb-1"></i>
+                                    <div style="font-size: 0.7rem;" class="text-muted">WARDA (10%)</div>
+                                    <h6 class="fw-bold text-white mb-0" id="sugWarda">S/ 0.00</h6>
+                                </div>
+                            </div>
+
+                            <div class="col-4">
+                                <div class="p-2 bg-dark border border-warning rounded text-center h-100">
+                                    <i class="fas fa-gas-pump text-warning fa-lg mb-1"></i>
+                                    <div style="font-size: 0.7rem;" class="text-muted">NEGOCIO (80%)</div>
+                                    <h6 class="fw-bold text-white mb-0" id="sugNegocio">S/ 0.00</h6>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-secondary bg-opacity-10 p-2 rounded mb-3 small">
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>⛽ Gasolina/Taller:</span>
+                                <span class="text-white" id="detMantenimiento">S/ 0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted border-top border-secondary pt-1 mt-1">
+                                <span>📉 Deudas:</span>
+                                <span class="text-white" id="detDeuda">S/ 0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-info" onclick="abrirModalTransferencia()">
+                                <i class="fas fa-exchange-alt me-2"></i>Mover Dinero (Warda/Pago)
+                            </button>
+                            <button class="btn btn-outline-light" data-bs-dismiss="modal">
+                                🏁 Finalizar Turno
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
