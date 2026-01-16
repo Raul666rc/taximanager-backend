@@ -755,36 +755,62 @@ async function abrirObligaciones() {
 
 async function cargarObligaciones() {
     const contenedor = document.getElementById('listaObligaciones');
-    contenedor.innerHTML = '<div class="text-center p-3 text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando deudas...</div>';
+    // Estado del switch (true = ver todo, false = vista limpia)
+    const verTodos = document.getElementById('chkVerTodos').checked;
+
+    contenedor.innerHTML = '<div class="text-center p-3 text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando cuentas...</div>';
 
     try {
-        const response = await fetch(`${API_URL}/obligaciones`);
+        const response = await fetch(`${API_URL}/obligaciones`); // Asumo que devuelve ordenado por fecha ASC
         const result = await response.json();
 
         if (result.success && result.data.length > 0) {
             let html = '';
-            result.data.forEach(item => {
-                
-                // CORRECCIÓN DE FECHA:
-                // 1. Nos aseguramos de tener un objeto fecha válido
+            
+            // 1. OBJETO PARA RASTREAR QUÉ CONTRATOS YA MOSTRAMOS
+            // Usaremos esto para decir: "Ya mostré la cuota de Netflix de este mes, oculta la del otro mes".
+            let contratosMostrados = {}; 
+
+            // 2. ORDENAR POR FECHA (Vital para que la lógica funcione)
+            // Aseguramos que lo más antiguo/vencido salga primero
+            const listaOrdenada = result.data.sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
+
+            let contadorOcultos = 0;
+
+            listaOrdenada.forEach(item => {
                 const fechaObj = new Date(item.fecha_vencimiento);
-                
-                // 2. Ajustamos la zona horaria para que no se atrase un día por culpa del UTC
-                // (Sumamos la diferencia horaria de tu zona)
                 const userTimezoneOffset = fechaObj.getTimezoneOffset() * 60000;
                 const fechaAjustada = new Date(fechaObj.getTime() + userTimezoneOffset);
+                const fechaBonita = fechaAjustada.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const dias = parseInt(item.dias_restantes); // Backend debe mandar esto
 
-                // 3. Formateamos bonito (Ej: 20/01/2026)
-                const fechaBonita = fechaAjustada.toLocaleDateString('es-PE', { 
-                    day: '2-digit', 
-                    month: '2-digit', 
-                    year: 'numeric' 
-                });
+                // --- LÓGICA DE FILTRADO INTELIGENTE ---
+                let mostrar = true;
 
-                // CÁLCULOS DE VISUALIZACIÓN
-                const dias = parseInt(item.dias_restantes);
-                
-                // Semáforo de colores
+                // Si NO está activado el "Ver Todos"
+                if (!verTodos) {
+                    // Si el item pertenece a un contrato (tiene compromiso_id)
+                    if (item.compromiso_id) {
+                        // REGLA:
+                        // 1. Si está vencido (dias < 0) -> MOSTRAR SIEMPRE
+                        // 2. Si no está vencido -> MOSTRAR SOLO EL PRIMERO QUE APAREZCA
+                        
+                        if (dias >= 0) { // Es futuro o hoy
+                            if (contratosMostrados[item.compromiso_id]) {
+                                mostrar = false; // Ya mostramos el pago próximo de este contrato, ocultar los siguientes
+                                contadorOcultos++;
+                            } else {
+                                // Es el primer pago futuro de este contrato, lo marcamos
+                                contratosMostrados[item.compromiso_id] = true;
+                            }
+                        }
+                    }
+                    // Si es gasto puntual (null compromiso_id), siempre se muestra
+                }
+
+                if (!mostrar) return; // Saltamos esta iteración (no dibujamos)
+
+                // --- DISEÑO DE LA TARJETA (Igual que antes) ---
                 let bordeColor = 'border-secondary';
                 let badgeEstado = '';
 
@@ -799,17 +825,14 @@ async function cargarObligaciones() {
                     badgeEstado = `<span class="badge bg-success mb-1">📅 Faltan ${dias} días</span>`;
                 }
                 
-                // Si ya venció (dias negativo)
                 if (dias < 0) {
                     bordeColor = 'border-danger border-start border-4';
                     badgeEstado = `<span class="badge bg-danger w-100 mb-1">¡VENCIDO HACE ${Math.abs(dias)} DÍAS!</span>`;
                 }
 
-                // ESTRUCTURA DE LA TARJETA
                 html += `
                 <div class="list-group-item bg-dark text-white p-3 mb-2 shadow-sm ${bordeColor}">
                     <div class="d-flex justify-content-between align-items-center">
-                        
                         <div style="flex: 1;">
                             ${badgeEstado}
                             <h6 class="mb-1 fw-bold text-white">${item.titulo}</h6>
@@ -817,23 +840,29 @@ async function cargarObligaciones() {
                                 <i class="far fa-calendar-alt me-1"></i>Vence: <strong>${fechaBonita}</strong>
                             </div>
                         </div>
-
                         <div class="text-end ms-3">
                             <div class="fs-4 fw-bold text-white mb-2">S/ ${parseFloat(item.monto).toFixed(2)}</div>
                             <button class="btn btn-sm btn-outline-light w-100" onclick="pagarDeuda(${item.id}, ${item.monto}, '${item.titulo}')">
                                 PAGAR <i class="fas fa-chevron-right ms-1"></i>
                             </button>
                         </div>
-
                     </div>
                 </div>`;
             });
+
+            // Mensaje informativo si hay ocultos
+            if (contadorOcultos > 0) {
+                html += `<div class="text-center text-muted small mt-2 fst-italic">
+                            Hay ${contadorOcultos} cuotas futuras ocultas. <br>Activa el switch arriba para verlas.
+                         </div>`;
+            }
+
             contenedor.innerHTML = html;
             
-            // Actualizar contador rojo en el menú principal
+            // Actualizar contador rojo (Mostrar TOTAL real pendiente, no solo visuales)
             const countBadge = document.getElementById('badgeDeudasCount');
             if(countBadge) {
-                countBadge.innerText = result.data.length;
+                countBadge.innerText = result.data.length; 
                 countBadge.style.display = 'inline-block';
             }
 
