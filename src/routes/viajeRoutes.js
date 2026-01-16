@@ -39,6 +39,8 @@ router.get('/historial', ViajeController.obtenerHistorialHoy);
 // --- AGREGAR ESTO ---
 router.delete('/anular/:id', ViajeController.anularCarrera); 
 // (Nota que usamos .delete, es un verbo HTTP especial para borrar)
+// Agrega esta línea junto a las otras rutas GET
+router.get('/activo', ViajeController.obtenerViajeActivo);
 // --------------------
 
 // --- 2. AGREGAR RUTA DE LOGIN ---

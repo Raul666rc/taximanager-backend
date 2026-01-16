@@ -1543,8 +1543,59 @@ async function darBajaContrato(id, titulo) {
     }
 }
 
+// --- RECUPERACIÓN DE ESTADO ---
+async function verificarViajeEnCurso() {
+    try {
+        const response = await fetch(`${API_URL}/activo`);
+        const result = await response.json();
+
+        if (result.success && result.viaje) {
+            // 1. RECUPERAMOS LOS DATOS CRÍTICOS
+            const v = result.viaje;
+            viajeActualId = v.id;
+            
+            // Reconstruimos el objeto fecha para el cronómetro
+            // Combinamos fecha y hora de la BD para tener un objeto Date válido JS
+            // (Asumimos que fecha_inicio es YYYY-MM-DD y hora_inicio HH:MM:SS)
+            const fechaString = new Date(v.fecha_inicio).toISOString().split('T')[0];
+            viajeInicioTime = new Date(`${fechaString}T${v.hora_inicio}`);
+            
+            viajeInicioCoords = { lat: parseFloat(v.lat_inicio), lng: parseFloat(v.lng_inicio) };
+
+            // 2. RESTAURAMOS LA INTERFAZ
+            console.log("♻️ Sesión recuperada: Viaje ID " + viajeActualId);
+            
+            // Ocultamos el panel de inicio y mostramos el de carrera
+            document.getElementById('btnIniciar').classList.add('d-none');
+            const selector = document.getElementById('selectorApps');
+            if(selector) selector.classList.add('d-none');
+            
+            document.getElementById('panelEnCarrera').classList.remove('d-none');
+            
+            // 3. ACTUALIZAMOS EL TEXTO
+            // Calculamos cuánto tiempo ha pasado desde que empezó hasta ahora
+            const ahora = new Date();
+            const diffMin = Math.floor((ahora - viajeInicioTime) / 60000);
+            
+            document.getElementById('txtCronometro').innerText = `En curso: Recuperado (hace ${diffMin} min)`;
+            
+            notificar("🔄 Se detectó un viaje activo. Pantalla restaurada.", "info");
+
+        } else {
+            // No hay viaje activo, nos aseguramos que se vea el inicio
+            mostrarPanelInicio();
+        }
+    } catch (e) {
+        console.error("Error verificando sesión:", e);
+    }
+}
+
 // INIT
 window.onload = function() {
+    // 1. Verificar si nos quedamos a medias en un viaje
+    verificarViajeEnCurso();
+    
+    // 2. Cargar datos normales
     cargarResumenDia();
     cargarHistorial();
     cargarMetaDiaria();

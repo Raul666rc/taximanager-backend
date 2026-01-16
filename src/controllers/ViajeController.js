@@ -269,6 +269,32 @@ class ViajeController {
             console.error("Error de conexión con mapas:", err.message);
         });
     }
+
+    // VERIFICAR SI HAY UN VIAJE PENDIENTE (RECUPERACIÓN DE SESIÓN)
+    static async obtenerViajeActivo(req, res) {
+        try {
+            // Buscamos el último viaje que esté 'EN_CURSO'
+            const query = `
+                SELECT id, fecha_inicio, hora_inicio, origen_tipo, origen_texto, lat_inicio, lng_inicio
+                FROM viajes 
+                WHERE estado = 'EN_CURSO' 
+                ORDER BY id DESC LIMIT 1
+            `;
+            
+            const [viajes] = await db.query(query);
+
+            if (viajes.length > 0) {
+                // ¡Encontramos uno! Lo devolvemos para restaurar
+                res.json({ success: true, viaje: viajes[0] });
+            } else {
+                // Todo limpio, no hay viajes activos
+                res.json({ success: false });
+            }
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
 }
 
 module.exports = ViajeController;
