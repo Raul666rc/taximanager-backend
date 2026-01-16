@@ -1533,7 +1533,12 @@ async function darBajaContrato(id, titulo) {
 
             if (result.success) {
                 notificar("✅ " + result.message, "exito");
-                cargarContratos(); // Recargar la lista para ver que desapareció
+                // 1. Recargamos la lista visual de contratos (para que desaparezca de este modal)
+                cargarContratos(); 
+
+                // 2. ¡AQUÍ ESTÁ LA SOLUCIÓN! 
+                // Recargamos las obligaciones para que se actualice el BADGE ROJO del menú principal
+                cargarObligaciones();
             } else {
                 notificar("Error: " + result.message, "error");
             }
