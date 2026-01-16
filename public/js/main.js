@@ -1379,39 +1379,65 @@ async function registrarMantenimiento() {
 // --- FUNCIONES AUXILIARES DE DOCUMENTOS ---
 
 // Semáforo de colores para fechas
-function analizarDocumento(tipo, fechaSQL) {
+// OBSERVACIÓN 3: Corrección de fechas "Invalid Date"
+function analizarDocumento(tipo, fechaBruta) {
     const badge = document.getElementById(`badge${tipo}`);
     const lblFecha = document.getElementById(`fecha${tipo}`);
     
-    if (!fechaSQL) {
-        badge.className = 'badge bg-secondary';
+    // 1. Si no hay datos, mostramos estado neutro
+    if (!fechaBruta) {
+        badge.className = 'badge bg-secondary rounded-pill px-3';
         badge.innerText = 'Sin Dato';
-        lblFecha.innerText = '--/--/--';
+        lblFecha.innerText = '--/--/----';
         return;
     }
 
-    // Calculamos días restantes
-    // Agregamos T00:00:00 para evitar problemas de zona horaria al convertir
-    const vencimiento = new Date(fechaSQL + 'T00:00:00'); 
-    const hoy = new Date();
-    const diffTime = vencimiento - hoy;
-    const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    try {
+        // 2. Limpieza de fecha: 
+        // La BD puede mandar "2026-05-20" o "2026-05-20T05:00:00.000Z"
+        // Nos aseguramos de quedarnos solo con la parte YYYY-MM-DD
+        let fechaString = fechaBruta;
+        if (typeof fechaBruta === 'string' && fechaBruta.includes('T')) {
+            fechaString = fechaBruta.split('T')[0];
+        }
 
-    lblFecha.innerText = vencimiento.toLocaleDateString('es-PE');
+        // 3. Crear fecha de vencimiento asegurando zona horaria local
+        // Truco: Usamos split y constructor directo para evitar líos de UTC (-5h)
+        const partes = fechaString.split('-'); // [2026, 05, 20]
+        // OJO: Mes en JS empieza en 0 (Enero=0, Mayo=4)
+        const vencimiento = new Date(partes[0], partes[1] - 1, partes[2]);
+        
+        const hoy = new Date();
+        // Ponemos "hoy" a las 00:00:00 para comparar peras con peras
+        hoy.setHours(0,0,0,0); 
 
-    // Asignamos color según urgencia
-    if (diasRestantes < 0) {
-        badge.className = 'badge bg-danger animate__animated animate__flash infinite'; 
-        badge.innerText = `¡VENCIDO!`;
-    } else if (diasRestantes < 7) {
-        badge.className = 'badge bg-danger';
-        badge.innerText = `${diasRestantes} días`;
-    } else if (diasRestantes < 30) {
-        badge.className = 'badge bg-warning text-dark';
-        badge.innerText = `${diasRestantes} días`;
-    } else {
-        badge.className = 'badge bg-success';
-        badge.innerText = 'Vigente';
+        // 4. Calcular diferencia en días
+        const diffTime = vencimiento - hoy;
+        const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // 5. Mostrar fecha bonita
+        lblFecha.innerText = vencimiento.toLocaleDateString('es-PE', { 
+            year: 'numeric', month: 'long', day: 'numeric' 
+        });
+
+        // 6. Semáforo
+        if (diasRestantes < 0) {
+            badge.className = 'badge bg-danger animate__animated animate__flash infinite rounded-pill px-3'; 
+            badge.innerText = `¡VENCIDO!`;
+        } else if (diasRestantes < 7) {
+            badge.className = 'badge bg-danger rounded-pill px-3';
+            badge.innerText = `Vence en ${diasRestantes} días`;
+        } else if (diasRestantes < 30) {
+            badge.className = 'badge bg-warning text-dark rounded-pill px-3';
+            badge.innerText = `Quedan ${diasRestantes} días`;
+        } else {
+            badge.className = 'badge bg-success rounded-pill px-3';
+            badge.innerText = 'Vigente';
+        }
+
+    } catch (e) {
+        console.error("Error parseando fecha:", e);
+        badge.innerText = "Error Fecha";
     }
 }
 
