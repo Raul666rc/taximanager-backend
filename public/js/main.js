@@ -1550,43 +1550,51 @@ async function verificarViajeEnCurso() {
         const result = await response.json();
 
         if (result.success && result.viaje) {
-            // 1. RECUPERAMOS LOS DATOS CRÍTICOS
             const v = result.viaje;
+            
+            // 1. RECUPERAR ID
             viajeActualId = v.id;
             
-            // Reconstruimos el objeto fecha para el cronómetro
-            // Combinamos fecha y hora de la BD para tener un objeto Date válido JS
-            // (Asumimos que fecha_inicio es YYYY-MM-DD y hora_inicio HH:MM:SS)
-            const fechaString = new Date(v.fecha_inicio).toISOString().split('T')[0];
-            viajeInicioTime = new Date(`${fechaString}T${v.hora_inicio}`);
-            
-            viajeInicioCoords = { lat: parseFloat(v.lat_inicio), lng: parseFloat(v.lng_inicio) };
+            // 2. RECUPERAR FECHA Y HORA (Base de Datos nueva: DATETIME)
+            // MySQL devuelve algo como: "2026-01-16T14:30:00.000Z"
+            viajeInicioTime = new Date(v.fecha_hora_inicio);
 
-            // 2. RESTAURAMOS LA INTERFAZ
-            console.log("♻️ Sesión recuperada: Viaje ID " + viajeActualId);
+            // 3. RECUPERAR COORDENADAS (Vienen del JOIN con ruta_gps_logs)
+            if (v.lat_inicio && v.lng_inicio) {
+                viajeInicioCoords = { 
+                    lat: parseFloat(v.lat_inicio), 
+                    lng: parseFloat(v.lng_inicio) 
+                };
+            }
+
+            console.log("♻️ Sesión recuperada. ID:", viajeActualId);
             
-            // Ocultamos el panel de inicio y mostramos el de carrera
+            // 4. RESTAURAR INTERFAZ
             document.getElementById('btnIniciar').classList.add('d-none');
             const selector = document.getElementById('selectorApps');
             if(selector) selector.classList.add('d-none');
             
             document.getElementById('panelEnCarrera').classList.remove('d-none');
             
-            // 3. ACTUALIZAMOS EL TEXTO
-            // Calculamos cuánto tiempo ha pasado desde que empezó hasta ahora
+            // 5. RECALCULAR CRONÓMETRO
             const ahora = new Date();
-            const diffMin = Math.floor((ahora - viajeInicioTime) / 60000);
+            // Truco: Si la hora del servidor y tu celular difieren, usamos Math.abs o validamos
+            let diffMs = ahora - viajeInicioTime;
+            let diffMin = Math.floor(diffMs / 60000);
             
-            document.getElementById('txtCronometro').innerText = `En curso: Recuperado (hace ${diffMin} min)`;
+            // Si sale negativo (por error de zona horaria), ponemos 0
+            if (diffMin < 0) diffMin = 0; 
+
+            document.getElementById('txtCronometro').innerText = `En curso: Recuperado (${diffMin} min)`;
             
-            notificar("🔄 Se detectó un viaje activo. Pantalla restaurada.", "info");
+            notificar("🔄 Viaje activo restaurado correctamente", "info");
 
         } else {
-            // No hay viaje activo, nos aseguramos que se vea el inicio
+            // Si no hay viaje, mostramos inicio
             mostrarPanelInicio();
         }
     } catch (e) {
-        console.error("Error verificando sesión:", e);
+        console.error("Error recuperando sesión:", e);
     }
 }
 

@@ -270,28 +270,34 @@ class ViajeController {
         });
     }
 
-    // VERIFICAR SI HAY UN VIAJE PENDIENTE (RECUPERACIÓN DE SESIÓN)
+    // VERIFICAR SI HAY UN VIAJE PENDIENTE (Con JOIN a Logs GPS)
     static async obtenerViajeActivo(req, res) {
         try {
-            // Buscamos el último viaje que esté 'EN_CURSO'
+            // UNIMOS 'viajes' CON 'ruta_gps_logs'
+            // Buscamos específicamente el punto de 'INICIO' del log para obtener las coordenadas
             const query = `
-                SELECT id, fecha_inicio, hora_inicio, origen_tipo, origen_texto, lat_inicio, lng_inicio
-                FROM viajes 
-                WHERE estado = 'EN_CURSO' 
-                ORDER BY id DESC LIMIT 1
+                SELECT 
+                    v.id, 
+                    v.fecha_hora_inicio, 
+                    v.origen_tipo, 
+                    v.origen_texto,
+                    g.latitud as lat_inicio, 
+                    g.longitud as lng_inicio
+                FROM viajes v
+                LEFT JOIN ruta_gps_logs g ON v.id = g.viaje_id AND g.tipo_punto = 'INICIO'
+                WHERE v.estado = 'EN_CURSO'
+                ORDER BY v.id DESC LIMIT 1
             `;
             
             const [viajes] = await db.query(query);
 
             if (viajes.length > 0) {
-                // ¡Encontramos uno! Lo devolvemos para restaurar
                 res.json({ success: true, viaje: viajes[0] });
             } else {
-                // Todo limpio, no hay viajes activos
                 res.json({ success: false });
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error SQL Recuperación:", error);
             res.status(500).json({ success: false, error: error.message });
         }
     }
