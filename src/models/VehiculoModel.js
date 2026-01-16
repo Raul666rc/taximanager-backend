@@ -42,6 +42,25 @@ class VehiculoModel {
         `;
         await db.query(query, [kmInicial, metaInicial]);
     }
+    // 5. NUEVO: Actualizar Fechas de Documentos
+    static async actualizarDocumentos(soat, revision, gnv) {
+        const query = `
+            UPDATE vehiculo 
+            SET fecha_soat = ?, 
+                fecha_revision = ?, 
+                fecha_gnv = ?
+            WHERE id = 1
+        `;
+        // Si viene vacío, guardamos NULL
+        const params = [
+            soat || null, 
+            revision || null, 
+            gnv || null
+        ];
+        
+        const [result] = await db.query(query, params);
+        return result.affectedRows > 0;
+    }
 }
 
 module.exports = VehiculoModel;

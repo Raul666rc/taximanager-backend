@@ -3,27 +3,23 @@ const VehiculoModel = require('../models/VehiculoModel');
 
 class VehiculoController {
 
-    // GET: Obtener estado para la barra de vida
+    // MODIFICADO: Ahora devuelve también las fechas de documentos
     static async obtenerEstado(req, res) {
         try {
             const auto = await VehiculoModel.obtener();
 
             if (!auto) {
-                // Si no existe, lo creamos al vuelo con valores por defecto
                 await VehiculoModel.inicializar(100000, 105000);
-                return res.json({ success: true, message: 'Vehículo inicializado. Refresca.' });
+                return res.json({ success: true, message: 'Vehículo inicializado.' });
             }
 
-            // --- LÓGICA DE NEGOCIO ---
+            // Cálculos mecánicos (Igual que antes)
             const recorrido = auto.odometro_actual;
             const meta = auto.proximo_cambio_aceite;
             const restante = meta - recorrido;
-
-            // Calculamos porcentaje de vida (Asumiendo intervalo de 5000km para la barra visual)
             const intervaloVisual = 5000; 
             let porcentajeVida = (restante / intervaloVisual) * 100;
 
-            // Limites visuales
             if (porcentajeVida > 100) porcentajeVida = 100;
             if (porcentajeVida < 0) porcentajeVida = 0;
 
@@ -33,13 +29,30 @@ class VehiculoController {
                     odometro: recorrido,
                     proximo_cambio: meta,
                     km_restantes: restante,
-                    porcentaje_vida: porcentajeVida
+                    porcentaje_vida: porcentajeVida,
+                    // NUEVO: Enviamos las fechas
+                    fecha_soat: auto.fecha_soat,
+                    fecha_revision: auto.fecha_revision,
+                    fecha_gnv: auto.fecha_gnv
                 }
             });
 
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: 'Error al obtener vehículo' });
+        }
+    }
+    // NUEVO: Función para guardar las fechas desde el modal
+    static async guardarDocumentos(req, res) {
+        try {
+            const { fecha_soat, fecha_revision, fecha_gnv } = req.body;
+            
+            await VehiculoModel.actualizarDocumentos(fecha_soat, fecha_revision, fecha_gnv);
+
+            res.json({ success: true, message: "Documentos actualizados correctamente" });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, message: "Error al guardar documentos" });
         }
     }
 

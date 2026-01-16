@@ -86,5 +86,6 @@ router.get('/ruta/:id', ViajeController.obtenerRutaGPS);
 router.get('/vehiculo', VehiculoController.obtenerEstado);
 router.post('/vehiculo/actualizar', VehiculoController.actualizarKilometraje);
 router.post('/vehiculo/mantenimiento', VehiculoController.registrarCambioAceite);
+router.post('/vehiculo/documentos', VehiculoController.guardarDocumentos);
 
 module.exports = router;

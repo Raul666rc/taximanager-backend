@@ -1248,43 +1248,42 @@ function toggleTipoCompromiso() {
     }
 }
 
-// public/js/main.js
+// ==========================================
+// MÓDULO DE MI AUTO
+// ==========================================
 
 // 1. OBTENER ESTADO DEL AUTO (GET)
 async function cargarEstadoVehiculo() {
     try {
-        // Usamos la API_URL que ya tienes definida
         const res = await fetch(`${API_URL}/vehiculo`); 
         const result = await res.json();
 
         if (result.success) {
             const d = result.data;
             
-            // 1. Llenar Textos (toLocaleString pone las comas de miles: 100,000)
+            // 1. MECÁNICA (Esto sigue igual)
             document.getElementById('lblOdometro').innerText = d.odometro.toLocaleString();
             document.getElementById('lblProximoCambio').innerText = d.proximo_cambio.toLocaleString();
-            document.getElementById('lblPorcentajeAceite').innerText = d.porcentaje_vida.toFixed(0) + '%';
-
-            // 2. Configurar Barra
+            
             const barra = document.getElementById('barraAceite');
             const alerta = document.getElementById('lblAlertaAceite');
             
+            document.getElementById('lblPorcentajeAceite').innerText = d.porcentaje_vida.toFixed(0) + '%';
             barra.style.width = `${d.porcentaje_vida}%`;
 
-            // 3. Semáforo de Colores (Lógica Visual)
-            barra.className = 'progress-bar progress-bar-striped progress-bar-animated'; // Clase base
-            
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated'; 
             if (d.porcentaje_vida > 50) {
-                barra.classList.add('bg-success'); // Verde
-                alerta.style.display = 'none';
+                barra.classList.add('bg-success'); alerta.style.display = 'none';
             } else if (d.porcentaje_vida > 20) {
-                barra.classList.add('bg-warning'); // Amarillo
-                barra.classList.add('text-dark');
-                alerta.style.display = 'none';
+                barra.classList.add('bg-warning', 'text-dark'); alerta.style.display = 'none';
             } else {
-                barra.classList.add('bg-danger'); // Rojo Peligro
-                alerta.style.display = 'block';
+                barra.classList.add('bg-danger'); alerta.style.display = 'block';
             }
+
+            // 2. LEGAL (NUEVO: Llamamos a la función semáforo)
+            analizarDocumento('Soat', d.fecha_soat);
+            analizarDocumento('Revision', d.fecha_revision);
+            analizarDocumento('Gnv', d.fecha_gnv);
         }
     } catch (e) {
         console.error("Error cargando vehículo:", e);
@@ -1374,6 +1373,90 @@ async function registrarMantenimiento() {
     } catch (e) {
         console.error(e);
         notificar("Error de conexión con el servidor.","error");
+    }
+}
+
+// --- FUNCIONES AUXILIARES DE DOCUMENTOS ---
+
+// Semáforo de colores para fechas
+function analizarDocumento(tipo, fechaSQL) {
+    const badge = document.getElementById(`badge${tipo}`);
+    const lblFecha = document.getElementById(`fecha${tipo}`);
+    
+    if (!fechaSQL) {
+        badge.className = 'badge bg-secondary';
+        badge.innerText = 'Sin Dato';
+        lblFecha.innerText = '--/--/--';
+        return;
+    }
+
+    // Calculamos días restantes
+    // Agregamos T00:00:00 para evitar problemas de zona horaria al convertir
+    const vencimiento = new Date(fechaSQL + 'T00:00:00'); 
+    const hoy = new Date();
+    const diffTime = vencimiento - hoy;
+    const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    lblFecha.innerText = vencimiento.toLocaleDateString('es-PE');
+
+    // Asignamos color según urgencia
+    if (diasRestantes < 0) {
+        badge.className = 'badge bg-danger animate__animated animate__flash infinite'; 
+        badge.innerText = `¡VENCIDO!`;
+    } else if (diasRestantes < 7) {
+        badge.className = 'badge bg-danger';
+        badge.innerText = `${diasRestantes} días`;
+    } else if (diasRestantes < 30) {
+        badge.className = 'badge bg-warning text-dark';
+        badge.innerText = `${diasRestantes} días`;
+    } else {
+        badge.className = 'badge bg-success';
+        badge.innerText = 'Vigente';
+    }
+}
+
+// Abrir modal y cargar datos actuales
+async function configurarAuto() {
+    try {
+        const res = await fetch(`${API_URL}/vehiculo`);
+        const result = await res.json();
+        if(result.success) {
+            const d = result.data;
+            if(d.fecha_soat) document.getElementById('inputSoat').value = d.fecha_soat.split('T')[0];
+            if(d.fecha_revision) document.getElementById('inputRevision').value = d.fecha_revision.split('T')[0];
+            if(d.fecha_gnv) document.getElementById('inputGnv').value = d.fecha_gnv.split('T')[0];
+        }
+    } catch(e) {}
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalConfigAuto'));
+    modal.show();
+}
+
+// Guardar cambios
+async function guardarDocumentos() {
+    const data = {
+        fecha_soat: document.getElementById('inputSoat').value,
+        fecha_revision: document.getElementById('inputRevision').value,
+        fecha_gnv: document.getElementById('inputGnv').value
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/vehiculo/documentos`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            notificar("✅ Documentos actualizados", "exito");
+            cargarEstadoVehiculo(); 
+            bootstrap.Modal.getInstance(document.getElementById('modalConfigAuto')).hide();
+        } else {
+            notificar("Error al guardar", "error");
+        }
+    } catch (e) {
+        notificar("Error de conexión", "error");
     }
 }
 
