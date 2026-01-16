@@ -796,26 +796,42 @@ async function abrirObligaciones() {
 
 async function cargarObligaciones() {
     const contenedor = document.getElementById('listaObligaciones');
-    // Estado del switch (true = ver todo, false = vista limpia)
-    const verTodos = document.getElementById('chkVerTodos').checked;
+    const verTodos = document.getElementById('chkVerTodos') ? document.getElementById('chkVerTodos').checked : false;
 
-    contenedor.innerHTML = '<div class="text-center p-3 text-muted"><i class="fas fa-spinner fa-spin"></i> Cargando cuentas...</div>';
+    // Solo mostramos 'Cargando' si el contenedor está visible, para no molestar visualmente
+    if (contenedor && contenedor.offsetParent !== null) {
+        contenedor.innerHTML = '<div class="text-center p-3 text-muted"><i class="fas fa-spinner fa-spin"></i> Actualizando...</div>';
+    }
 
     try {
-        const response = await fetch(`${API_URL}/obligaciones`); // Asumo que devuelve ordenado por fecha ASC
+        // --- TRUCO ANTI-CACHÉ ---
+        // Agregamos ?t=TIMESTAMP al final. El servidor lo ignora, pero el navegador cree que es una página nueva.
+        const urlSinCache = `${API_URL}/obligaciones?t=${new Date().getTime()}`;
+        
+        const response = await fetch(urlSinCache);
         const result = await response.json();
 
+        // 1. ACTUALIZACIÓN DEL BADGE ROJO (¡LO MÁS IMPORTANTE!)
+        const countBadge = document.getElementById('badgeDeudasCount');
+        if (countBadge) {
+            // Actualizamos el número con la cantidad REAL que viene del servidor
+            const cantidad = result.data ? result.data.length : 0;
+            countBadge.innerText = cantidad;
+            
+            // Si es 0, lo ocultamos; si hay deudas, lo mostramos
+            countBadge.style.display = cantidad > 0 ? 'inline-block' : 'none';
+            
+            console.log("🔴 Badge actualizado a:", cantidad); // MIRA LA CONSOLA (F12) PARA CONFIRMAR
+        }
+
+        // 2. RENDERIZADO DE LA LISTA (Igual que antes)
         if (result.success && result.data.length > 0) {
             let html = '';
-            
-            // 1. OBJETO PARA RASTREAR QUÉ CONTRATOS YA MOSTRAMOS
-            // Usaremos esto para decir: "Ya mostré la cuota de Netflix de este mes, oculta la del otro mes".
             let contratosMostrados = {}; 
-
-            // 2. ORDENAR POR FECHA (Vital para que la lógica funcione)
-            // Aseguramos que lo más antiguo/vencido salga primero
+            
+            // Ordenamos
             const listaOrdenada = result.data.sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
-
+            
             let contadorOcultos = 0;
 
             listaOrdenada.forEach(item => {
@@ -823,35 +839,25 @@ async function cargarObligaciones() {
                 const userTimezoneOffset = fechaObj.getTimezoneOffset() * 60000;
                 const fechaAjustada = new Date(fechaObj.getTime() + userTimezoneOffset);
                 const fechaBonita = fechaAjustada.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                const dias = parseInt(item.dias_restantes); // Backend debe mandar esto
+                const dias = parseInt(item.dias_restantes);
 
-                // --- LÓGICA DE FILTRADO INTELIGENTE ---
                 let mostrar = true;
 
-                // Si NO está activado el "Ver Todos"
                 if (!verTodos) {
-                    // Si el item pertenece a un contrato (tiene compromiso_id)
                     if (item.compromiso_id) {
-                        // REGLA:
-                        // 1. Si está vencido (dias < 0) -> MOSTRAR SIEMPRE
-                        // 2. Si no está vencido -> MOSTRAR SOLO EL PRIMERO QUE APAREZCA
-                        
-                        if (dias >= 0) { // Es futuro o hoy
+                        if (dias >= 0) { 
                             if (contratosMostrados[item.compromiso_id]) {
-                                mostrar = false; // Ya mostramos el pago próximo de este contrato, ocultar los siguientes
+                                mostrar = false;
                                 contadorOcultos++;
                             } else {
-                                // Es el primer pago futuro de este contrato, lo marcamos
                                 contratosMostrados[item.compromiso_id] = true;
                             }
                         }
                     }
-                    // Si es gasto puntual (null compromiso_id), siempre se muestra
                 }
 
-                if (!mostrar) return; // Saltamos esta iteración (no dibujamos)
+                if (!mostrar) return;
 
-                // --- DISEÑO DE LA TARJETA (Igual que antes) ---
                 let bordeColor = 'border-secondary';
                 let badgeEstado = '';
 
@@ -891,28 +897,18 @@ async function cargarObligaciones() {
                 </div>`;
             });
 
-            // Mensaje informativo si hay ocultos
             if (contadorOcultos > 0) {
-                html += `<div class="text-center text-muted small mt-2 fst-italic">
-                            Hay ${contadorOcultos} cuotas futuras ocultas. <br>Activa el switch arriba para verlas.
-                         </div>`;
+                html += `<div class="text-center text-muted small mt-2 fst-italic">Hay ${contadorOcultos} cuotas futuras ocultas.</div>`;
             }
 
-            contenedor.innerHTML = html;
-            
-            // Actualizar contador rojo (Mostrar TOTAL real pendiente, no solo visuales)
-            const countBadge = document.getElementById('badgeDeudasCount');
-            if(countBadge) {
-                countBadge.innerText = result.data.length; 
-                countBadge.style.display = 'inline-block';
-            }
+            if(contenedor) contenedor.innerHTML = html;
 
         } else {
-            contenedor.innerHTML = '<div class="text-center p-5 text-muted"><i class="fas fa-check-circle fa-2x mb-3 text-success"></i><br>¡Todo pagado! Eres libre.</div>';
+            if(contenedor) contenedor.innerHTML = '<div class="text-center p-5 text-muted"><i class="fas fa-check-circle fa-2x mb-3 text-success"></i><br>¡Todo pagado! Eres libre.</div>';
         }
     } catch (e) {
         console.error(e);
-        contenedor.innerHTML = '<div class="text-danger p-3 text-center">Error al cargar datos</div>';
+        if(contenedor) contenedor.innerHTML = '<div class="text-danger p-3 text-center">Error al cargar datos</div>';
     }
 }
 
