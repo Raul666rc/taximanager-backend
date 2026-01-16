@@ -473,34 +473,21 @@ class FinanzasController {
     // 4. CIERRE DE CAJA (NUEVO MÓDULO)
     // ==========================================
 
-    // A. Obtener datos para el arqueo
+    // A. Obtener datos para el arqueo (MODIFICADO PARA YAPE)
     static async obtenerDatosCierre(req, res) {
         try {
-            // 1. Obtenemos el saldo ACTUAL de la Billetera (Efectivo - ID 1)
-            // Asumimos que la cuenta ID 1 es "Efectivo"
-            const [rows] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 1");
-            const saldoSistema = rows[0]?.saldo_actual || 0;
+            // 1. Saldo EFECTIVO (ID 1)
+            const [rows1] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 1");
+            const saldoEfectivo = rows1[0]?.saldo_actual || 0;
 
-            // 2. Datos informativos de HOY (para mostrar en el resumen)
-            // Ingresos de hoy
-            const [ingresos] = await db.query(`
-                SELECT SUM(monto) as total FROM transacciones 
-                WHERE tipo = 'INGRESO' AND cuenta_id = 1 
-                AND DATE(DATE_SUB(fecha, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
-            `);
-            
-            // Gastos de hoy (Efectivo)
-            const [gastos] = await db.query(`
-                SELECT SUM(monto) as total FROM transacciones 
-                WHERE tipo = 'GASTO' AND cuenta_id = 1 
-                AND DATE(DATE_SUB(fecha, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
-            `);
+            // 2. Saldo YAPE (ID 2)
+            const [rows2] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 2");
+            const saldoYape = rows2[0]?.saldo_actual || 0;
 
             res.json({
                 success: true,
-                saldo_sistema: parseFloat(saldoSistema), // Lo que el sistema cree que tienes
-                ingresos_hoy: ingresos[0].total || 0,
-                gastos_hoy: gastos[0].total || 0
+                saldo_efectivo: parseFloat(saldoEfectivo),
+                saldo_yape: parseFloat(saldoYape)
             });
 
         } catch (error) {

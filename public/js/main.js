@@ -546,21 +546,21 @@ async function ejecutarTransferencia() {
 }
 
 // ==========================================
-// MÓDULO CIERRE DE CAJA (WIZARD)
+// MÓDULO CIERRE DE CAJA (V2: EFECTIVO + YAPE)
 // ==========================================
 
-let saldoSistemaGlobal = 0;
-let diferenciaGlobal = 0;
+let sysEfe = 0, sysYape = 0;
+let difEfe = 0, difYape = 0;
 
-// 1. Abrir el modal y cargar saldo esperado
 async function abrirCierreCaja() {
     const modal = new bootstrap.Modal(document.getElementById('modalCierreCaja'));
     
-    // Reiniciar visualmente al Paso 1
+    // Reset
     document.getElementById('paso1_conteo').classList.remove('d-none');
     document.getElementById('paso2_resultado').classList.add('d-none');
     document.getElementById('paso3_reparto').classList.add('d-none');
-    document.getElementById('inputDineroReal').value = '';
+    document.getElementById('inputRealEfectivo').value = '';
+    document.getElementById('inputRealYape').value = '';
 
     modal.show();
 
@@ -569,123 +569,119 @@ async function abrirCierreCaja() {
         const result = await res.json();
         
         if(result.success) {
-            saldoSistemaGlobal = parseFloat(result.saldo_sistema);
-            document.getElementById('lblSaldoSistema').innerText = saldoSistemaGlobal.toFixed(2);
+            sysEfe = parseFloat(result.saldo_efectivo);
+            sysYape = parseFloat(result.saldo_yape);
+            
+            document.getElementById('lblSysEfectivo').innerText = sysEfe.toFixed(2);
+            document.getElementById('lblSysYape').innerText = sysYape.toFixed(2);
         }
     } catch(e) {
-        notificar("Error obteniendo datos de caja", "error");
+        notificar("Error obteniendo datos", "error");
     }
 }
 
-// 2. Verificar (Comparar Real vs Sistema)
 function verificarCierre() {
-    const input = document.getElementById('inputDineroReal').value;
-    if(input === '') return notificar("Ingresa cuánto dinero tienes", "error");
+    const inEfe = document.getElementById('inputRealEfectivo').value;
+    const inYape = document.getElementById('inputRealYape').value;
 
-    const saldoReal = parseFloat(input);
-    diferenciaGlobal = saldoReal - saldoSistemaGlobal; // Si es negativo, falta plata.
+    if(inEfe === '' || inYape === '') return notificar("Completa ambos montos (pon 0 si no hay)", "error");
 
-    // Ocultar Paso 1, Mostrar Paso 2
+    const realEfe = parseFloat(inEfe);
+    const realYape = parseFloat(inYape);
+
+    difEfe = realEfe - sysEfe;
+    difYape = realYape - sysYape;
+    
+    // Diferencia total
+    const difTotal = difEfe + difYape;
+
+    // Cambiar vista
     document.getElementById('paso1_conteo').classList.add('d-none');
     document.getElementById('paso2_resultado').classList.remove('d-none');
 
-    // Llenar datos del resumen
-    document.getElementById('resSistema').innerText = `S/ ${saldoSistemaGlobal.toFixed(2)}`;
-    document.getElementById('resReal').innerText = `S/ ${saldoReal.toFixed(2)}`;
-    
-    const lblDif = document.getElementById('resDiferencia');
     const icono = document.getElementById('iconoResultado');
     const titulo = document.getElementById('tituloResultado');
     const mensaje = document.getElementById('mensajeResultado');
-    const btn = document.getElementById('btnAjustarContinuar');
 
-    if (Math.abs(diferenciaGlobal) < 0.50) {
-        // CUADRADO (Tolerancia de 50 céntimos)
-        diferenciaGlobal = 0; // Lo damos por bueno
-        lblDif.className = "fw-bold text-success";
-        lblDif.innerText = "S/ 0.00 (Perfecto)";
+    // Lógica de mensaje
+    if (Math.abs(difTotal) < 1) {
         icono.innerHTML = "✅";
-        titulo.innerText = "¡Todo Cuadra!";
         titulo.className = "fw-bold mb-2 text-success";
-        mensaje.innerText = "Tus cuentas están en orden. Eres un crack.";
-        btn.innerText = "Continuar al Reparto";
-        btn.className = "btn btn-success";
-    } 
-    else if (diferenciaGlobal < 0) {
-        // FALTA PLATA
-        lblDif.className = "fw-bold text-danger";
-        lblDif.innerText = `S/ ${diferenciaGlobal.toFixed(2)}`;
-        icono.innerHTML = "💸";
-        titulo.innerText = "Falta Dinero";
+        titulo.innerText = "¡Caja Cuadrada!";
+        mensaje.innerText = "Efectivo y Yape coinciden con el sistema (o se compensan).";
+    } else if (difTotal < 0) {
+        icono.innerHTML = "⚠️";
         titulo.className = "fw-bold mb-2 text-danger";
-        mensaje.innerText = `Faltan S/ ${Math.abs(diferenciaGlobal).toFixed(2)}. ¿Olvidaste anotar algún gasto? Se registrará un ajuste automático.`;
-        btn.innerText = "Registrar Ajuste y Seguir";
-        btn.className = "btn btn-warning text-dark";
-    } 
-    else {
-        // SOBRA PLATA
-        lblDif.className = "fw-bold text-info";
-        lblDif.innerText = `+ S/ ${diferenciaGlobal.toFixed(2)}`;
+        titulo.innerText = "Falta Dinero";
+        mensaje.innerText = `Falta un total de S/ ${Math.abs(difTotal).toFixed(2)}. Se registrará un ajuste de gasto.`;
+    } else {
         icono.innerHTML = "🤑";
-        titulo.innerText = "Sobra Dinero";
         titulo.className = "fw-bold mb-2 text-info";
-        mensaje.innerText = "Tienes dinero extra (¿Propinas?). Se registrará como ingreso extra.";
-        btn.innerText = "Registrar Ingreso y Seguir";
-        btn.className = "btn btn-info";
+        titulo.innerText = "Sobra Dinero";
+        mensaje.innerText = `Sobran S/ ${difTotal.toFixed(2)}. Se registrará como ingreso extra.`;
     }
 }
 
-// 3. Botón "Me equivoqué"
+async function procesarAjusteYReparto() {
+    // 1. Ajuste de Efectivo (Solo ajustamos efectivo automáticamente por seguridad)
+    // Si hay diferencia en Yape, asumimos que el usuario lo corregirá o es un error de dedo,
+    // pero para el reparto usamos el monto REAL ingresado.
+    
+    if (difEfe !== 0) {
+        try {
+            await fetch(`${API_URL}/finanzas/cierre-ajuste`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ diferencia: difEfe }) 
+            });
+        } catch(e) {}
+    }
+
+    // 2. CÁLCULOS (Usamos la suma de lo REAL que ingresaste)
+    const realEfe = parseFloat(document.getElementById('inputRealEfectivo').value);
+    const realYape = parseFloat(document.getElementById('inputRealYape').value);
+    const totalDisponible = realEfe + realYape;
+
+    // ESTRATEGIA:
+    const paraEstudios = totalDisponible * 0.10; // Estudios Futuro
+    const paraArca     = totalDisponible * 0.10; // Arca Oro
+    const paraNegocio  = totalDisponible * 0.80; // Negocio
+
+    const detDeuda = paraNegocio * 0.30;
+    const detTaller = paraNegocio * 0.20;
+    const detGasolina = paraNegocio * 0.50;
+
+    // 3. PINTAR
+    document.getElementById('montoFinalReparto').innerText = `S/ ${totalDisponible.toFixed(2)}`;
+    document.getElementById('sugEstudios').innerText = `S/ ${paraEstudios.toFixed(2)}`;
+    document.getElementById('sugArca').innerText = `S/ ${paraArca.toFixed(2)}`;
+    document.getElementById('sugNegocio').innerText = `S/ ${paraNegocio.toFixed(2)}`;
+
+    document.getElementById('detDeuda').innerText = `S/ ${detDeuda.toFixed(2)}`;
+    document.getElementById('detTaller').innerText = `S/ ${detTaller.toFixed(2)}`;
+    document.getElementById('detGasolina').innerText = `S/ ${detGasolina.toFixed(2)}`;
+
+    // Vista
+    document.getElementById('paso2_resultado').classList.add('d-none');
+    document.getElementById('paso3_reparto').classList.remove('d-none');
+}
+
 function reiniciarCierre() {
     document.getElementById('paso1_conteo').classList.remove('d-none');
     document.getElementById('paso2_resultado').classList.add('d-none');
 }
 
-// 4. Procesar el Ajuste y Calcular BABILONIA
-async function procesarAjusteYReparto() {
-    // A. Guardar ajuste si hubo diferencia
-    if (diferenciaGlobal !== 0) {
-        try {
-            await fetch(`${API_URL}/finanzas/cierre-ajuste`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ diferencia: diferenciaGlobal })
-            });
-            notificar("Ajuste registrado. Saldos actualizados.", "info");
-            cargarResumenDia(); 
-        } catch(e) {
-            return notificar("Error al registrar ajuste", "error");
-        }
-    }
 
-    // B. LÓGICA BABILONIA (10-10-80)
-    // Usamos el dinero REAL (Saldo Sistema + Diferencia)
-    const dineroReal = saldoSistemaGlobal + diferenciaGlobal;
-    
-    // 1. Cálculos Principales
-    const pagoPersonal = dineroReal * 0.10;  // 10% Para ti
-    const ahorroRiqueza = dineroReal * 0.10; // 10% Warda
-    const operativo = dineroReal * 0.80;     // 80% Negocio
+// --- 3. LA FUNCIÓN QUE FALTABA (BOTÓN MOVER DINERO) ---
+function abrirModalTransferencia() {
+    // Cerramos el modal de cierre para que no estorbe
+    const modalCierre = bootstrap.Modal.getInstance(document.getElementById('modalCierreCaja'));
+    if(modalCierre) modalCierre.hide();
 
-    // 2. Sub-cálculos del Operativo (Basado en tu código anterior)
-    const paraMantenimiento = operativo * 0.20; // 20% del operativo para taller
-    const paraDeuda = operativo * 0.30;         // 30% del operativo para deudas
-
-    // C. PINTAR EN EL HTML
-    document.getElementById('montoFinalReparto').innerText = `S/ ${dineroReal.toFixed(2)}`;
-    
-    // Tarjetas principales
-    document.getElementById('sugPersonal').innerText = `S/ ${pagoPersonal.toFixed(2)}`;
-    document.getElementById('sugWarda').innerText = `S/ ${ahorroRiqueza.toFixed(2)}`;
-    document.getElementById('sugNegocio').innerText = `S/ ${operativo.toFixed(2)}`;
-
-    // Detalles pequeños
-    document.getElementById('detMantenimiento').innerText = `S/ ${paraMantenimiento.toFixed(2)}`;
-    document.getElementById('detDeuda').innerText = `S/ ${paraDeuda.toFixed(2)}`;
-
-    // D. TRANSICIÓN VISUAL
-    document.getElementById('paso2_resultado').classList.add('d-none');
-    document.getElementById('paso3_reparto').classList.remove('d-none');
+    // Abrimos el modal de transferencia
+    // Asegúrate de que tu modal de transferencias tenga el ID 'modalTransferencia'
+    const modalTrans = new bootstrap.Modal(document.getElementById('modalTransferencia'));
+    modalTrans.show();
 }
 
 
