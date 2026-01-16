@@ -721,12 +721,50 @@ function dibujarDona(stats) {
     
     const labels = stats.length ? stats.map(e => e.origen_tipo) : ['Sin datos'];
     const values = stats.length ? stats.map(e => e.total) : [1];
-    const colors = labels.map(n => n==='INDRIVER'?'#198754':(n==='UBER'?'#f8f9fa':'#ffc107'));
+    
+    // Colores personalizados
+    const colors = labels.map(n => {
+        if(n === 'INDRIVER') return '#198754'; // Verde
+        if(n === 'UBER') return '#f8f9fa';     // Blanco
+        if(n === 'CALLE') return '#ffc107';    // Amarillo
+        return '#6c757d';                      // Gris (Otros)
+    });
 
     miGrafico = new Chart(ctx, {
         type: 'doughnut',
-        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
-        options: { plugins: { legend: { position: 'right', labels: { color: 'white' } } } }
+        data: { 
+            labels, 
+            datasets: [{ 
+                data: values, 
+                backgroundColor: colors, 
+                borderWidth: 0 
+            }] 
+        },
+        options: { 
+            responsive: true,
+            plugins: { 
+                legend: { 
+                    position: 'right', 
+                    labels: { color: 'white' } 
+                },
+                tooltip: { // <--- AGREGAMOS EL MISMO TRUCO AQUÍ
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed;
+                            
+                            // Calculamos total
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            
+                            // Calculamos porcentaje
+                            let porcentaje = ((value / total) * 100).toFixed(1) + '%';
+                            
+                            return `${label}: S/ ${value} (${porcentaje})`;
+                        }
+                    }
+                }
+            } 
+        }
     });
 }
 
@@ -1387,12 +1425,32 @@ function renderizarGrafico(etiquetas, valores) {
                 borderWidth: 1
             }]
         },
-        options: {
+        options: { // <--- AQUÍ EMPIEZA LA MAGIA DEL PORCENTAJE
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: 'white' } // Texto blanco
+                    labels: { color: 'white', font: { size: 10 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed; // El monto (Ej: 50)
+                            
+                            // 1. Calculamos el total de todo el gráfico
+                            let dataset = context.dataset;
+                            let total = dataset.data.reduce((acc, data) => acc + data, 0);
+                            
+                            // 2. Calculamos el porcentaje
+                            let porcentaje = ((value / total) * 100).toFixed(1) + '%';
+                            
+                            // 3. Retornamos el texto bonito
+                            // Ej: "Combustible: S/ 50 (25.0%)"
+                            return `${label}: S/ ${value} (${porcentaje})`;
+                        }
+                    }
                 }
             }
         }
