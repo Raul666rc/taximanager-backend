@@ -1487,41 +1487,52 @@ async function cargarDatosGrafico(desde, hasta) {
     }
 }
 
-function renderizarGrafico(etiquetas, valores) {
-    const ctx = document.getElementById('graficoGastos').getContext('2d');
+// ==========================================
+// FUNCIÓN PARA DIBUJAR EL GRÁFICO DE GASTOS
+// ==========================================
+function renderizarGraficoGastos(etiquetas, valores) {
+    const canvas = document.getElementById('graficoGastos');
+    
+    // Validación de seguridad: si no existe el canvas, no hacemos nada
+    if (!canvas) {
+        console.error("❌ No encontré el elemento <canvas id='graficoGastos'> en el HTML");
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
 
     // Si ya existe un gráfico previo, lo destruimos para no sobreponer
     if (miGraficoEstadisticas) {
         miGraficoEstadisticas.destroy();
     }
 
-    // Aseguramos que valores sean números puros
-    const valoresNumericos = valores.map(v => parseFloat(v));
+    // Aseguramos que los valores sean números (para evitar NaN)
+    const valoresNumericos = valores.map(v => parseFloat(v) || 0);
 
-    // Colores para las categorías (Gasolina=Rojo, Comida=Amarillo, etc.)
     const coloresFondo = [
         'rgba(255, 99, 132, 0.7)',  // Rojo
-        'rgba(255, 205, 86, 0.7)',  // Amarillo
         'rgba(54, 162, 235, 0.7)',  // Azul
+        'rgba(255, 206, 86, 0.7)',  // Amarillo
         'rgba(75, 192, 192, 0.7)',  // Verde
-        'rgba(153, 102, 255, 0.7)'  // Morado
+        'rgba(153, 102, 255, 0.7)', // Morado
+        'rgba(255, 159, 64, 0.7)'   // Naranja
     ];
 
     miGraficoEstadisticas = new Chart(ctx, {
-        type: 'doughnut', // Tipo "Dona" o Torta
+        type: 'doughnut',
         data: {
-            labels: etiquetas, // Ej: ["Combustible", "Alimentos"]
+            labels: etiquetas, 
             datasets: [{
                 label: 'S/ Gastados',
-                data: valoresNumericos,     // Ej: [120, 45]
+                data: valoresNumericos,
                 backgroundColor: coloresFondo,
-                borderColor: '#000', // Borde negro para estilo dark
+                borderColor: '#000',
                 borderWidth: 1
             }]
         },
-        options: { // <--- AQUÍ EMPIEZA LA MAGIA DEL PORCENTAJE
+        options: { 
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: false, // CLAVE: Permite que el gráfico se ajuste al div contenedor
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -1533,7 +1544,10 @@ function renderizarGrafico(etiquetas, valores) {
                             let label = context.label || '';
                             let value = parseFloat(context.parsed);
                             
+                            // Calculamos el total para sacar el porcentaje
                             let total = context.dataset.data.reduce((acc, data) => acc + (parseFloat(data) || 0), 0);
+                            
+                            // Evitamos división por cero
                             let porcentaje = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
                             
                             return `${label}: S/ ${value.toFixed(2)} (${porcentaje})`;
