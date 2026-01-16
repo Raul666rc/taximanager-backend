@@ -424,22 +424,40 @@ class FinanzasController {
     // 3. ESTADÍSTICAS
     // ==========================================
     // Obtener desglose de gastos para el gráfico
+    // ==========================================
+    // 3. ESTADÍSTICAS (MODIFICADO PARA FILTROS)
+    // ==========================================
     static async obtenerEstadisticasGastos(req, res) {
         try {
-            // Consulta SQL: Sumar montos agrupados por categoría (del mes actual)
+            // 1. Recibimos las fechas de la URL (si existen)
+            const { desde, hasta } = req.query;
+            
+            let filtroSQL = "";
+            let parametros = [];
+
+            // 2. Decidimos qué filtro aplicar
+            if (desde && hasta) {
+                // CASO A: Rango personalizado (Hoy, Ayer, Semana...)
+                filtroSQL = "AND fecha BETWEEN ? AND ?";
+                // Agregamos horas para cubrir el día completo
+                parametros = [`${desde} 00:00:00`, `${hasta} 23:59:59`];
+            } else {
+                // CASO B: Por defecto (Mes Actual) si no envían fechas
+                filtroSQL = "AND MONTH(fecha) = MONTH(CURRENT_DATE()) AND YEAR(fecha) = YEAR(CURRENT_DATE())";
+            }
+
+            // 3. Consulta SQL Dinámica
             const query = `
                 SELECT categoria, SUM(monto) as total 
                 FROM transacciones 
                 WHERE tipo = 'GASTO' 
-                AND MONTH(fecha) = MONTH(CURRENT_DATE())
-                AND YEAR(fecha) = YEAR(CURRENT_DATE())
+                ${filtroSQL}
                 GROUP BY categoria
             `;
             
-            const [rows] = await db.query(query);
+            const [rows] = await db.query(query, parametros);
             
-            // Preparamos los datos para Chart.js
-            // Arrays separados: Etiquetas (["Comida", "Gas"]) y Valores ([15, 50])
+            // 4. Formato para Chart.js
             const labels = rows.map(r => r.categoria);
             const data = rows.map(r => r.total);
 

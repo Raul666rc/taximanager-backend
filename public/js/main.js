@@ -1377,20 +1377,107 @@ async function registrarMantenimiento() {
     }
 }
 
-async function abrirEstadisticas() {
-    // 1. Abrir el modal visualmente
+// ==========================================
+// MÓDULO DE ESTADÍSTICAS AVANZADAS
+// ==========================================
+
+// 1. Abre el modal y carga el filtro por defecto
+function abrirEstadisticas() {
     const modal = new bootstrap.Modal(document.getElementById('modalEstadisticas'));
     modal.show();
+    
+    // Inicia mostrando el Mes Actual automáticamente
+    filtrarEstadisticas('mes'); 
+}
 
-    // 2. Pedir datos al servidor
+// 2. Lógica para calcular fechas según el botón presionado
+function filtrarEstadisticas(rango) {
+    const hoy = new Date();
+    let inicio = new Date();
+    let fin = new Date(); // Por defecto es hoy
+
+    // Limpieza visual: Quitar color a todos los botones
+    document.querySelectorAll('#modalEstadisticas .btn').forEach(b => {
+        b.classList.remove('active', 'btn-outline-info');
+        // Si no es el botón de la lupa, lo ponemos gris
+        if(!b.classList.contains('btn-info')) b.classList.add('btn-outline-light');
+    });
+
+    // Matemática de fechas
+    switch(rango) {
+        case 'hoy':
+            // Inicio y Fin son hoy. No hacemos nada.
+            break;
+        case 'ayer':
+            inicio.setDate(hoy.getDate() - 1);
+            fin.setDate(hoy.getDate() - 1);
+            break;
+        case 'semana':
+            inicio.setDate(hoy.getDate() - 7);
+            break;
+        case 'mes': 
+            // Primer día del mes actual
+            inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            break;
+        case '3meses':
+            inicio.setMonth(hoy.getMonth() - 3);
+            break;
+        case 'anio': 
+            // 1 de Enero del año actual
+            inicio = new Date(hoy.getFullYear(), 0, 1);
+            break;
+    }
+
+    // Convertir a texto YYYY-MM-DD para MySQL
+    // (Ajustamos -5 horas para Perú para evitar problemas de zona horaria UTC)
+    const offsetPeru = 5 * 60 * 60 * 1000; 
+    const desdeStr = new Date(inicio.getTime() - offsetPeru).toISOString().split('T')[0];
+    const hastaStr = new Date(fin.getTime() - offsetPeru).toISOString().split('T')[0];
+
+    // Llenar los inputs visuales
+    document.getElementById('filtroDesde').value = desdeStr;
+    document.getElementById('filtroHasta').value = hastaStr;
+    
+    // Texto informativo
+    const textos = {'hoy': 'Hoy', 'ayer': 'Ayer', 'semana': 'Últimos 7 Días', 'mes': 'Mes Actual', '3meses': 'Último Trimestre', 'anio': 'Este Año'};
+    document.getElementById('lblRangoInfo').innerText = `Viendo: ${textos[rango] || rango}`;
+
+    // Pedir datos al servidor
+    cargarDatosGrafico(desdeStr, hastaStr);
+}
+
+// 3. Cuando usas la lupa (Rango manual)
+function aplicarFiltroManual() {
+    const desde = document.getElementById('filtroDesde').value;
+    const hasta = document.getElementById('filtroHasta').value;
+    
+    if(!desde || !hasta) return notificar("Selecciona ambas fechas", "error");
+    
+    document.getElementById('lblRangoInfo').innerText = `Rango: ${desde} al ${hasta}`;
+    cargarDatosGrafico(desde, hasta);
+}
+
+// 4. Petición al Servidor (ASYNC porque espera respuesta)
+async function cargarDatosGrafico(desde, hasta) {
     try {
-        const response = await fetch(`${API_URL}/finanzas/grafico-gastos`);
+        // CONSTRUCCIÓN DE LA URL
+        // Tu API_URL es '/api/viajes'. Nosotros queremos '/api/finanzas/grafico-gastos'.
+        // Usamos .replace para quitar 'viajes' y poner lo nuestro.
+        const urlBase = API_URL.replace('/viajes', ''); 
+        const urlFinal = `${urlBase}/finanzas/grafico-gastos?desde=${desde}&hasta=${hasta}`;
+
+        const response = await fetch(urlFinal);
         const result = await response.json();
 
         if (result.success) {
-            renderizarGrafico(result.labels, result.data);
+            if (result.data.length === 0) {
+                notificar("No hay gastos registrados en estas fechas", "info");
+            }
+            // Llamamos a la función que ya creamos antes para pintar la dona
+            renderizarGraficoGastos(result.labels, result.data);
         }
     } catch (e) {
+        console.error("Error gráfico:", e);
         notificar("Error cargando estadísticas", "error");
     }
 }
