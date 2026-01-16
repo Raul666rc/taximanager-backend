@@ -1460,25 +1460,30 @@ function aplicarFiltroManual() {
 // 4. Petición al Servidor (ASYNC porque espera respuesta)
 async function cargarDatosGrafico(desde, hasta) {
     try {
-        // CONSTRUCCIÓN DE LA URL
-        // Tu API_URL es '/api/viajes'. Nosotros queremos '/api/finanzas/grafico-gastos'.
-        // Usamos .replace para quitar 'viajes' y poner lo nuestro.
-        const urlBase = API_URL.replace('/viajes', ''); 
-        const urlFinal = `${urlBase}/finanzas/grafico-gastos?desde=${desde}&hasta=${hasta}`;
+        // CORRECCIÓN: Usamos API_URL directa (que suele ser /api/viajes)
+        // La ruta final será: /api/viajes/finanzas/grafico-gastos
+        const urlFinal = `${API_URL}/finanzas/grafico-gastos?desde=${desde}&hasta=${hasta}`;
+
+        console.log("📡 Pidiendo datos a:", urlFinal); // Esto te ayudará a ver la ruta en la consola
 
         const response = await fetch(urlFinal);
+        
+        // Si la respuesta no es OK (ej: 404 o 500), lanzamos error manual
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+
         const result = await response.json();
 
         if (result.success) {
             if (result.data.length === 0) {
                 notificar("No hay gastos registrados en estas fechas", "info");
             }
-            // Llamamos a la función que ya creamos antes para pintar la dona
             renderizarGraficoGastos(result.labels, result.data);
+        } else {
+            throw new Error(result.message || "Error desconocido del servidor");
         }
     } catch (e) {
-        console.error("Error gráfico:", e);
-        notificar("Error cargando estadísticas", "error");
+        console.error("❌ Error gráfico:", e);
+        notificar("Error cargando estadísticas: " + e.message, "error");
     }
 }
 
