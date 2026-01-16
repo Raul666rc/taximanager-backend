@@ -1605,13 +1605,25 @@ async function verificarViajeEnCurso() {
 
 // INIT
 window.onload = function() {
-    // 1. Verificar si nos quedamos a medias en un viaje
-    verificarViajeEnCurso();
-    
-    // 2. Cargar datos normales
+    // 1. Recuperar sesión
+    verificarViajeEnCurso(); 
+
+    // 2. Cargar datos iniciales
     cargarResumenDia();
     cargarHistorial();
     cargarMetaDiaria();
     cargarEstadoVehiculo();
-    cargarObligaciones();
+    
+    // 3. Cargar el badge rojo al inicio
+    cargarObligaciones(); 
+
+    // --- NUEVO: DETECTAR CUANDO CIERRAS EL MODAL DE CONTRATOS ---
+    const modalContratosEl = document.getElementById('modalContratos');
+    if (modalContratosEl) {
+        // 'hidden.bs.modal' se dispara cuando terminas de cerrar el modal (por la X, Escape o click fuera)
+        modalContratosEl.addEventListener('hidden.bs.modal', function () {
+            console.log("Cerraste contratos, actualizando badge...");
+            cargarObligaciones(); // <--- ¡AQUÍ SE REFRESCA LA PANTALLA PRINCIPAL!
+        });
+    }
 };
