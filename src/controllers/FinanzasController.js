@@ -473,26 +473,45 @@ class FinanzasController {
     // 4. CIERRE DE CAJA (NUEVO MÓDULO)
     // ==========================================
 
-    // A. Obtener datos para el arqueo (MODIFICADO PARA YAPE)
+    // A. Obtener datos para el arqueo
     static async obtenerDatosCierre(req, res) {
         try {
-            // 1. Saldo EFECTIVO (ID 1)
-            const [rows1] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 1");
-            const saldoEfectivo = rows1[0]?.saldo_actual || 0;
+            // 1. Saldos Totales
+            const [rows1] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 1"); // Efectivo
+            const [rows2] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 2"); // Yape
+            
+            const saldoEfectivo = parseFloat(rows1[0]?.saldo_actual || 0);
+            const saldoYape = parseFloat(rows2[0]?.saldo_actual || 0);
 
-            // 2. Saldo YAPE (ID 2)
-            const [rows2] = await db.query("SELECT saldo_actual FROM cuentas WHERE id = 2");
-            const saldoYape = rows2[0]?.saldo_actual || 0;
+            // 2. Movimientos de HOY (Para calcular la "Base de Ayer")
+            // Ingresos Hoy (Efectivo + Yape)
+            const [ing] = await db.query(`
+                SELECT SUM(monto) as total FROM transacciones 
+                WHERE tipo = 'INGRESO' 
+                AND DATE(DATE_SUB(fecha, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+            `);
+            
+            // Gastos Hoy (Efectivo + Yape) - Excluyendo ajustes técnicos
+            const [gas] = await db.query(`
+                SELECT SUM(monto) as total FROM transacciones 
+                WHERE tipo = 'GASTO' 
+                AND DATE(DATE_SUB(fecha, INTERVAL 5 HOUR)) = DATE(DATE_SUB(NOW(), INTERVAL 5 HOUR))
+            `);
+
+            const ingresosHoy = parseFloat(ing[0].total || 0);
+            const gastosHoy = parseFloat(gas[0].total || 0);
 
             res.json({
                 success: true,
-                saldo_efectivo: parseFloat(saldoEfectivo),
-                saldo_yape: parseFloat(saldoYape)
+                saldo_efectivo: saldoEfectivo,
+                saldo_yape: saldoYape,
+                ingresos_hoy: ingresosHoy,
+                gastos_hoy: gastosHoy
             });
 
         } catch (error) {
             console.error(error);
-            res.status(500).json({ success: false, message: "Error al obtener datos de cierre" });
+            res.status(500).json({ success: false, message: "Error al obtener datos" });
         }
     }
 

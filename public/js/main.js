@@ -492,29 +492,43 @@ async function guardarGasto() {
     }
 }
 
-// ABRIR TRANSFERENCIA CON LAS CUENTAS CORRECTAS (V3.0)
+// ABRIR MODAL TRANSFERENCIA (VERSIÓN UNIFICADA)
 async function abrirModalTransferencia() {
-    bootstrap.Modal.getInstance(document.getElementById('modalBilletera')).hide();
-    new bootstrap.Modal(document.getElementById('modalTransferencia')).show();
+    
+    // 1. CERRAR CUALQUIER MODAL PREVIO (Para que no se monten)
+    // Intentamos cerrar la Billetera si está abierta
+    const modalBilletera = bootstrap.Modal.getInstance(document.getElementById('modalBilletera'));
+    if (modalBilletera) modalBilletera.hide();
 
-    // LISTA ACTUALIZADA DE TUS CUENTAS (IDs deben coincidir con tu BD)
+    // Intentamos cerrar el Cierre de Caja si está abierto (NUEVO)
+    const modalCierre = bootstrap.Modal.getInstance(document.getElementById('modalCierreCaja'));
+    if (modalCierre) modalCierre.hide();
+
+    // 2. ABRIR EL MODAL DE TRANSFERENCIA
+    const modalTrans = new bootstrap.Modal(document.getElementById('modalTransferencia'));
+    modalTrans.show();
+
+    // 3. LLENAR LA LISTA DE CUENTAS (IDs deben coincidir con tu BD)
+    // Actualicé los nombres para que coincidan con tu nueva estructura
     const cuentas = [
         {id: 1, nombre: '💵 Efectivo (Bolsillo)'},
         {id: 2, nombre: '🟣 Yape / BCP'},
-        {id: 3, nombre: '💰 Warda - Arca (10%)'},
-        {id: 4, nombre: '🛠️ Warda - Taller'},
-        {id: 5, nombre: '📉 Warda - Deuda 8k'},
-        {id: 6, nombre: '🎓 Warda - Emergencia'}
+        {id: 3, nombre: '💰 Warda - Arca Oro (10%)'},
+        {id: 4, nombre: '🛠️ Warda - Taller (20%)'},
+        {id: 5, nombre: '📉 Warda - Deuda 8k (30%)'},
+        {id: 6, nombre: '🎓 Warda - Estudios Futuro (Sueldo)'} 
     ];
     
     const selectOrigen = document.getElementById('selectOrigen');
     const selectDestino = document.getElementById('selectDestino');
     let html = '';
+    
     cuentas.forEach(c => html += `<option value="${c.id}">${c.nombre}</option>`);
     
     selectOrigen.innerHTML = html;
     selectDestino.innerHTML = html;
     
+    // Por defecto sugerimos mover de Efectivo (1) a Arca (3)
     selectOrigen.value = 1; 
     selectDestino.value = 3; 
 }
@@ -546,16 +560,17 @@ async function ejecutarTransferencia() {
 }
 
 // ==========================================
-// MÓDULO CIERRE DE CAJA (V2: EFECTIVO + YAPE)
+// MÓDULO CIERRE DE CAJA (V3: LÓGICA DE GANANCIA REAL)
 // ==========================================
 
 let sysEfe = 0, sysYape = 0;
+let ingresosHoyBD = 0, gastosHoyBD = 0;
 let difEfe = 0, difYape = 0;
 
 async function abrirCierreCaja() {
     const modal = new bootstrap.Modal(document.getElementById('modalCierreCaja'));
     
-    // Reset
+    // Reset visual
     document.getElementById('paso1_conteo').classList.remove('d-none');
     document.getElementById('paso2_resultado').classList.add('d-none');
     document.getElementById('paso3_reparto').classList.add('d-none');
@@ -572,6 +587,10 @@ async function abrirCierreCaja() {
             sysEfe = parseFloat(result.saldo_efectivo);
             sysYape = parseFloat(result.saldo_yape);
             
+            // Guardamos esto para calcular la "Base de Ayer"
+            ingresosHoyBD = parseFloat(result.ingresos_hoy) || 0;
+            gastosHoyBD = parseFloat(result.gastos_hoy) || 0;
+            
             document.getElementById('lblSysEfectivo').innerText = sysEfe.toFixed(2);
             document.getElementById('lblSysYape').innerText = sysYape.toFixed(2);
         }
@@ -584,18 +603,16 @@ function verificarCierre() {
     const inEfe = document.getElementById('inputRealEfectivo').value;
     const inYape = document.getElementById('inputRealYape').value;
 
-    if(inEfe === '' || inYape === '') return notificar("Completa ambos montos (pon 0 si no hay)", "error");
+    if(inEfe === '' || inYape === '') return notificar("Completa ambos montos (0 si vacío)", "error");
 
     const realEfe = parseFloat(inEfe);
     const realYape = parseFloat(inYape);
 
     difEfe = realEfe - sysEfe;
     difYape = realYape - sysYape;
-    
-    // Diferencia total
     const difTotal = difEfe + difYape;
 
-    // Cambiar vista
+    // Vista Resultado
     document.getElementById('paso1_conteo').classList.add('d-none');
     document.getElementById('paso2_resultado').classList.remove('d-none');
 
@@ -603,28 +620,26 @@ function verificarCierre() {
     const titulo = document.getElementById('tituloResultado');
     const mensaje = document.getElementById('mensajeResultado');
 
-    // Lógica de mensaje
     if (Math.abs(difTotal) < 1) {
         icono.innerHTML = "✅";
         titulo.className = "fw-bold mb-2 text-success";
         titulo.innerText = "¡Caja Cuadrada!";
-        mensaje.innerText = "Efectivo y Yape coinciden con el sistema (o se compensan).";
+        mensaje.innerText = "Todo coincide perfectamente.";
     } else if (difTotal < 0) {
         icono.innerHTML = "⚠️";
         titulo.className = "fw-bold mb-2 text-danger";
         titulo.innerText = "Falta Dinero";
-        mensaje.innerText = `Falta un total de S/ ${Math.abs(difTotal).toFixed(2)}. Se registrará un ajuste de gasto.`;
+        mensaje.innerText = `Falta S/ ${Math.abs(difTotal).toFixed(2)}. Se ajustará como gasto.`;
     } else {
         icono.innerHTML = "🤑";
         titulo.className = "fw-bold mb-2 text-info";
         titulo.innerText = "Sobra Dinero";
-        mensaje.innerText = `Sobran S/ ${difTotal.toFixed(2)}. Se registrará como ingreso extra.`;
+        mensaje.innerText = `Sobran S/ ${difTotal.toFixed(2)}. Se ajustará como ingreso.`;
     }
 }
 
-// 4. LÓGICA DE REPARTO CON COMIDA FIJA Y SALDO FINAL
 async function procesarAjusteYReparto() {
-    // A. Ajuste en BD (Si hubo diferencia en Efectivo)
+    // 1. Registrar Ajuste en BD si es necesario
     if (difEfe !== 0) {
         try {
             await fetch(`${API_URL}/finanzas/cierre-ajuste`, {
@@ -635,68 +650,71 @@ async function procesarAjusteYReparto() {
         } catch(e) {}
     }
 
-    // B. DATOS REALES
+    // 2. CÁLCULO DE LA GANANCIA REAL (La magia para no confundir días)
+    // Total en Mano Actual
     const realEfe = parseFloat(document.getElementById('inputRealEfectivo').value) || 0;
     const realYape = parseFloat(document.getElementById('inputRealYape').value) || 0;
-    const totalDisponible = realEfe + realYape;
+    const totalEnMano = realEfe + realYape;
 
-    // C. CÁLCULOS ESTRATÉGICOS
-    
-    // 1. Pilares Básicos
-    const paraSueldo = totalDisponible * 0.10; // Sueldo Propio
-    const paraArca   = totalDisponible * 0.10; // Arca Oro
-    const paraNegocio = totalDisponible * 0.80; // Total para Negocio
+    // Calculamos la "Base de Ayer" (Saldo Inicial del Turno)
+    // Fórmula: SaldoFinal = SaldoInicial + Ingresos - Gastos
+    // Entonces: SaldoInicial = SaldoFinal - Ingresos + Gastos
+    // (Usamos los datos del sistema ajustados con la diferencia actual para ser precisos)
+    const saldoSistemaTotal = sysEfe + sysYape + difEfe + difYape; // Esto es igual a totalEnMano
+    const baseAyer = saldoSistemaTotal - ingresosHoyBD + gastosHoyBD;
 
-    // 2. Desglose del Negocio (PRIORIDAD: COMIDA)
-    const costoComida = 40.00; // Fijo diario
+    // Ganancia Real a Repartir = Total En Mano - Lo que ya tenías ayer
+    // (Si olvidaste registrar ingresos, la 'Diferencia' positiva se suma aquí, así que cuenta como ganancia)
+    let gananciaHoy = totalEnMano - baseAyer;
+    if (gananciaHoy < 0) gananciaHoy = 0; // Por si acaso
+
+    // 3. ESTRATEGIA DE REPARTO (Sobre la GANANCIA, no sobre el total)
+    const paraSueldo = gananciaHoy * 0.10; // Sueldo Propio
+    const paraArca   = gananciaHoy * 0.10; // Arca Oro
+    const paraNegocio = gananciaHoy * 0.80; // Negocio Total
+
+    // Desglose Negocio (Comida Prioritaria)
+    const costoComida = 40.00; 
     let remanenteNegocio = paraNegocio - costoComida;
-
-    // Si no alcanza para la comida con el 80%, priorizamos comida pero mostramos negativo lo demás
-    // (Opcional: podrías restar de otros lados, pero mantenemos la estructura)
     
-    let paraDeuda = 0;
-    let paraTaller = 0;
-    let paraCajaManana = 0;
+    let paraDeuda = 0, paraTaller = 0, paraGasolina = 0;
 
     if (remanenteNegocio > 0) {
-        // Si sobra después de la comida, repartimos el resto del negocio:
-        // Ajustamos porcentajes sobre el REMANENTE:
-        // Digamos: 40% Deuda, 20% Taller, 40% Gasolina/Caja
         paraDeuda = remanenteNegocio * 0.40;
         paraTaller = remanenteNegocio * 0.20;
-        paraCajaManana = remanenteNegocio * 0.40;
+        paraGasolina = remanenteNegocio * 0.40; // Esto se suma a la base de mañana
     } else {
-        // Si no alcanza ni para la comida, todo lo del negocio va a comida
-        // (En la vida real aquí tendrías que sacar de tu sueldo)
-        paraCajaManana = 0; // Alerta: Mañana no hay gas
+        // Si no alcanza para comida, el negocio queda en 0 para lo demás
+        paraGasolina = 0;
     }
 
-    // D. PINTAR RESULTADOS
-    document.getElementById('montoFinalReparto').innerText = `S/ ${totalDisponible.toFixed(2)}`;
-    
+    // 4. PINTAR DATOS
+    document.getElementById('resTotalMano').innerText = `S/ ${totalEnMano.toFixed(2)}`;
+    document.getElementById('resBaseAyer').innerText = `S/ ${baseAyer.toFixed(2)}`;
+    document.getElementById('resGananciaHoy').innerText = `S/ ${gananciaHoy.toFixed(2)}`;
+    document.getElementById('montoFinalReparto').innerText = `S/ ${gananciaHoy.toFixed(2)}`;
+
+    // Cajas
     document.getElementById('sugPersonal').innerText = `S/ ${paraSueldo.toFixed(2)}`;
     document.getElementById('sugArca').innerText = `S/ ${paraArca.toFixed(2)}`;
-    
-    document.getElementById('sugNegocioTotal').innerText = `Total: S/ ${paraNegocio.toFixed(2)}`;
-    
+    document.getElementById('sugNegocioTotal').innerText = `S/ ${paraNegocio.toFixed(2)}`;
+
+    // Detalles
     document.getElementById('detComida').innerText = `S/ ${costoComida.toFixed(2)}`;
     document.getElementById('detDeuda').innerText = `S/ ${paraDeuda.toFixed(2)}`;
     document.getElementById('detTaller').innerText = `S/ ${paraTaller.toFixed(2)}`;
-    document.getElementById('detGasolina').innerText = `S/ ${paraCajaManana.toFixed(2)}`;
+    document.getElementById('detGasolina').innerText = `S/ ${paraGasolina.toFixed(2)}`;
 
-    // E. CÁLCULO DEL SALDO REMANENTE (LO QUE QUEDA EN MANO)
-    // El dinero sale de tu mano hacia: Warda Deuda, Warda Taller, Warda Arca, Warda Sueldo.
-    // La Comida se la das a tu familia (sale de la mano).
-    // LO QUE SE QUEDA: Es la "Caja Mañana".
+    // 5. CÁLCULO DEL SALDO REMANENTE (Lo que se queda en tu bolsillo)
+    // Te quedas con: La Base de Ayer + La parte de Gasolina de Hoy.
+    // (Lo demás: Sueldo, Arca, Deuda, Taller se transfiere. Comida se gasta).
+    const saldoFinalBolsillo = baseAyer + paraGasolina;
     
-    const totalTransferir = paraSueldo + paraArca + paraDeuda + paraTaller + costoComida;
-    const saldoFinalEnMano = totalDisponible - totalTransferir;
+    // OJO: Si 'remanenteNegocio' fue negativo (no alcanzó pa comida), 
+    // tendrás que sacar de la base, así que la fórmula se ajusta sola.
+    document.getElementById('saldoRemanente').innerText = `S/ ${saldoFinalBolsillo.toFixed(2)}`;
 
-    // Validamos visualmente
-    // Debería coincidir con 'paraCajaManana' + decimales por redondeo
-    document.getElementById('saldoRemanente').innerText = `S/ ${saldoFinalEnMano.toFixed(2)}`;
-
-    // F. TRANSICIÓN
+    // Vista
     document.getElementById('paso2_resultado').classList.add('d-none');
     document.getElementById('paso3_reparto').classList.remove('d-none');
 }
@@ -706,18 +724,6 @@ function reiniciarCierre() {
     document.getElementById('paso2_resultado').classList.add('d-none');
 }
 
-
-// --- 3. LA FUNCIÓN QUE FALTABA (BOTÓN MOVER DINERO) ---
-function abrirModalTransferencia() {
-    // Cerramos el modal de cierre para que no estorbe
-    const modalCierre = bootstrap.Modal.getInstance(document.getElementById('modalCierreCaja'));
-    if(modalCierre) modalCierre.hide();
-
-    // Abrimos el modal de transferencia
-    // Asegúrate de que tu modal de transferencias tenga el ID 'modalTransferencia'
-    const modalTrans = new bootstrap.Modal(document.getElementById('modalTransferencia'));
-    modalTrans.show();
-}
 
 
 // ASISTENTE BABILONIA (Actualizado con IDs correctos)
