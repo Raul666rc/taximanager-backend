@@ -981,22 +981,57 @@ async function abrirBilletera(periodo = 'mes') {
     } catch (e) { console.error(e); }
 }
 
+// MEJORA: Dona con Total en el Centro y diseño "Slim"
 function dibujarDona(stats) {
-    const ctx = document.getElementById('graficoApps').getContext('2d');
+    const canvas = document.getElementById('graficoApps');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     if (miGrafico) miGrafico.destroy();
     
-    // Validamos que stats no sea null
     const datosSeguros = stats || [];
 
+    // Si no hay datos, mostramos gris
     const labels = datosSeguros.length ? datosSeguros.map(e => e.origen_tipo) : ['Sin datos'];
-    const values = datosSeguros.length ? datosSeguros.map(e => parseFloat(e.total)) : [1]; // <--- parseFloat IMPORTANTE
+    const values = datosSeguros.length ? datosSeguros.map(e => parseFloat(e.total)) : [1]; 
     
+    // Calculamos el Total General para ponerlo en el centro
+    const totalGeneral = values.reduce((a, b) => a + b, 0);
+
     const colors = labels.map(n => {
-        if(n === 'INDRIVER') return '#198754'; 
-        if(n === 'UBER') return '#f8f9fa';     
-        if(n === 'CALLE') return '#ffc107';    
-        return '#6c757d';                      
+        if(n === 'INDRIVER') return '#198754'; // Verde
+        if(n === 'UBER') return '#f8f9fa';     // Blanco
+        if(n === 'CALLE') return '#ffc107';    // Amarillo
+        return '#495057';                      // Gris (Otros/Sin datos)
     });
+
+    // --- PLUGIN PERSONALIZADO PARA TEXTO EN EL CENTRO ---
+    const centerTextPlugin = {
+        id: 'centerText',
+        beforeDraw: function(chart) {
+            const width = chart.width, height = chart.height, ctx = chart.ctx;
+            ctx.restore();
+            
+            // 1. Texto "Total" pequeño arriba
+            const fontSizeLabel = (height / 114).toFixed(2);
+            ctx.font = `bold ${fontSizeLabel}em sans-serif`;
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#adb5bd"; // Gris claro
+            const textLabel = "Total Ingresos";
+            const textXLabel = Math.round((width - ctx.measureText(textLabel).width) / 2);
+            ctx.fillText(textLabel, textXLabel, height / 2 - 15);
+
+            // 2. Monto Grande abajo
+            const fontSizeMonto = (height / 80).toFixed(2); // Más grande
+            ctx.font = `bold ${fontSizeMonto}em sans-serif`;
+            ctx.fillStyle = "#ffffff"; // Blanco puro
+            const textMonto = `S/ ${totalGeneral.toFixed(0)}`;
+            const textXMonto = Math.round((width - ctx.measureText(textMonto).width) / 2);
+            ctx.fillText(textMonto, textXMonto, height / 2 + 15);
+            
+            ctx.save();
+        }
+    };
 
     miGrafico = new Chart(ctx, {
         type: 'doughnut',
@@ -1005,51 +1040,102 @@ function dibujarDona(stats) {
             datasets: [{ 
                 data: values, 
                 backgroundColor: colors, 
-                borderWidth: 0 
+                borderWidth: 0,
+                hoverOffset: 10,     // Efecto al pasar el mouse (se agranda)
+                cutout: '75%'        // Hacemos el anillo más fino (elegante)
             }] 
         },
         options: { 
             responsive: true,
-            maintainAspectRatio: false, // <--- ESTO AYUDA A QUE NO SE DEFORME
+            maintainAspectRatio: false,
             plugins: { 
                 legend: { 
-                    position: 'right', 
-                    labels: { color: 'white' } 
+                    position: 'bottom', // Leyenda abajo para dar espacio al centro
+                    labels: { 
+                        color: 'white', 
+                        usePointStyle: true, // Bolitas en vez de cuadrados
+                        padding: 20
+                    } 
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    bodyFont: { size: 14 },
                     callbacks: {
                         label: function(context) {
                             let label = context.label || '';
-                            let value = parseFloat(context.parsed); // Aseguramos número
-                            
-                            // Suma segura de todo el dataset
-                            let total = context.dataset.data.reduce((a, b) => a + (parseFloat(b) || 0), 0);
-                            
-                            // Calculamos porcentaje protegiendo la división por cero
-                            let porcentaje = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-                            
-                            return `${label}: S/ ${value.toFixed(2)} (${porcentaje})`;
+                            let value = parseFloat(context.parsed);
+                            let porcentaje = totalGeneral > 0 ? ((value / totalGeneral) * 100).toFixed(1) + '%' : '0%';
+                            return ` ${label}: S/ ${value.toFixed(2)} (${porcentaje})`;
                         }
                     }
                 }
             } 
-        }
+        },
+        plugins: [centerTextPlugin] // ¡Aquí activamos el plugin!
     });
 }
 
+// MEJORA: Barras con Gradiente (Efecto Neón)
 function dibujarBarras(semana) {
     const canvas = document.getElementById('graficoSemana');
     if (!canvas) return;
+    
+    // Obtenemos el contexto para crear el gradiente
+    const ctx = canvas.getContext('2d');
+    
     if (miGraficoBarras) miGraficoBarras.destroy();
 
+    // Crear Gradiente: (x0, y0, x1, y1) -> De arriba hacia abajo
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(255, 193, 7, 1)');   // Amarillo sólido arriba
+    gradient.addColorStop(1, 'rgba(255, 193, 7, 0.1)'); // Amarillo transparente abajo
+
     const diasMap = { 'Monday':'Lun', 'Tuesday':'Mar', 'Wednesday':'Mié', 'Thursday':'Jue', 'Friday':'Vie', 'Saturday':'Sáb', 'Sunday':'Dom' };
+    
+    // Lógica para ordenar los días correctamente (Opcional, pero recomendado si el SQL los desordena)
+    // Por ahora mantenemos tu lógica de mapeo
     const labels = (semana || []).map(i => diasMap[i.dia_nombre] || i.dia_nombre);
     const data = (semana || []).map(i => i.total);
 
-    miGraficoBarras = new Chart(canvas.getContext('2d'), {
+    miGraficoBarras = new Chart(ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ data, backgroundColor: '#ffc107', borderRadius: 4 }] },
-        options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#fff' } }, y: { ticks: { color: '#aaa' } } } }
+        data: { 
+            labels, 
+            datasets: [{ 
+                label: 'Ganancia Diaria',
+                data, 
+                backgroundColor: gradient, // Usamos el gradiente aquí
+                borderColor: '#ffc107',    // Borde amarillo nítido
+                borderWidth: 1,
+                borderRadius: 5,           // Bordes redondeados arriba
+                barPercentage: 0.6         // Barras un poco más delgadas
+            }] 
+        },
+        options: { 
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` Ganancia: S/ ${context.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            }, 
+            scales: { 
+                x: { 
+                    grid: { display: false }, 
+                    ticks: { color: '#adb5bd' } 
+                }, 
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.1)' }, // Líneas de guía sutiles
+                    ticks: { color: '#adb5bd' } 
+                } 
+            } 
+        }
     });
 }
 
@@ -2150,7 +2236,7 @@ async function realizarTransferencia() {
 }
 
 // ==========================================
-// 7. CARGAR HISTORIAL (VERSIÓN FIX ICONOS)
+// 7. CARGAR HISTORIAL MOVIMIENTOS (VERSIÓN FIX ICONOS)
 // ==========================================
 async function cargarMovimientos() {
     const contenedor = document.getElementById('listaMovimientosHome');
