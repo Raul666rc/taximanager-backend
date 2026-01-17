@@ -572,8 +572,8 @@ class FinanzasController {
     // Listar todas las cuentas y sus saldos actuales
     static async listarCuentas(req, res) {
         try {
-            // Seleccionamos ID, NOMBRE y SALDO de todas las cuentas
-            const [rows] = await db.query("SELECT id, nombre_cuenta, saldo_actual FROM cuentas");
+            // CORRECCIÓN: Usamos 'nombre' (como está en tu BD)
+            const [rows] = await db.query("SELECT id, nombre, saldo_actual FROM cuentas");
             res.json({ success: true, data: rows });
         } catch (error) {
             console.error(error);
