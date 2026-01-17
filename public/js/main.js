@@ -981,7 +981,7 @@ async function abrirBilletera(periodo = 'mes') {
     } catch (e) { console.error(e); }
 }
 
-// MEJORA: Dona con Total en el Centro y diseño "Slim"
+// MEJORA V2: Dona más gruesa y texto ajustado
 function dibujarDona(stats) {
     const canvas = document.getElementById('graficoApps');
     if (!canvas) return;
@@ -990,44 +990,42 @@ function dibujarDona(stats) {
     if (miGrafico) miGrafico.destroy();
     
     const datosSeguros = stats || [];
-
-    // Si no hay datos, mostramos gris
     const labels = datosSeguros.length ? datosSeguros.map(e => e.origen_tipo) : ['Sin datos'];
     const values = datosSeguros.length ? datosSeguros.map(e => parseFloat(e.total)) : [1]; 
-    
-    // Calculamos el Total General para ponerlo en el centro
     const totalGeneral = values.reduce((a, b) => a + b, 0);
 
     const colors = labels.map(n => {
-        if(n === 'INDRIVER') return '#198754'; // Verde
-        if(n === 'UBER') return '#f8f9fa';     // Blanco
-        if(n === 'CALLE') return '#ffc107';    // Amarillo
-        return '#495057';                      // Gris (Otros/Sin datos)
+        if(n === 'INDRIVER') return '#198754'; 
+        if(n === 'UBER') return '#f8f9fa';     
+        if(n === 'CALLE') return '#ffc107';    
+        return '#495057';                      
     });
 
-    // --- PLUGIN PERSONALIZADO PARA TEXTO EN EL CENTRO ---
+    // --- PLUGIN AJUSTADO ---
     const centerTextPlugin = {
         id: 'centerText',
         beforeDraw: function(chart) {
             const width = chart.width, height = chart.height, ctx = chart.ctx;
             ctx.restore();
             
-            // 1. Texto "Total" pequeño arriba
-            const fontSizeLabel = (height / 114).toFixed(2);
+            // 1. Texto "Total" (Lo hacemos más pequeño)
+            // Antes dividíamos entre 114, ahora entre 140 para que la letra sea menor
+            const fontSizeLabel = (height / 140).toFixed(2);
             ctx.font = `bold ${fontSizeLabel}em sans-serif`;
             ctx.textBaseline = "middle";
-            ctx.fillStyle = "#adb5bd"; // Gris claro
-            const textLabel = "Total Ingresos";
+            ctx.fillStyle = "#adb5bd"; 
+            const textLabel = "Total"; // Acortamos "Total Ingresos" a "Total" para ahorrar espacio
             const textXLabel = Math.round((width - ctx.measureText(textLabel).width) / 2);
-            ctx.fillText(textLabel, textXLabel, height / 2 - 15);
+            ctx.fillText(textLabel, textXLabel, height / 2 - 12);
 
-            // 2. Monto Grande abajo
-            const fontSizeMonto = (height / 80).toFixed(2); // Más grande
+            // 2. Monto (Ajustado)
+            // Antes dividíamos entre 80, ahora entre 100
+            const fontSizeMonto = (height / 100).toFixed(2); 
             ctx.font = `bold ${fontSizeMonto}em sans-serif`;
-            ctx.fillStyle = "#ffffff"; // Blanco puro
+            ctx.fillStyle = "#ffffff"; 
             const textMonto = `S/ ${totalGeneral.toFixed(0)}`;
             const textXMonto = Math.round((width - ctx.measureText(textMonto).width) / 2);
-            ctx.fillText(textMonto, textXMonto, height / 2 + 15);
+            ctx.fillText(textMonto, textXMonto, height / 2 + 12);
             
             ctx.save();
         }
@@ -1041,8 +1039,8 @@ function dibujarDona(stats) {
                 data: values, 
                 backgroundColor: colors, 
                 borderWidth: 0,
-                hoverOffset: 10,     // Efecto al pasar el mouse (se agranda)
-                cutout: '75%'        // Hacemos el anillo más fino (elegante)
+                hoverOffset: 10,
+                cutout: '60%' // <--- CAMBIO CLAVE: Aquí engrosamos la dona (antes 75%)
             }] 
         },
         options: { 
@@ -1050,16 +1048,16 @@ function dibujarDona(stats) {
             maintainAspectRatio: false,
             plugins: { 
                 legend: { 
-                    position: 'bottom', // Leyenda abajo para dar espacio al centro
+                    position: 'right', // Movemos leyenda a la derecha para dar más aire vertical
                     labels: { 
                         color: 'white', 
-                        usePointStyle: true, // Bolitas en vez de cuadrados
-                        padding: 20
+                        usePointStyle: true,
+                        padding: 15,
+                        font: { size: 11 } // Letra de leyenda más pequeña
                     } 
                 },
                 tooltip: {
                     backgroundColor: 'rgba(0,0,0,0.9)',
-                    bodyFont: { size: 14 },
                     callbacks: {
                         label: function(context) {
                             let label = context.label || '';
@@ -1071,7 +1069,7 @@ function dibujarDona(stats) {
                 }
             } 
         },
-        plugins: [centerTextPlugin] // ¡Aquí activamos el plugin!
+        plugins: [centerTextPlugin]
     });
 }
 
