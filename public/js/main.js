@@ -511,24 +511,41 @@ async function guardarGasto() {
     }
 }
 
-// ABRIR MODAL TRANSFERENCIA (VERSIÓN UNIFICADA)
-async function abrirModalTransferencia() {
+// ABRIR MODAL TRANSFERENCIA (CON CHULETA DE REPARTO)
+async function abrirModalTransferencia(datosReparto = null) {
     
-    // 1. CERRAR CUALQUIER MODAL PREVIO (Para que no se monten)
-    // Intentamos cerrar la Billetera si está abierta
+    // 1. Cerrar otros modales
     const modalBilletera = bootstrap.Modal.getInstance(document.getElementById('modalBilletera'));
     if (modalBilletera) modalBilletera.hide();
 
-    // Intentamos cerrar el Cierre de Caja si está abierto (NUEVO)
     const modalCierre = bootstrap.Modal.getInstance(document.getElementById('modalCierreCaja'));
     if (modalCierre) modalCierre.hide();
 
-    // 2. ABRIR EL MODAL DE TRANSFERENCIA
+    // 2. Configurar la "Chuleta" (Recordatorio)
+    const panelRec = document.getElementById('divRecordatorioReparto');
+    
+    if (datosReparto) {
+        // SI VENIMOS DEL REPARTO: Mostramos los datos
+        panelRec.classList.remove('d-none');
+        
+        document.getElementById('recSueldo').innerText = datosReparto.sueldo;
+        document.getElementById('recArca').innerText = datosReparto.arca;
+        document.getElementById('recDeuda').innerText = datosReparto.deuda;
+        document.getElementById('recTaller').innerText = datosReparto.taller;
+        
+        // Truco Pro: Poner automáticamente el monto del primer rubro (Sueldo) para ahorrar clics
+        // document.getElementById('montoTransferencia').value = parseFloat(datosReparto.sueldo.replace('S/ ',''));
+    } else {
+        // SI VENIMOS DE LA BILLETERA NORMAL: Ocultamos el panel
+        panelRec.classList.add('d-none');
+        document.getElementById('montoTransferencia').value = '';
+    }
+
+    // 3. Abrir Modal
     const modalTrans = new bootstrap.Modal(document.getElementById('modalTransferencia'));
     modalTrans.show();
 
-    // 3. LLENAR LA LISTA DE CUENTAS (IDs deben coincidir con tu BD)
-    // Actualicé los nombres para que coincidan con tu nueva estructura
+    // 4. Llenar Selects (Igual que antes)
     const cuentas = [
         {id: 1, nombre: '💵 Efectivo (Bolsillo)'},
         {id: 2, nombre: '🟣 Yape / BCP'},
@@ -541,15 +558,39 @@ async function abrirModalTransferencia() {
     const selectOrigen = document.getElementById('selectOrigen');
     const selectDestino = document.getElementById('selectDestino');
     let html = '';
-    
     cuentas.forEach(c => html += `<option value="${c.id}">${c.nombre}</option>`);
     
     selectOrigen.innerHTML = html;
     selectDestino.innerHTML = html;
     
-    // Por defecto sugerimos mover de Efectivo (1) a Arca (3)
-    selectOrigen.value = 1; 
-    selectDestino.value = 3; 
+    // Sugerencia inteligente:
+    if (datosReparto) {
+        selectOrigen.value = 1; // Origen Efectivo
+        selectDestino.value = 6; // Destino Sueldo (Primero en la lista de recordatorio)
+    } else {
+        selectOrigen.value = 1;
+        selectDestino.value = 3;
+    }
+}
+
+// FUNCIÓN PUENTE: Captura los datos del Cierre y abre Transferencias
+function irATransferirConDatos() {
+    // 1. Leemos los montos que ya calculamos y están en pantalla
+    const sueldo = document.getElementById('sugPersonal').innerText;
+    const arca = document.getElementById('sugArca').innerText;
+    const deuda = document.getElementById('detDeuda').innerText;
+    const taller = document.getElementById('detTaller').innerText;
+
+    // 2. Creamos el paquetito de datos
+    const datos = {
+        sueldo: sueldo,
+        arca: arca,
+        deuda: deuda,
+        taller: taller
+    };
+
+    // 3. Abrimos el modal pasando el paquete
+    abrirModalTransferencia(datos);
 }
 
 async function ejecutarTransferencia() {

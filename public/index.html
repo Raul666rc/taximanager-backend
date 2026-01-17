@@ -439,33 +439,71 @@
     </div>
 
     <div class="modal fade" id="modalTransferencia" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-primary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title text-primary"><i class="fas fa-exchange-alt me-2"></i>Mover Dinero</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-info">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-info"><i class="fas fa-exchange-alt me-2"></i>Mover Dinero</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                
+                <div id="divRecordatorioReparto" class="alert alert-dark border-secondary p-2 mb-3 d-none">
+                    <small class="text-warning fw-bold d-block mb-1 text-center text-uppercase">
+                        <i class="fas fa-lightbulb me-1"></i> Montos Sugeridos:
+                    </small>
+                    <div class="d-flex justify-content-between border-bottom border-secondary pb-1 mb-1">
+                        <span class="text-info small">🎓 Sueldo:</span>
+                        <span class="fw-bold text-white small" id="recSueldo">S/ 0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom border-secondary pb-1 mb-1">
+                        <span class="text-warning small">💰 Arca:</span>
+                        <span class="fw-bold text-white small" id="recArca">S/ 0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom border-secondary pb-1 mb-1">
+                        <span class="text-danger small">📉 Deuda:</span>
+                        <span class="fw-bold text-white small" id="recDeuda">S/ 0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary small">🛠️ Taller:</span>
+                        <span class="fw-bold text-white small" id="recTaller">S/ 0.00</span>
+                    </div>
                 </div>
-                <div class="modal-body">
+                <form id="formTransferencia">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Desde (Origen)</label>
+                        <select class="form-select bg-dark text-white border-secondary" id="selectOrigen">
+                            </select>
+                    </div>
                     
-                    <label class="text-muted small">Origen (Sale dinero)</label>
-                    <select id="selectOrigen" class="form-select bg-dark text-white border-secondary mb-3"></select>
-
-                    <label class="text-muted small">Destino (Entra dinero)</label>
-                    <select id="selectDestino" class="form-select bg-dark text-white border-secondary mb-3"></select>
-
-                    <label class="text-muted small">Monto (S/)</label>
-                    <input type="number" id="montoTransferencia" class="form-control bg-dark text-white border-secondary mb-3" placeholder="0.00">
-
-                    <div class="d-grid">
-                        <button class="btn btn-primary btn-lg" onclick="ejecutarTransferencia()">
-                            CONFIRMAR <i class="fas fa-check ms-2"></i>
-                        </button>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Hacia (Destino)</label>
+                        <select class="form-select bg-dark text-white border-secondary" id="selectDestino">
+                            </select>
                     </div>
 
-                </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white fw-bold">Monto a Mover</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark text-white border-secondary">S/</span>
+                            <input type="number" id="montoTransferencia" class="form-control bg-black text-white border-secondary fw-bold fs-4 text-center" placeholder="0.00" step="0.10">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Nota (Opcional)</label>
+                        <input type="text" id="notaTransferencia" class="form-control bg-dark text-white border-secondary form-control-sm" placeholder="Ej: Ahorro del día">
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-info w-100 fw-bold" onclick="realizarTransferencia()">
+                    CONFIRMAR TRANSFERENCIA <i class="fas fa-check ms-2"></i>
+                </button>
             </div>
         </div>
     </div>
+</div>
 
     <div class="modal fade" id="modalBilletera" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -886,8 +924,8 @@
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button class="btn btn-outline-info" onclick="abrirModalTransferencia()">
-                                <i class="fas fa-exchange-alt me-2"></i> Mover Dinero
+                            <button class="btn btn-outline-info" onclick="irATransferirConDatos()">
+                                <i class="fas fa-exchange-alt me-2"></i> Mover Dinero a Wardas
                             </button>
                             <button class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">
                                 Finalizar
