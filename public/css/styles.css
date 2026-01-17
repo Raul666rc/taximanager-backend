@@ -92,3 +92,15 @@ body {
     background-color: #198754;
     color: #fff;
 }
+
+/* FORZAR VISIBILIDAD DE ICONOS FA 6 */
+.fas, .fa-solid {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important; /* Vital para que se vean los iconos sólidos */
+    -webkit-font-smoothing: antialiased;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}

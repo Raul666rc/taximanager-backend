@@ -2150,13 +2150,11 @@ async function realizarTransferencia() {
 }
 
 // ==========================================
-// 7. CARGAR HISTORIAL (PANTALLA PRINCIPAL)
+// 7. CARGAR HISTORIAL (VERSIÓN FIX ICONOS)
 // ==========================================
 async function cargarMovimientos() {
-    // CAMBIO AQUÍ 👇: Buscamos el nuevo ID único
     const contenedor = document.getElementById('listaMovimientosHome');
-    
-    if (!contenedor) return; // Si no estamos en el home, no pasa nada
+    if (!contenedor) return;
 
     try {
         const res = await fetch(`${API_URL}/finanzas/movimientos`);
@@ -2171,20 +2169,29 @@ async function cargarMovimientos() {
             }
 
             result.data.forEach(m => {
-                // ... (Toda la lógica de iconos e IFs sigue IGUAL) ...
-                let icono = 'fa-arrow-down';
+                // --- CAMBIO AQUÍ: Usamos nombres estándar de FA 6 ---
+                let icono = 'fa-arrow-down'; // Nombre simple
+                let claseTipo = 'fa-solid';  // Usamos fa-solid explícito
                 let colorIcono = 'bg-danger';
                 let colorTexto = 'text-danger';
                 let signo = '-';
                 
                 if (m.tipo === 'INGRESO') {
-                    icono = 'fa-arrow-up'; colorIcono = 'bg-success'; colorTexto = 'text-success'; signo = '+';
+                    icono = 'fa-arrow-up'; 
+                    colorIcono = 'bg-success'; 
+                    colorTexto = 'text-success'; 
+                    signo = '+';
                 }
+                
                 const esTransferencia = m.categoria && m.categoria.includes('Transferencia');
                 if (esTransferencia) {
-                    icono = 'fa-exchange-alt'; colorIcono = 'bg-info'; colorTexto = 'text-info'; signo = '';
+                    icono = 'fa-right-left'; // Icono moderno de intercambio (FA 6)
+                    colorIcono = 'bg-info'; 
+                    colorTexto = 'text-info'; 
+                    signo = '';
                 }
 
+                // Fecha
                 const fechaObj = new Date(m.fecha);
                 const fechaStr = fechaObj.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
                 const horaStr = fechaObj.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
@@ -2193,8 +2200,9 @@ async function cargarMovimientos() {
                 <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center px-3 py-2">
                     <div class="d-flex align-items-center">
                         <div class="rounded-circle ${colorIcono} d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 35px; height: 35px;">
-                            <i class="fas ${icono} text-white small"></i>
+                            <i class="${claseTipo} ${icono} text-white small"></i>
                         </div>
+                        
                         <div style="line-height: 1.2;">
                             <div class="text-white fw-bold small text-uppercase mb-0 text-truncate" style="max-width: 180px;">
                                 ${m.descripcion}
@@ -2204,6 +2212,7 @@ async function cargarMovimientos() {
                             </small>
                         </div>
                     </div>
+
                     <div class="text-end">
                         <div class="${colorTexto} fw-bold" style="font-size: 0.95rem;">
                             ${signo} S/ ${parseFloat(m.monto).toFixed(2)}
