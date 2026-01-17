@@ -776,7 +776,7 @@
                     <div id="paso1_conteo" class="p-3">
                         <div class="mb-3">
                             <div class="d-flex justify-content-between text-muted small mb-1">
-                                <span>Sistema Efectivo:</span>
+                                <span>💵 Efectivo Sistema:</span>
                                 <span class="text-white">S/ <span id="lblSysEfectivo">0.00</span></span>
                             </div>
                             <div class="input-group input-group-lg border border-secondary rounded">
@@ -787,7 +787,7 @@
 
                         <div class="mb-4">
                             <div class="d-flex justify-content-between text-muted small mb-1">
-                                <span>Sistema Yape:</span>
+                                <span>📱 Yape Sistema:</span>
                                 <span class="text-white">S/ <span id="lblSysYape">0.00</span></span>
                             </div>
                             <div class="input-group input-group-lg border border-secondary rounded">
@@ -831,18 +831,23 @@
                             </div>
                         </div>
 
-                        <div class="text-center text-muted small mb-2 text-uppercase fw-bold">DISTRIBUCIÓN DE LA GANANCIA</div>
+                        <div class="text-center mb-3">
+                            <div class="text-secondary text-uppercase small fw-bold mb-1">Monto a Repartir (Ganancia)</div>
+                            <div class="bg-black border border-warning rounded p-2 shadow-sm">
+                                <h1 class="fw-bold text-white mb-0" id="montoFinalReparto" style="text-shadow: 0 0 15px rgba(255,193,7,0.3);">S/ 0.00</h1>
+                            </div>
+                        </div>
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
-                                <div class="p-2 bg-dark border border-light rounded text-center h-100 shadow-sm">
-                                    <div style="font-size: 0.65rem;" class="text-info fw-bold mb-1">SUELDO PROPIO (10%)</div>
+                                <div class="p-2 bg-dark border border-light rounded text-center h-100">
+                                    <div style="font-size: 0.65rem;" class="text-info fw-bold mb-1">SUELDO PROPIO</div>
                                     <h4 class="fw-bold text-white mb-0" id="sugPersonal">0.00</h4>
                                 </div>
                             </div>
                             <div class="col-6">
-                                <div class="p-2 bg-dark border border-warning rounded text-center h-100 shadow-sm">
-                                    <div style="font-size: 0.65rem;" class="text-warning fw-bold mb-1">ARCA ORO (10%)</div>
+                                <div class="p-2 bg-dark border border-warning rounded text-center h-100">
+                                    <div style="font-size: 0.65rem;" class="text-warning fw-bold mb-1">ARCA ORO</div>
                                     <h4 class="fw-bold text-white mb-0" id="sugArca">0.00</h4>
                                 </div>
                             </div>
@@ -867,23 +872,22 @@
                                     <span class="fw-bold text-white-50" id="detTaller">0.00</span>
                                 </li>
                                 <li class="list-group-item bg-black text-white d-flex justify-content-between py-2 border-0">
-                                    <span><i class="fas fa-gas-pump text-warning me-2"></i>Saldo Mañana (Gas)</span>
+                                    <span><i class="fas fa-gas-pump text-warning me-2"></i>Saldo Mañana</span>
                                     <span class="fw-bold text-warning fs-6" id="detGasolina">0.00</span>
                                 </li>
                             </ul>
                         </div>
 
                         <div class="bg-primary bg-opacity-25 border border-primary text-center py-2 mb-3 rounded">
-                            <small class="text-white d-block mb-1 fw-bold" style="font-size: 0.7rem;">SALDO FINAL EN MANO (Efe + Yape):</small>
+                            <small class="text-white d-block mb-1 fw-bold" style="font-size: 0.7rem;">SALDO FINAL EN MANO:</small>
                             <div class="fw-bold text-white">
                                 <span class="text-white fs-4" id="saldoRemanente">S/ 0.00</span>
                             </div>
-                            <small class="text-white-50" style="font-size: 0.65rem;">(Incluye la Base de Ayer + Caja Mañana)</small>
                         </div>
 
                         <div class="d-grid gap-2">
                             <button class="btn btn-outline-info" onclick="abrirModalTransferencia()">
-                                <i class="fas fa-exchange-alt me-2"></i> Mover Dinero a Wardas
+                                <i class="fas fa-exchange-alt me-2"></i> Mover Dinero
                             </button>
                             <button class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">
                                 Finalizar

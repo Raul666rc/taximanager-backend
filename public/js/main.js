@@ -658,6 +658,18 @@ function verificarCierre() {
 }
 
 async function procesarAjusteYReparto() {
+    
+    // --- FUNCIÓN AUXILIAR DE SEGURIDAD ---
+    // Esto evita que la app se rompa si falta un ID en el HTML
+    const safeText = (id, valor) => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.innerText = valor;
+        } else {
+            console.error(`❌ ERROR CRÍTICO: Falta el ID "${id}" en tu index.html`);
+        }
+    };
+
     // 1. Registrar Ajuste en BD si es necesario
     if (difEfe !== 0) {
         try {
@@ -669,30 +681,26 @@ async function procesarAjusteYReparto() {
         } catch(e) {}
     }
 
-    // 2. CÁLCULO DE LA GANANCIA REAL (La magia para no confundir días)
-    // Total en Mano Actual
+    // 2. DATOS REALES
     const realEfe = parseFloat(document.getElementById('inputRealEfectivo').value) || 0;
     const realYape = parseFloat(document.getElementById('inputRealYape').value) || 0;
     const totalEnMano = realEfe + realYape;
 
-    // Calculamos la "Base de Ayer" (Saldo Inicial del Turno)
-    // Fórmula: SaldoFinal = SaldoInicial + Ingresos - Gastos
-    // Entonces: SaldoInicial = SaldoFinal - Ingresos + Gastos
-    // (Usamos los datos del sistema ajustados con la diferencia actual para ser precisos)
-    const saldoSistemaTotal = sysEfe + sysYape + difEfe + difYape; // Esto es igual a totalEnMano
+    // 3. BASE DE AYER (Ingresos Hoy - Gastos Hoy)
+    // El saldo del sistema ajustado, menos lo que se movió hoy, nos da con cuánto empezamos
+    const saldoSistemaTotal = sysEfe + sysYape + difEfe + difYape; 
     const baseAyer = saldoSistemaTotal - ingresosHoyBD + gastosHoyBD;
 
-    // Ganancia Real a Repartir = Total En Mano - Lo que ya tenías ayer
-    // (Si olvidaste registrar ingresos, la 'Diferencia' positiva se suma aquí, así que cuenta como ganancia)
+    // 4. GANANCIA REAL
     let gananciaHoy = totalEnMano - baseAyer;
-    if (gananciaHoy < 0) gananciaHoy = 0; // Por si acaso
+    if (gananciaHoy < 0) gananciaHoy = 0; 
 
-    // 3. ESTRATEGIA DE REPARTO (Sobre la GANANCIA, no sobre el total)
-    const paraSueldo = gananciaHoy * 0.10; // Sueldo Propio
-    const paraArca   = gananciaHoy * 0.10; // Arca Oro
-    const paraNegocio = gananciaHoy * 0.80; // Negocio Total
+    // 5. ESTRATEGIA DE REPARTO
+    const paraSueldo = gananciaHoy * 0.10; 
+    const paraArca   = gananciaHoy * 0.10; 
+    const paraNegocio = gananciaHoy * 0.80; 
 
-    // Desglose Negocio (Comida Prioritaria)
+    // Desglose Negocio
     const costoComida = 40.00; 
     let remanenteNegocio = paraNegocio - costoComida;
     
@@ -701,41 +709,42 @@ async function procesarAjusteYReparto() {
     if (remanenteNegocio > 0) {
         paraDeuda = remanenteNegocio * 0.40;
         paraTaller = remanenteNegocio * 0.20;
-        paraGasolina = remanenteNegocio * 0.40; // Esto se suma a la base de mañana
+        paraGasolina = remanenteNegocio * 0.40; 
     } else {
-        // Si no alcanza para comida, el negocio queda en 0 para lo demás
         paraGasolina = 0;
     }
 
-    // 4. PINTAR DATOS
-    document.getElementById('resTotalMano').innerText = `S/ ${totalEnMano.toFixed(2)}`;
-    document.getElementById('resBaseAyer').innerText = `S/ ${baseAyer.toFixed(2)}`;
-    document.getElementById('resGananciaHoy').innerText = `S/ ${gananciaHoy.toFixed(2)}`;
-    document.getElementById('montoFinalReparto').innerText = `S/ ${gananciaHoy.toFixed(2)}`;
+    // 6. PINTAR DATOS (USANDO safeText PARA EVITAR ERRORES)
+    safeText('resTotalMano', `S/ ${totalEnMano.toFixed(2)}`);
+    safeText('resBaseAyer', `S/ ${baseAyer.toFixed(2)}`);
+    safeText('resGananciaHoy', `S/ ${gananciaHoy.toFixed(2)}`);
+    
+    // AQUÍ FALLABA ANTES, AHORA NO SE ROMPERÁ
+    safeText('montoFinalReparto', `S/ ${gananciaHoy.toFixed(2)}`);
 
     // Cajas
-    document.getElementById('sugPersonal').innerText = `S/ ${paraSueldo.toFixed(2)}`;
-    document.getElementById('sugArca').innerText = `S/ ${paraArca.toFixed(2)}`;
-    document.getElementById('sugNegocioTotal').innerText = `S/ ${paraNegocio.toFixed(2)}`;
+    safeText('sugPersonal', `S/ ${paraSueldo.toFixed(2)}`);
+    safeText('sugArca', `S/ ${paraArca.toFixed(2)}`);
+    safeText('sugNegocioTotal', `S/ ${paraNegocio.toFixed(2)}`);
 
     // Detalles
-    document.getElementById('detComida').innerText = `S/ ${costoComida.toFixed(2)}`;
-    document.getElementById('detDeuda').innerText = `S/ ${paraDeuda.toFixed(2)}`;
-    document.getElementById('detTaller').innerText = `S/ ${paraTaller.toFixed(2)}`;
-    document.getElementById('detGasolina').innerText = `S/ ${paraGasolina.toFixed(2)}`;
+    safeText('detComida', `S/ ${costoComida.toFixed(2)}`);
+    safeText('detDeuda', `S/ ${paraDeuda.toFixed(2)}`);
+    safeText('detTaller', `S/ ${paraTaller.toFixed(2)}`);
+    safeText('detGasolina', `S/ ${paraGasolina.toFixed(2)}`);
 
-    // 5. CÁLCULO DEL SALDO REMANENTE (Lo que se queda en tu bolsillo)
-    // Te quedas con: La Base de Ayer + La parte de Gasolina de Hoy.
-    // (Lo demás: Sueldo, Arca, Deuda, Taller se transfiere. Comida se gasta).
+    // 7. SALDO FINAL REMANENTE
     const saldoFinalBolsillo = baseAyer + paraGasolina;
-    
-    // OJO: Si 'remanenteNegocio' fue negativo (no alcanzó pa comida), 
-    // tendrás que sacar de la base, así que la fórmula se ajusta sola.
-    document.getElementById('saldoRemanente').innerText = `S/ ${saldoFinalBolsillo.toFixed(2)}`;
+    safeText('saldoRemanente', `S/ ${saldoFinalBolsillo.toFixed(2)}`);
 
-    // Vista
-    document.getElementById('paso2_resultado').classList.add('d-none');
-    document.getElementById('paso3_reparto').classList.remove('d-none');
+    // 8. MOSTRAR PANTALLA
+    const p2 = document.getElementById('paso2_resultado');
+    const p3 = document.getElementById('paso3_reparto');
+    
+    if (p2 && p3) {
+        p2.classList.add('d-none');
+        p3.classList.remove('d-none');
+    }
 }
 
 function reiniciarCierre() {
