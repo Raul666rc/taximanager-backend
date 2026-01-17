@@ -421,16 +421,6 @@ class FinanzasController {
             res.status(500).json({ success: false, message: "Error al calcular reparto" });
         }
     }
-
-    // Obtener lista de todas las cuentas con sus saldos
-    static async listarCuentas(req, res) {
-        try {
-            const [rows] = await db.query("SELECT id, nombre_cuenta, saldo_actual FROM cuentas");
-            res.json({ success: true, data: rows });
-        } catch (error) {
-            res.status(500).json({ success: false, message: "Error" });
-        }
-    }
     
     // ==========================================
     // 3. ESTADÍSTICAS
@@ -572,6 +562,22 @@ class FinanzasController {
             res.status(500).json({ success: false, message: "Error al procesar ajuste" });
         } finally {
             connection.release();
+        }
+    }
+
+    // ==========================================
+    // 5. UTILITARIOS
+    // ==========================================
+    
+    // Listar todas las cuentas y sus saldos actuales
+    static async listarCuentas(req, res) {
+        try {
+            // Seleccionamos ID, NOMBRE y SALDO de todas las cuentas
+            const [rows] = await db.query("SELECT id, nombre_cuenta, saldo_actual FROM cuentas");
+            res.json({ success: true, data: rows });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al obtener cuentas" });
         }
     }
 }

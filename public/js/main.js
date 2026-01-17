@@ -515,14 +515,14 @@ async function guardarGasto() {
 // ABRIR MODAL TRANSFERENCIA (CON CHULETA DE REPARTO)
 async function abrirModalTransferencia(datosReparto = null) {
     
-    // 1. Cerrar otros modales
+    // 1. Cerrar otros modales para evitar conflictos
     const modalBilletera = bootstrap.Modal.getInstance(document.getElementById('modalBilletera'));
     if (modalBilletera) modalBilletera.hide();
 
     const modalCierre = bootstrap.Modal.getInstance(document.getElementById('modalCierreCaja'));
     if (modalCierre) modalCierre.hide();
 
-    // 2. Configurar la "Chuleta" (Visualmente mejorada)
+    // 2. Configurar la "Chuleta" (Panel de Recordatorio)
     const panelRec = document.getElementById('divRecordatorioReparto');
     
     if (datosReparto) {
@@ -540,14 +540,14 @@ async function abrirModalTransferencia(datosReparto = null) {
     const modalTrans = new bootstrap.Modal(document.getElementById('modalTransferencia'));
     modalTrans.show();
 
-    // 4. Llenar Selects
+    // 4. Llenar Selects (CON EL NOMBRE CORREGIDO)
     const cuentas = [
         {id: 1, nombre: '💵 Efectivo (Bolsillo)'},
         {id: 2, nombre: '🟣 Yape / BCP'},
         {id: 3, nombre: '💰 Warda - Arca Oro'},
         {id: 4, nombre: '🛠️ Warda - Taller'},
         {id: 5, nombre: '📉 Warda - Deuda 8k'},
-        {id: 6, nombre: '🎓 Warda - Estudios Futuro'} 
+        {id: 6, nombre: '🎓 Warda - Sueldo'} // <-- CAMBIO REALIZADO AQUÍ
     ];
     
     const selectOrigen = document.getElementById('selectOrigen');
@@ -558,48 +558,40 @@ async function abrirModalTransferencia(datosReparto = null) {
     selectOrigen.innerHTML = html;
     selectDestino.innerHTML = html;
     
-    // Configuración inicial de selección
+    // Configuración inicial inteligente
     if (datosReparto) {
         selectOrigen.value = 1; 
-        selectDestino.value = 6; 
+        selectDestino.value = 6; // Sugerir ir a Sueldo primero
     } else {
         selectOrigen.value = 1;
         selectDestino.value = 3;
     }
 
-    // 5. OBTENER SALDOS REALES (NUEVO)
-    // Usamos el endpoint de billetera o cuentas para saber cuánto hay
+    // 5. OBTENER SALDOS REALES (CON LA RUTA CORREGIDA)
     const lblSaldo = document.getElementById('lblSaldoDisponible');
     lblSaldo.innerText = "Consultando...";
     lblSaldo.className = "fw-bold text-muted";
 
     try {
-        // Pedimos todas las cuentas (Asumimos que tienes una ruta que devuelve todo)
-        // Si no tienes /cuentas, podemos usar /finanzas/billetera que suele traer el resumen
-        // O mejor: Hacemos un fetch rápido a tu endpoint de cuentas
-        const res = await fetch(`${API_URL}/cuentas`); // Asegúrate que esta ruta exista, sino usa la de abajo
+        // Hacemos la petición a la nueva ruta que creamos
+        const res = await fetch(`${API_URL}/finanzas/cuentas`);
+        const result = await res.json();
         
-        // NOTA: Si no tienes la ruta /cuentas, usa la lógica del dashboard. 
-        // Pero para simplificar, asumiré que podemos consultar la billetera.
-        
-        // Si te da error 404 en /cuentas, avísame para crear la ruta en el backend.
-        // MIENTRAS TANTO, simularemos con el saldo que ya conocemos del sistema si falla.
-        
-        const data = await res.json();
-        
-        if (data.success) {
-            // Guardamos los saldos en la variable global: { "1": 150.00, "2": 50.00 ... }
+        if (result.success) {
+            // Guardamos los saldos en caché: { "1": 150.00, "2": 50.00 ... }
             saldosCache = {};
-            data.data.forEach(c => {
+            result.data.forEach(c => {
                 saldosCache[c.id] = parseFloat(c.saldo_actual);
             });
             
-            // Actualizamos visualmente el saldo del seleccionado
+            // Actualizamos visualmente el saldo ahora mismo
             actualizarSaldoOrigen();
+        } else {
+             lblSaldo.innerText = "Error datos";
         }
     } catch (e) {
-        console.error("No se pudo cargar saldos detallados", e);
-        lblSaldo.innerText = "Sin datos";
+        console.error("Error cargando saldos:", e);
+        lblSaldo.innerText = "--";
     }
 }
 
