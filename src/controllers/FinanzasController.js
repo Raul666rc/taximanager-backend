@@ -137,12 +137,14 @@ class FinanzasController {
         }
     }
 
-    // Mover dinero entre cuentas (MEJORADO CON TRANSACCIÓN SEGURA)
+    // FUSIÓN: Transferencia entre cuentas (Mejorada con doble asiento contable)
     static async realizarTransferencia(req, res) {
         const connection = await db.getConnection();
+        
         try {
-            await connection.beginTransaction(); // Iniciamos modo seguro
+            await connection.beginTransaction();
 
+            // Usamos TUS nombres de variables
             const { cuenta_origen_id, cuenta_destino_id, monto, nota } = req.body;
 
             if (!monto || monto <= 0) throw new Error("Monto inválido");
@@ -153,19 +155,34 @@ class FinanzasController {
             // 2. Sumar al Destino
             await connection.query("UPDATE cuentas SET saldo_actual = saldo_actual + ? WHERE id = ?", [monto, cuenta_destino_id]);
 
-            // 3. Registrar
-            await connection.query(`
-                INSERT INTO transacciones (tipo, monto, descripcion, fecha, categoria) 
-                VALUES ('TRANSFERENCIA', ?, ?, NOW(), 'Movimiento Interno')
-            `, [monto, `Transferencia: ${nota}`]);
+            // 3. REGISTRO CONTABLE INTELIGENTE (El cambio clave)
+            
+            // A) Registrar SALIDA en Origen (Tipo GASTO para que descuente visualmente en reportes)
+            // Obtenemos nombre del destino para que el historial se vea bonito
+            const [destRows] = await connection.query("SELECT nombre FROM cuentas WHERE id = ?", [cuenta_destino_id]);
+            const nombreDestino = destRows[0]?.nombre || 'Cuenta Destino';
 
-            await connection.commit(); // Guardamos cambios
+            await connection.query(`
+                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, categoria) 
+                VALUES ('GASTO', ?, ?, ?, NOW(), 'Transferencia Salida')
+            `, [monto, `Transferencia a ${nombreDestino}: ${nota}`, cuenta_origen_id]);
+
+            // B) Registrar ENTRADA en Destino (Tipo INGRESO)
+            const [origRows] = await connection.query("SELECT nombre FROM cuentas WHERE id = ?", [cuenta_origen_id]);
+            const nombreOrigen = origRows[0]?.nombre || 'Cuenta Origen';
+
+            await connection.query(`
+                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, categoria) 
+                VALUES ('INGRESO', ?, ?, ?, NOW(), 'Transferencia Entrada')
+            `, [monto, `Recibido de ${nombreOrigen}: ${nota}`, cuenta_destino_id]);
+
+            await connection.commit();
             res.json({ success: true, message: "Transferencia exitosa" });
 
         } catch (error) {
-            await connection.rollback(); // Si falla, devolvemos el dinero
+            await connection.rollback();
             console.error(error);
-            res.status(500).json({ success: false, message: "Error en transferencia" });
+            res.status(500).json({ success: false, message: error.message || "Error en transferencia" });
         } finally {
             connection.release();
         }

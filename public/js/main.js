@@ -635,32 +635,6 @@ function irATransferirConDatos() {
     abrirModalTransferencia(datos);
 }
 
-async function ejecutarTransferencia() {
-    const origen = document.getElementById('selectOrigen').value;
-    const destino = document.getElementById('selectDestino').value;
-    const monto = document.getElementById('montoTransferencia').value;
-
-    if (origen === destino) return notificar("Origen y destino iguales", "error");
-    if (!monto || monto <= 0) return notificar("Monto inválido", "error");
-
-    try {
-        const response = await fetch(`${API_URL}/transferir`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cuenta_origen_id: origen, cuenta_destino_id: destino, monto, nota: 'App' })
-        });
-        
-        const res = await response.json();
-        if (res.success) {
-            notificar("✅ Transferencia realizada", "exito");
-            bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
-            abrirBilletera(); 
-        } else {
-            notificar("Error: " + res.message, "error");
-        }
-    } catch (e) { notificar("Error: " + e.message, "error"); }
-}
-
 // ==========================================
 // MÓDULO CIERRE DE CAJA (V3: LÓGICA DE GANANCIA REAL)
 // ==========================================
@@ -2103,6 +2077,75 @@ async function verificarViajeEnCurso() {
         }
     } catch (e) {
         console.error("Error recuperando sesión:", e);
+    }
+}
+
+// ==========================================
+// 6. FUNCIÓN UNIFICADA PARA TRANSFERIR
+// ==========================================
+async function realizarTransferencia() {
+    const origenId = document.getElementById('selectOrigen').value;
+    const destinoId = document.getElementById('selectDestino').value;
+    const monto = parseFloat(document.getElementById('montoTransferencia').value);
+    const nota = document.getElementById('notaTransferencia').value || 'Transferencia App';
+
+    // 1. Validaciones
+    if (!monto || monto <= 0) return notificar("Ingresa un monto válido", "error");
+    if (origenId === destinoId) return notificar("El origen y destino no pueden ser iguales", "error");
+
+    // Validación de Saldo (Opcional)
+    if (saldosCache && saldosCache[origenId] !== undefined) {
+        if (monto > saldosCache[origenId]) {
+            return notificar("⚠️ Saldo insuficiente en origen", "error");
+        }
+    }
+
+    // 2. Efecto visual
+    const btn = document.querySelector('button[onclick="realizarTransferencia()"]');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+    btn.disabled = true;
+
+    try {
+        // 3. Enviar a tu ruta existente (/transferir)
+        // OJO: Usamos los nombres de variables que tu Backend espera (cuenta_origen_id)
+        const response = await fetch(`${API_URL}/transferir`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                cuenta_origen_id: origenId, 
+                cuenta_destino_id: destinoId, 
+                monto: monto, 
+                nota: nota 
+            })
+        });
+        
+        const data = await response.json();
+
+        if (data.success) {
+            notificar("✅ Transferencia realizada con éxito", "success");
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalTransferencia'));
+            modal.hide();
+
+            // Limpiar campos
+            document.getElementById('montoTransferencia').value = '';
+            document.getElementById('notaTransferencia').value = '';
+
+            // IMPORTANTE: Actualizar saldos si estamos en el dashboard
+            if (typeof cargarResumenDia === 'function') cargarResumenDia();
+
+        } else {
+            notificar(data.message || "Error al transferir", "error");
+        }
+
+    } catch (e) {
+        console.error(e);
+        notificar("Error de conexión", "error");
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
     }
 }
 
