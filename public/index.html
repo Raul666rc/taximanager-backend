@@ -38,10 +38,6 @@
     <nav class="navbar navbar-dark bg-black mb-3 border-bottom border-secondary">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1"><i class="fas fa-taxi text-warning"></i> TaxiManager</span>
-            <div class="text-center bg-white p-2">
-                <i class="fa-solid fa-car fa-2x text-danger"></i>
-                <span class="text-dark">Si ves un auto rojo, la librería funciona.</span>
-            </div>
             <div>
                 <button class="btn btn-sm btn-outline-info me-2" onclick="abrirEstadisticas()">
                     <i class="fas fa-chart-bar"></i>
@@ -966,6 +962,67 @@
                         </div>
                     </div>
 
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="btn btn-warning rounded-circle shadow-lg d-flex align-items-center justify-content-center" 
+            style="position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; z-index: 1050;"
+            data-bs-toggle="modal" data-bs-target="#modalGastoRapido">
+        <i class="fa-solid fa-minus fa-xl text-dark"></i>
+    </button>
+
+    <div class="modal fade" id="modalGastoRapido" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content bg-dark text-white border-danger shadow">
+                <div class="modal-header border-secondary pb-2">
+                    <h5 class="modal-title text-danger fw-bold"><i class="fa-solid fa-bolt me-2"></i>Gasto Rápido</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    
+                    <div class="mb-3 text-center">
+                        <label class="small text-muted mb-1">¿Cuánto salió del bolsillo?</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-black text-danger border-secondary">S/</span>
+                            <input type="number" id="montoGastoRapido" class="form-control bg-black text-white border-secondary fw-bold text-center fs-2" placeholder="0.00" inputmode="decimal">
+                        </div>
+                    </div>
+
+                    <label class="small text-muted mb-2 d-block text-center">Selecciona Categoría:</label>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="catGasto" id="catGasolina" value="Gasolina" checked>
+                            <label class="btn btn-outline-warning w-100 py-3" for="catGasolina">
+                                <i class="fa-solid fa-gas-pump fa-lg d-block mb-1"></i>Gasolina
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="catGasto" id="catComida" value="Comida">
+                            <label class="btn btn-outline-success w-100 py-3" for="catComida">
+                                <i class="fa-solid fa-utensils fa-lg d-block mb-1"></i>Comida
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="catGasto" id="catTaller" value="Mecánica">
+                            <label class="btn btn-outline-secondary w-100 py-3" for="catTaller">
+                                <i class="fa-solid fa-wrench fa-lg d-block mb-1"></i>Taller
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="catGasto" id="catOtro" value="Otros">
+                            <label class="btn btn-outline-light w-100 py-3" for="catOtro">
+                                <i class="fa-solid fa-receipt fa-lg d-block mb-1"></i>Otro
+                            </label>
+                        </div>
+                    </div>
+
+                    <input type="text" id="notaGastoRapido" class="form-control bg-dark text-white border-secondary form-control-sm mb-3" placeholder="Nota opcional (Ej: Menú chifa)">
+
+                    <button class="btn btn-danger w-100 fw-bold py-2" onclick="enviarGastoRapido()">
+                        REGISTRAR GASTO <i class="fa-solid fa-check ms-2"></i>
+                    </button>
                 </div>
             </div>
         </div>

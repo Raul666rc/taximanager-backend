@@ -94,7 +94,7 @@ class FinanzasController {
     }
 
     // ==========================================
-    // 2. TRANSACCIONES Y MOVIMIENTOS
+    // 2. TRANSACCIONES Y MOVIMIENTOS Y GASTOS RAPIDOS
     // ==========================================
     
     // Registrar Gasto o Ingreso Manual
@@ -203,6 +203,38 @@ class FinanzasController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Error al listar movimientos" });
+        }
+    }
+
+    // Registrar un Gasto Rápido (Sale siempre de Efectivo/Bolsillo)
+    static async registrarGastoRapido(req, res) {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const { monto, categoria, nota } = req.body;
+            const cuentaId = 1; // ID 1 = Efectivo (Bolsillo)
+
+            if (!monto || monto <= 0) throw new Error("Monto inválido");
+
+            // 1. Restar del Saldo (Efectivo)
+            await connection.query("UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?", [monto, cuentaId]);
+
+            // 2. Registrar Transacción
+            await connection.query(`
+                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, categoria) 
+                VALUES ('GASTO', ?, ?, ?, NOW(), ?)
+            `, [monto, nota || categoria, cuentaId, categoria]);
+
+            await connection.commit();
+            res.json({ success: true, message: "Gasto registrado" });
+
+        } catch (error) {
+            await connection.rollback();
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al registrar gasto" });
+        } finally {
+            connection.release();
         }
     }
 

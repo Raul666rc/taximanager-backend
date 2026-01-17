@@ -2229,6 +2229,64 @@ async function cargarMovimientos() {
     }
 }
 
+// ==========================================
+// 8. ENVIAR GASTO RÁPIDO (PIT STOP)
+// ==========================================
+async function enviarGastoRapido() {
+    const monto = parseFloat(document.getElementById('montoGastoRapido').value);
+    const notaInput = document.getElementById('notaGastoRapido').value;
+    
+    // Obtener categoría seleccionada (Radio Buttons)
+    const categoria = document.querySelector('input[name="catGasto"]:checked').value;
+    
+    // Si eligió "Otros" y puso nota, usamos la nota como descripción principal
+    const notaFinal = notaInput || categoria;
+
+    if (!monto || monto <= 0) return notificar("Ingresa un monto válido", "error");
+
+    const btn = document.querySelector('button[onclick="enviarGastoRapido()"]');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/finanzas/gasto-rapido`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ monto, categoria, nota: notaFinal })
+        });
+        
+        const data = await res.json();
+
+        if (data.success) {
+            notificar(`✅ Gasto de S/ ${monto} registrado`, "success");
+            
+            // Cerrar modal y limpiar
+            bootstrap.Modal.getInstance(document.getElementById('modalGastoRapido')).hide();
+            document.getElementById('montoGastoRapido').value = '';
+            document.getElementById('notaGastoRapido').value = '';
+            // Resetear a Gasolina por defecto
+            document.getElementById('catGasolina').checked = true;
+
+            // Actualizar dashboard (Historial y Saldos)
+            if (typeof cargarMovimientos === 'function') cargarMovimientos();
+            if (typeof cargarResumenDia === 'function') cargarResumenDia();
+            
+            // Si el modal de Billetera estuviera abierto, lo cerramos para obligar a recargar si lo abres de nuevo
+            // Opcional: podrías llamar a abrirBilletera() si quisieras actualizarlo en vivo.
+
+        } else {
+            notificar(data.message || "Error al registrar", "error");
+        }
+    } catch (e) {
+        console.error(e);
+        notificar("Error de conexión", "error");
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+    }
+}
+
 // INIT
 window.onload = function() {
     // 1. Recuperar sesión
