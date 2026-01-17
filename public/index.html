@@ -316,6 +316,26 @@
 
     </div>
 
+    <div class="card bg-dark text-white border-secondary shadow mb-4">
+        <div class="card-header border-secondary d-flex justify-content-between align-items-center py-2">
+            <h6 class="mb-0 fw-bold text-uppercase small text-muted">
+                <i class="fas fa-history me-2"></i>Últimos Movimientos
+            </h6>
+            <button class="btn btn-sm btn-outline-secondary py-0" onclick="cargarMovimientos()">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+        
+        <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+            <div id="listaMovimientosHome" class="list-group list-group-flush">
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p class="small mt-2">Cargando historial...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalCobrar" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-secondary">

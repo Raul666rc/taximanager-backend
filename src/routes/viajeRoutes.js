@@ -78,6 +78,7 @@ router.get('/reparto/sugerencia', FinanzasController.obtenerSugerenciaReparto);
 router.get('/finanzas/cierre-datos', FinanzasController.obtenerDatosCierre);
 router.post('/finanzas/cierre-ajuste', FinanzasController.procesarAjusteCaja);
 router.get('/finanzas/cuentas', FinanzasController.listarCuentas);
+router.get('/finanzas/movimientos', FinanzasController.listarMovimientos);
 
 // Ruta para descargar el Excel/CSV
 router.get('/reporte/descargar', ViajeController.descargarReporte);

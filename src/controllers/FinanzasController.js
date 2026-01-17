@@ -188,6 +188,24 @@ class FinanzasController {
         }
     }
 
+    // Listar los últimos 20 movimientos con detalle de cuenta
+    static async listarMovimientos(req, res) {
+        try {
+            // Hacemos un JOIN para traer el nombre de la cuenta junto con la transacción
+            const [rows] = await db.query(`
+                SELECT t.id, t.tipo, t.monto, t.descripcion, t.fecha, t.categoria, c.nombre as nombre_cuenta
+                FROM transacciones t
+                LEFT JOIN cuentas c ON t.cuenta_id = c.id
+                ORDER BY t.fecha DESC
+                LIMIT 20
+            `);
+            res.json({ success: true, data: rows });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, message: "Error al listar movimientos" });
+        }
+    }
+
     // ==========================================
     // 3. OBLIGACIONES Y COMPROMISOS (Deudas)
     // ==========================================

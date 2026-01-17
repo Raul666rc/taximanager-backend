@@ -2149,6 +2149,77 @@ async function realizarTransferencia() {
     }
 }
 
+// ==========================================
+// 7. CARGAR HISTORIAL (PANTALLA PRINCIPAL)
+// ==========================================
+async function cargarMovimientos() {
+    // CAMBIO AQUÍ 👇: Buscamos el nuevo ID único
+    const contenedor = document.getElementById('listaMovimientosHome');
+    
+    if (!contenedor) return; // Si no estamos en el home, no pasa nada
+
+    try {
+        const res = await fetch(`${API_URL}/finanzas/movimientos`);
+        const result = await res.json();
+
+        if (result.success) {
+            let html = '';
+            
+            if (result.data.length === 0) {
+                contenedor.innerHTML = '<div class="text-center py-3 text-muted">No hay movimientos aún.</div>';
+                return;
+            }
+
+            result.data.forEach(m => {
+                // ... (Toda la lógica de iconos e IFs sigue IGUAL) ...
+                let icono = 'fa-arrow-down';
+                let colorIcono = 'bg-danger';
+                let colorTexto = 'text-danger';
+                let signo = '-';
+                
+                if (m.tipo === 'INGRESO') {
+                    icono = 'fa-arrow-up'; colorIcono = 'bg-success'; colorTexto = 'text-success'; signo = '+';
+                }
+                const esTransferencia = m.categoria && m.categoria.includes('Transferencia');
+                if (esTransferencia) {
+                    icono = 'fa-exchange-alt'; colorIcono = 'bg-info'; colorTexto = 'text-info'; signo = '';
+                }
+
+                const fechaObj = new Date(m.fecha);
+                const fechaStr = fechaObj.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+                const horaStr = fechaObj.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+                html += `
+                <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center px-3 py-2">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle ${colorIcono} d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 35px; height: 35px;">
+                            <i class="fas ${icono} text-white small"></i>
+                        </div>
+                        <div style="line-height: 1.2;">
+                            <div class="text-white fw-bold small text-uppercase mb-0 text-truncate" style="max-width: 180px;">
+                                ${m.descripcion}
+                            </div>
+                            <small class="text-muted" style="font-size: 0.7rem;">
+                                ${fechaStr} • ${horaStr} | <span class="text-secondary">${m.nombre_cuenta || 'General'}</span>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="${colorTexto} fw-bold" style="font-size: 0.95rem;">
+                            ${signo} S/ ${parseFloat(m.monto).toFixed(2)}
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            contenedor.innerHTML = html;
+        }
+    } catch (e) {
+        console.error("Error historial home:", e);
+        contenedor.innerHTML = '<div class="text-center py-3 text-danger">Error datos.</div>';
+    }
+}
+
 // INIT
 window.onload = function() {
     // 1. Recuperar sesión
@@ -2161,7 +2232,8 @@ window.onload = function() {
     cargarEstadoVehiculo();
     
     // 3. Cargar el badge rojo al inicio
-    cargarObligaciones(); 
+    cargarObligaciones();
+    cargarMovimientos();
 
     // --- NUEVO: DETECTAR CUANDO CIERRAS EL MODAL DE CONTRATOS ---
     const modalContratosEl = document.getElementById('modalContratos');
