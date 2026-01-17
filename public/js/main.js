@@ -981,7 +981,7 @@ async function abrirBilletera(periodo = 'mes') {
     } catch (e) { console.error(e); }
 }
 
-// MEJORA V2: Dona más gruesa y texto ajustado
+// MEJORA V3: Texto perfectamente centrado (Versión Final)
 function dibujarDona(stats) {
     const canvas = document.getElementById('graficoApps');
     if (!canvas) return;
@@ -1001,31 +1001,40 @@ function dibujarDona(stats) {
         return '#495057';                      
     });
 
-    // --- PLUGIN AJUSTADO ---
+    // --- PLUGIN CON MATEMÁTICA CORREGIDA ---
     const centerTextPlugin = {
         id: 'centerText',
         beforeDraw: function(chart) {
-            const width = chart.width, height = chart.height, ctx = chart.ctx;
+            const { ctx, chartArea: { top, bottom, left, right } } = chart;
             ctx.restore();
             
-            // 1. Texto "Total" (Lo hacemos más pequeño)
-            // Antes dividíamos entre 114, ahora entre 140 para que la letra sea menor
-            const fontSizeLabel = (height / 140).toFixed(2);
+            // 1. Calculamos el centro EXACTO del área de la dona
+            const centerX = (left + right) / 2;
+            const centerY = (top + bottom) / 2;
+
+            // 2. Configuración de Fuente y Color para "Total"
+            // Usamos la altura del área del gráfico para calcular el tamaño de letra
+            const chartHeight = bottom - top;
+            const fontSizeLabel = (chartHeight / 140).toFixed(2);
             ctx.font = `bold ${fontSizeLabel}em sans-serif`;
             ctx.textBaseline = "middle";
             ctx.fillStyle = "#adb5bd"; 
-            const textLabel = "Total"; // Acortamos "Total Ingresos" a "Total" para ahorrar espacio
-            const textXLabel = Math.round((width - ctx.measureText(textLabel).width) / 2);
-            ctx.fillText(textLabel, textXLabel, height / 2 - 12);
+            const textLabel = "Total";
 
-            // 2. Monto (Ajustado)
-            // Antes dividíamos entre 80, ahora entre 100
-            const fontSizeMonto = (height / 100).toFixed(2); 
+            // 3. Dibujar "Total" (Arriba del centro)
+            // Restamos la mitad del ancho del texto a la coordenada X central
+            const textXLabel = Math.round(centerX - (ctx.measureText(textLabel).width / 2));
+            ctx.fillText(textLabel, textXLabel, centerY - 12);
+
+            // 4. Configuración para el Monto
+            const fontSizeMonto = (chartHeight / 100).toFixed(2); 
             ctx.font = `bold ${fontSizeMonto}em sans-serif`;
             ctx.fillStyle = "#ffffff"; 
             const textMonto = `S/ ${totalGeneral.toFixed(0)}`;
-            const textXMonto = Math.round((width - ctx.measureText(textMonto).width) / 2);
-            ctx.fillText(textMonto, textXMonto, height / 2 + 12);
+
+            // 5. Dibujar Monto (Abajo del centro)
+            const textXMonto = Math.round(centerX - (ctx.measureText(textMonto).width / 2));
+            ctx.fillText(textMonto, textXMonto, centerY + 12);
             
             ctx.save();
         }
@@ -1040,7 +1049,7 @@ function dibujarDona(stats) {
                 backgroundColor: colors, 
                 borderWidth: 0,
                 hoverOffset: 10,
-                cutout: '60%' // <--- CAMBIO CLAVE: Aquí engrosamos la dona (antes 75%)
+                cutout: '60%' 
             }] 
         },
         options: { 
@@ -1048,12 +1057,12 @@ function dibujarDona(stats) {
             maintainAspectRatio: false,
             plugins: { 
                 legend: { 
-                    position: 'right', // Movemos leyenda a la derecha para dar más aire vertical
+                    position: 'right',
                     labels: { 
                         color: 'white', 
                         usePointStyle: true,
                         padding: 15,
-                        font: { size: 11 } // Letra de leyenda más pequeña
+                        font: { size: 11 }
                     } 
                 },
                 tooltip: {
