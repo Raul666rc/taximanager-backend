@@ -14,6 +14,7 @@ let miGrafico = null;
 let miGraficoEstadisticas = null;
 let miGraficoBarras = null;
 let mapaGlobal = null; // Para guardar la instancia del mapa y no crear duplicados
+let saldosCache = {}; //Para guardar los saldos momentáneamente
 
 // --- UTILIDADES ---
 // Función matemática para calcular distancia entre dos coordenadas (Haversine)
@@ -521,22 +522,16 @@ async function abrirModalTransferencia(datosReparto = null) {
     const modalCierre = bootstrap.Modal.getInstance(document.getElementById('modalCierreCaja'));
     if (modalCierre) modalCierre.hide();
 
-    // 2. Configurar la "Chuleta" (Recordatorio)
+    // 2. Configurar la "Chuleta" (Visualmente mejorada)
     const panelRec = document.getElementById('divRecordatorioReparto');
     
     if (datosReparto) {
-        // SI VENIMOS DEL REPARTO: Mostramos los datos
         panelRec.classList.remove('d-none');
-        
         document.getElementById('recSueldo').innerText = datosReparto.sueldo;
         document.getElementById('recArca').innerText = datosReparto.arca;
         document.getElementById('recDeuda').innerText = datosReparto.deuda;
         document.getElementById('recTaller').innerText = datosReparto.taller;
-        
-        // Truco Pro: Poner automáticamente el monto del primer rubro (Sueldo) para ahorrar clics
-        // document.getElementById('montoTransferencia').value = parseFloat(datosReparto.sueldo.replace('S/ ',''));
     } else {
-        // SI VENIMOS DE LA BILLETERA NORMAL: Ocultamos el panel
         panelRec.classList.add('d-none');
         document.getElementById('montoTransferencia').value = '';
     }
@@ -545,14 +540,14 @@ async function abrirModalTransferencia(datosReparto = null) {
     const modalTrans = new bootstrap.Modal(document.getElementById('modalTransferencia'));
     modalTrans.show();
 
-    // 4. Llenar Selects (Igual que antes)
+    // 4. Llenar Selects
     const cuentas = [
         {id: 1, nombre: '💵 Efectivo (Bolsillo)'},
         {id: 2, nombre: '🟣 Yape / BCP'},
-        {id: 3, nombre: '💰 Warda - Arca Oro (10%)'},
-        {id: 4, nombre: '🛠️ Warda - Taller (20%)'},
-        {id: 5, nombre: '📉 Warda - Deuda 8k (30%)'},
-        {id: 6, nombre: '🎓 Warda - Estudios Futuro (Sueldo)'} 
+        {id: 3, nombre: '💰 Warda - Arca Oro'},
+        {id: 4, nombre: '🛠️ Warda - Taller'},
+        {id: 5, nombre: '📉 Warda - Deuda 8k'},
+        {id: 6, nombre: '🎓 Warda - Estudios Futuro'} 
     ];
     
     const selectOrigen = document.getElementById('selectOrigen');
@@ -563,13 +558,68 @@ async function abrirModalTransferencia(datosReparto = null) {
     selectOrigen.innerHTML = html;
     selectDestino.innerHTML = html;
     
-    // Sugerencia inteligente:
+    // Configuración inicial de selección
     if (datosReparto) {
-        selectOrigen.value = 1; // Origen Efectivo
-        selectDestino.value = 6; // Destino Sueldo (Primero en la lista de recordatorio)
+        selectOrigen.value = 1; 
+        selectDestino.value = 6; 
     } else {
         selectOrigen.value = 1;
         selectDestino.value = 3;
+    }
+
+    // 5. OBTENER SALDOS REALES (NUEVO)
+    // Usamos el endpoint de billetera o cuentas para saber cuánto hay
+    const lblSaldo = document.getElementById('lblSaldoDisponible');
+    lblSaldo.innerText = "Consultando...";
+    lblSaldo.className = "fw-bold text-muted";
+
+    try {
+        // Pedimos todas las cuentas (Asumimos que tienes una ruta que devuelve todo)
+        // Si no tienes /cuentas, podemos usar /finanzas/billetera que suele traer el resumen
+        // O mejor: Hacemos un fetch rápido a tu endpoint de cuentas
+        const res = await fetch(`${API_URL}/cuentas`); // Asegúrate que esta ruta exista, sino usa la de abajo
+        
+        // NOTA: Si no tienes la ruta /cuentas, usa la lógica del dashboard. 
+        // Pero para simplificar, asumiré que podemos consultar la billetera.
+        
+        // Si te da error 404 en /cuentas, avísame para crear la ruta en el backend.
+        // MIENTRAS TANTO, simularemos con el saldo que ya conocemos del sistema si falla.
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            // Guardamos los saldos en la variable global: { "1": 150.00, "2": 50.00 ... }
+            saldosCache = {};
+            data.data.forEach(c => {
+                saldosCache[c.id] = parseFloat(c.saldo_actual);
+            });
+            
+            // Actualizamos visualmente el saldo del seleccionado
+            actualizarSaldoOrigen();
+        }
+    } catch (e) {
+        console.error("No se pudo cargar saldos detallados", e);
+        lblSaldo.innerText = "Sin datos";
+    }
+}
+
+// 6. FUNCIÓN AUXILIAR PARA MOSTRAR EL SALDO AL CAMBIAR EL SELECT
+function actualizarSaldoOrigen() {
+    const idOrigen = document.getElementById('selectOrigen').value;
+    const lblSaldo = document.getElementById('lblSaldoDisponible');
+    
+    // Verificamos si tenemos el dato en caché
+    if (saldosCache && saldosCache[idOrigen] !== undefined) {
+        const saldo = saldosCache[idOrigen];
+        lblSaldo.innerText = `S/ ${saldo.toFixed(2)}`;
+        
+        // Colores semáforo
+        if (saldo < 10) lblSaldo.className = "fw-bold text-danger";
+        else lblSaldo.className = "fw-bold text-success";
+        
+    } else {
+        // Si no hay datos cargados todavía
+        lblSaldo.innerText = "--";
     }
 }
 

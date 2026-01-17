@@ -377,7 +377,9 @@ class FinanzasController {
         }
     }
 
-
+    // ==========================================
+    //  REPARTO
+    // ==========================================
     // Acción: Calcular el monto sugerido para el reparto (Cierre del día)
     static async obtenerSugerenciaReparto(req, res) {
         try {
@@ -417,6 +419,16 @@ class FinanzasController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Error al calcular reparto" });
+        }
+    }
+
+    // Obtener lista de todas las cuentas con sus saldos
+    static async listarCuentas(req, res) {
+        try {
+            const [rows] = await db.query("SELECT id, nombre_cuenta, saldo_actual FROM cuentas");
+            res.json({ success: true, data: rows });
+        } catch (error) {
+            res.status(500).json({ success: false, message: "Error" });
         }
     }
     
