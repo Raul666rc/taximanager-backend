@@ -379,30 +379,49 @@ async function cargarMetaDiaria() {
             const gananciaHoy = parseFloat(data.ganancia_hoy) || 0; 
             const meta = parseFloat(data.meta_diaria) || 200;
 
+            // Cálculos
             let porcentaje = (gananciaHoy / meta) * 100;
             if (porcentaje > 100) porcentaje = 100;
+            if (porcentaje < 0) porcentaje = 0;
 
-            document.getElementById('txtProgreso').innerText = `S/ ${gananciaHoy.toFixed(0)} / ${meta}`;
-            document.getElementById('txtPorcentaje').innerText = `${porcentaje.toFixed(0)}%`;
+            // --- AQUÍ ESTABA EL ERROR: ACTUALIZAMOS LOS IDs ---
+
+            // 1. El número grande (Ganancia Hoy)
+            const elTotal = document.getElementById('lblTotalDia');
+            if (elTotal) elTotal.innerText = gananciaHoy.toFixed(2);
+
+            // 2. La etiqueta pequeña de la meta (Abajo a la izquierda)
+            const elMetaNum = document.getElementById('lblMetaNum');
+            if (elMetaNum) elMetaNum.innerText = `Meta: S/ ${meta}`;
+
+            // 3. El Badge del porcentaje (Arriba a la derecha)
+            const elPorc = document.getElementById('lblPorcentaje');
+            if (elPorc) elPorc.innerText = `${porcentaje.toFixed(0)}%`;
             
+            // 4. La Barra de Progreso
             const barra = document.getElementById('barraMeta');
-            barra.style.width = `${porcentaje}%`;
+            if (barra) {
+                barra.style.width = `${porcentaje}%`;
+                barra.className = 'progress-bar progress-bar-striped progress-bar-animated fw-bold';
+                
+                // Colores de la barra según progreso
+                if (porcentaje < 20) barra.classList.add('bg-warning', 'text-dark');
+                else if (porcentaje < 80) barra.classList.add('bg-info', 'text-dark');
+                else barra.classList.add('bg-success');
+            }
 
-            barra.className = 'progress-bar progress-bar-striped progress-bar-animated fw-bold';
-            const frase = document.getElementById('fraseMotivacional');
-
-            if (porcentaje < 20) {
-                barra.classList.add('bg-warning', 'text-dark');
-                frase.innerText = "☕ Arrancando motores (Hora Perú 🇵🇪)";
-            } else if (porcentaje < 80) {
-                barra.classList.add('bg-info', 'text-dark');
-                frase.innerText = "🚕 A buen ritmo.";
-            } else {
-                barra.classList.add('bg-success');
-                frase.innerText = "🎉 ¡META CUMPLIDA!";
+            // 5. La Frase Motivacional (Abajo a la derecha)
+            const frase = document.getElementById('lblFrase');
+            if (frase) {
+                if (porcentaje < 20) frase.innerText = "☕ Arrancando motores...";
+                else if (porcentaje < 50) frase.innerText = "🚕 Vamos sumando.";
+                else if (porcentaje < 80) frase.innerText = "🔥 ¡Ya casi llegas!";
+                else frase.innerText = "🎉 ¡META CUMPLIDA!";
             }
         }
-    } catch (error) { console.error("Error meta:", error); }
+    } catch (error) { 
+        console.error("Error meta:", error); 
+    }
 }
 
 // 2. FUNCIÓN PARA CAMBIAR LA META (CLICK EN LA TARJETA)
