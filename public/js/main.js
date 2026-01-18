@@ -2483,6 +2483,63 @@ async function enviarGastoRapido() {
     }
 }
 
+// ==========================================
+// MÓDULO CONTROL DE METAS
+// ==========================================
+async function cargarControlMetas() {
+    const contenedor = document.getElementById('contenedorMetas');
+    if (!contenedor) return;
+
+    try {
+        const res = await fetch(`${API_URL}/finanzas/metas`); // Llama a tu nuevo Controller
+        const result = await res.json();
+
+        if (result.success) {
+            const metas = result.data;
+            if (metas.length === 0) {
+                contenedor.innerHTML = '<div class="text-center text-muted small">Sin objetivos.</div>';
+                return;
+            }
+
+            let html = '';
+            metas.forEach(m => {
+                let colorBarra = 'bg-danger';
+                let frase = '¡A llenar el chanchito! 🐖';
+                
+                if (m.porcentaje > 25) { colorBarra = 'bg-warning'; frase = 'Buen comienzo... 🧱'; }
+                if (m.porcentaje > 50) { colorBarra = 'bg-info'; frase = '¡Mitad de camino! 🔥'; }
+                if (m.porcentaje > 80) { colorBarra = 'bg-success'; frase = '¡Ya casi! 🎯'; }
+                if (m.porcentaje >= 100) { frase = '¡LOGRADO! 🏆'; }
+
+                // Limpiamos el nombre para que no salga el icono repetido si ya lo tiene la cuenta
+                const nombreLimpio = m.nombre.replace(/💰|📉|🛠️|🎓/g, '').trim();
+
+                html += `
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-end mb-1">
+                        <div>
+                            <div class="small fw-bold text-white text-uppercase">${nombreLimpio}</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Meta: S/ ${m.total.toLocaleString()}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-white">S/ ${m.ahorrado.toLocaleString()}</div>
+                            <div class="text-danger small fw-bold" style="font-size: 0.7rem;">Falta: S/ ${m.restante.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="progress bg-secondary bg-opacity-25" style="height: 12px; border-radius: 6px;">
+                        <div class="progress-bar ${colorBarra} progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${m.porcentaje}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <small class="text-white" style="font-size: 0.7rem;">${m.porcentaje}%</small>
+                        <small class="text-muted fst-italic" style="font-size: 0.7rem;">${frase}</small>
+                    </div>
+                </div>`;
+            });
+            contenedor.innerHTML = html;
+        }
+    } catch (e) { console.error(e); }
+}
+
 // INIT
 window.onload = function() {
     // 1. Recuperar sesión
@@ -2491,6 +2548,7 @@ window.onload = function() {
     // 2. Cargar datos iniciales
     cargarMetaDiaria();
     cargarHistorial();
+    cargarControlMetas();
     
     cargarEstadoVehiculo();
     

@@ -10,6 +10,7 @@ const AuthController = require('../controllers/AuthController');
 const ReporteController = require('../controllers/ReporteController');
 
 const VehiculoController = require('../controllers/VehiculoController');
+const MetasController = require('../controllers/MetasController');
 
 // Definimos las URLs
 // POST http://localhost:3000/api/viajes/iniciar
@@ -80,6 +81,8 @@ router.post('/finanzas/cierre-ajuste', FinanzasController.procesarAjusteCaja);
 router.get('/finanzas/cuentas', FinanzasController.listarCuentas);
 router.get('/finanzas/movimientos', FinanzasController.listarMovimientos);
 router.post('/finanzas/gasto-rapido', FinanzasController.registrarGastoRapido);
+
+router.get('/finanzas/metas', MetasController.obtenerEstadoMetas);
 
 // Ruta para descargar el Excel/CSV
 router.get('/reporte/descargar', ViajeController.descargarReporte);
