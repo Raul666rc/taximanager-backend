@@ -91,6 +91,7 @@ router.get('/vehiculo', VehiculoController.obtenerEstado);
 router.post('/vehiculo/actualizar', VehiculoController.actualizarKilometraje);
 router.post('/vehiculo/mantenimiento', VehiculoController.registrarCambioAceite);
 router.post('/vehiculo/documentos', VehiculoController.guardarDocumentos);
+router.post('/vehiculo/mantenimiento/:id', VehiculoController.registrarMantenimientoParte);
 
 
 module.exports = router;

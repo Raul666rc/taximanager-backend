@@ -1612,6 +1612,10 @@ function toggleTipoCompromiso() {
 // ==========================================
 
 // 1. OBTENER ESTADO DEL AUTO (GET)
+// ==========================================
+// MÓDULO DE MI AUTO (MEJORADO)
+// ==========================================
+
 async function cargarEstadoVehiculo() {
     try {
         const res = await fetch(`${API_URL}/vehiculo`); 
@@ -1620,7 +1624,7 @@ async function cargarEstadoVehiculo() {
         if (result.success) {
             const d = result.data;
             
-            // 1. MECÁNICA (Esto sigue igual)
+            // 1. DASHBOARD PRINCIPAL (Tal como te gusta, NO TOCAMOS NADA VISUAL)
             document.getElementById('lblOdometro').innerText = d.odometro.toLocaleString();
             document.getElementById('lblProximoCambio').innerText = d.proximo_cambio.toLocaleString();
             
@@ -1639,14 +1643,93 @@ async function cargarEstadoVehiculo() {
                 barra.classList.add('bg-danger'); alerta.style.display = 'block';
             }
 
-            // 2. LEGAL (NUEVO: Llamamos a la función semáforo)
+            // 2. DOCUMENTOS (Igual que antes)
             analizarDocumento('Soat', d.fecha_soat);
             analizarDocumento('Revision', d.fecha_revision);
             analizarDocumento('Gnv', d.fecha_gnv);
+
+            // 3. NUEVO: LLENAR EL MODAL DE DETALLES (LISTA COMPLETA) 
+
+            const contenedorLista = document.getElementById('listaMantenimientosContainer');
+            if (contenedorLista && d.partes) {
+                let html = '';
+                
+                d.partes.forEach(p => {
+                    // Opcional: No mostrar "Aceite de Motor" aquí si ya está en el dashboard
+                    // if (p.nombre.includes('Aceite de Motor')) return;
+
+                    let colorBarra = 'bg-success';
+                    let colorIcono = 'text-success';
+                    let textoEstado = 'OK';
+                    let botonReset = '';
+
+                    if (p.estado_visual === 'alerta') {
+                        colorBarra = 'bg-warning text-dark'; colorIcono = 'text-warning'; textoEstado = 'Atención';
+                    } else if (p.estado_visual === 'vencido') {
+                        colorBarra = 'bg-danger'; colorIcono = 'text-danger'; textoEstado = 'Vencido';
+                        // Botón Check para resetear
+                        botonReset = `
+                            <button class="btn btn-sm btn-outline-light ms-2" onclick="resetearParte(${p.id}, '${p.nombre}')">
+                                <i class="fas fa-check"></i>
+                            </button>`;
+                    }
+
+                    html += `
+                    <div class="mb-2 pb-2 border-bottom border-secondary">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3 text-center" style="width: 25px;">
+                                    <i class="fas ${p.icono} ${colorIcono} fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-white small">${p.nombre}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">Cada ${p.frecuencia_km.toLocaleString()} km</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="text-end me-2">
+                                    <div class="${colorIcono} fw-bold small">${p.km_restantes} km</div>
+                                    <div style="font-size: 0.65rem;" class="text-muted">${textoEstado}</div>
+                                </div>
+                                ${botonReset}
+                            </div>
+                        </div>
+                        <div class="progress bg-dark" style="height: 4px;">
+                            <div class="progress-bar ${colorBarra}" role="progressbar" style="width: ${p.porcentaje_vida}%"></div>
+                        </div>
+                    </div>`;
+                });
+                contenedorLista.innerHTML = html;
+            }
         }
-    } catch (e) {
-        console.error("Error cargando vehículo:", e);
-    }
+    } catch (e) { console.error(e); }
+}
+
+// NUEVA FUNCIÓN: Resetear parte específica desde el modal
+async function resetearParte(idParte, nombre) {
+    if(!confirm(`¿Ya realizaste el mantenimiento de: ${nombre}?`)) return;
+    
+    // Obtenemos el KM actual del HTML como sugerencia
+    const actualTexto = document.getElementById('lblOdometro').innerText.replace(/,/g, '');
+    const sugerencia = parseInt(actualTexto) || 0;
+
+    const nuevoKm = prompt(`Ingresa el Kilometraje Actual del Tablero:`, sugerencia);
+    if(!nuevoKm) return;
+
+    try {
+        const res = await fetch(`${API_URL}/vehiculo/mantenimiento/${idParte}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nuevo_km: parseInt(nuevoKm) })
+        });
+        
+        if (res.ok) {
+            notificar("✅ Mantenimiento registrado", "exito");
+            cargarEstadoVehiculo(); // Recarga todo
+        } else {
+            notificar("Error al guardar", "error");
+        }
+    } catch (e) { console.error(e); }
 }
 
 // 2. ACTUALIZAR KILOMETRAJE (POST)
