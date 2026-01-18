@@ -2484,8 +2484,9 @@ async function enviarGastoRapido() {
 }
 
 // ==========================================
-// MÓDULO CONTROL DE METAS (CON EDICIÓN)
+// MÓDULO CONTROL DE METAS (CON MODAL PRO)
 // ==========================================
+
 async function cargarControlMetas() {
     const contenedor = document.getElementById('contenedorMetas');
     if (!contenedor) return;
@@ -2513,7 +2514,6 @@ async function cargarControlMetas() {
 
                 const nombreLimpio = m.nombre.replace(/💰|📉|🛠️|🎓/g, '').trim();
 
-                // NOTA: En este HTML agregamos el botón del LAPIZ (edit)
                 html += `
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-end mb-1">
@@ -2522,8 +2522,8 @@ async function cargarControlMetas() {
                             
                             <div class="text-muted d-flex align-items-center" style="font-size: 0.7rem;">
                                 Meta: S/ ${m.total.toLocaleString()}
-                                <button class="btn btn-link p-0 ms-2 text-warning" 
-                                        onclick="editarMetaObjetivo(${m.id}, '${nombreLimpio}', ${m.total})" 
+                                <button class="btn btn-link p-0 ms-2 text-info" 
+                                        onclick="abrirModalMeta(${m.id}, '${nombreLimpio}', ${m.total})" 
                                         style="font-size: 0.8rem; text-decoration: none;">
                                     <i class="fas fa-pencil-alt"></i>
                                 </button>
@@ -2549,18 +2549,40 @@ async function cargarControlMetas() {
     } catch (e) { console.error(e); }
 }
 
-// NUEVA FUNCIÓN: Abrir prompt para cambiar la meta
-// Recibe "m.id" que viene de la query SQL (c.id), es decir, el ID de la CUENTA (ej: 4, 5, 6)
-async function editarMetaObjetivo(cuentaId, nombre, montoActual) {
-    const nuevoMonto = prompt(`✏️ EDITAR FONDO: ${nombre}\n\nActualmente el tope es: S/ ${montoActual}\n\nIngresa el nuevo monto objetivo:`, montoActual);
+// 1. ABRIR EL MODAL (PREPARAR DATOS)
+function abrirModalMeta(cuentaId, nombre, montoActual) {
+    // Llenamos los campos ocultos y visibles
+    document.getElementById('hdnCuentaIdMeta').value = cuentaId;
+    document.getElementById('lblNombreCuentaMeta').innerText = nombre;
+    document.getElementById('inputNuevaMeta').value = montoActual;
+
+    // Abrimos Modal
+    const modal = new bootstrap.Modal(document.getElementById('modalEditarMeta'));
+    modal.show();
+
+    // Enfocar input
+    setTimeout(() => document.getElementById('inputNuevaMeta').select(), 500);
+}
+
+// 2. GUARDAR EL CAMBIO (ENVIAR AL SERVIDOR)
+async function guardarMetaEditada() {
+    const cuentaId = document.getElementById('hdnCuentaIdMeta').value;
+    const nuevoMonto = document.getElementById('inputNuevaMeta').value;
 
     if (nuevoMonto && !isNaN(nuevoMonto) && nuevoMonto > 0) {
+        
+        // Efecto visual de carga
+        const btn = document.querySelector('button[onclick="guardarMetaEditada()"]');
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+        btn.disabled = true;
+
         try {
             const res = await fetch(`${API_URL}/finanzas/metas/editar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    cuenta_id: cuentaId, // Aquí mandamos el ID de la cuenta (ej: 4)
+                    cuenta_id: parseInt(cuentaId), 
                     nuevo_monto: parseFloat(nuevoMonto) 
                 })
             });
@@ -2568,16 +2590,27 @@ async function editarMetaObjetivo(cuentaId, nombre, montoActual) {
             const result = await res.json();
 
             if (result.success) {
-                notificar("✅ Meta actualizada", "exito");
-                cargarControlMetas(); // Recargamos solo esta sección
+                // Cerrar modal
+                const modalEl = document.getElementById('modalEditarMeta');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                notificar("✅ Objetivo actualizado", "exito");
+                cargarControlMetas(); // Recargar lista
             } else {
                 notificar("Error al actualizar", "error");
             }
         } catch (e) {
             notificar("Error de conexión", "error");
+        } finally {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
         }
+    } else {
+        notificar("Ingresa un monto válido", "error");
     }
 }
+
 
 // INIT
 window.onload = function() {
