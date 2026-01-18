@@ -276,7 +276,7 @@ async function guardarCarrera() {
                 // 2. Actualizar Dashboard en silencio
                 mostrarPanelInicio();
                 cargarHistorial();
-                cargarResumenDia();
+                //cargarResumenDia();
                 cargarMetaDiaria(); 
 
                 // 3. Restaurar botón (por si lo abres luego)
@@ -311,147 +311,167 @@ async function guardarCarrera() {
 }
 
 // --- CARGA DE DATOS ---
-
-// 1. ACTUALIZAR TARJETA Y FRASES
-async function cargarResumenDia() {
+// ==========================================
+// CARGAR TARJETA DE META (FUNCIÓN MAESTRA)
+// ==========================================
+async function cargarMetaDiaria() {
     try {
+        // Usamos la ruta /resumen que parece ser la más directa para esto
+        // Si prefieres usar /billetera, cámbialo, pero /resumen suele ser más ligero
         const response = await fetch(`${API_URL}/resumen`);
         const result = await response.json();
 
         if (result.success) {
-            const total = parseFloat(result.total);
-            const meta = parseFloat(result.meta) || 200; // 200 si es 0
+            const total = parseFloat(result.total) || 0;
+            const meta = parseFloat(result.meta) || 200;
 
-            // Actualizar Montos
-            document.getElementById('lblTotalDia').innerText = total.toFixed(2);
-            document.getElementById('lblMetaNum').innerText = `Meta: S/ ${meta.toFixed(0)}`;
-
-            // Calcular Porcentaje
-            let porcentaje = (total / meta) * 100;
-            if (porcentaje > 100) porcentaje = 100; // Tope visual
-
-            // Actualizar Barra y Badge
+            // 1. Validar existencia de elementos (Seguridad)
+            const elTotal = document.getElementById('lblTotalDia');
+            const elMetaNum = document.getElementById('lblMetaNum');
+            const elPorc = document.getElementById('lblPorcentaje');
             const barra = document.getElementById('barraMeta');
-            barra.style.width = `${porcentaje}%`;
-            document.getElementById('lblPorcentaje').innerText = `${(total/meta*100).toFixed(0)}%`;
-
-            // --- LÓGICA DE FRASES MOTIVACIONALES ---
             const lblFrase = document.getElementById('lblFrase');
+
+            if (!elTotal || !barra) return; // Si no estamos en el dashboard, salir
+
+            // 2. Actualizar Textos
+            elTotal.innerText = total.toFixed(2);
+            elMetaNum.innerText = `Meta: S/ ${meta.toFixed(0)}`;
+
+            // 3. Cálculos
+            let porcentaje = (total / meta) * 100;
+            if (porcentaje > 100) porcentaje = 100;
             
-            // Reiniciar colores
+            // 4. Actualizar Barra y Badge
+            barra.style.width = `${porcentaje}%`;
+            elPorc.innerText = `${(total/meta*100).toFixed(0)}%`;
+
+            // 5. Lógica Visual (Colores y Frases)
             barra.className = 'progress-bar progress-bar-striped progress-bar-animated';
+            elPorc.className = 'badge border border-secondary text-warning'; // Reset base
             
-            if (porcentaje < 10) {
+            // Quitamos clases de colores previos
+            barra.classList.remove('bg-danger', 'bg-warning', 'bg-info', 'bg-primary', 'bg-success');
+            
+            if (porcentaje < 15) {
                 barra.classList.add('bg-danger');
-                lblFrase.innerText = "¡Arrancamos motores! 🚦";
-                lblFrase.className = "text-muted small fst-italic";
+                elPorc.classList.add('bg-dark');
+                if(lblFrase) {
+                    lblFrase.innerText = "¡Arrancamos motores! 🚦";
+                    lblFrase.className = "text-muted small fst-italic";
+                }
             } else if (porcentaje < 40) {
                 barra.classList.add('bg-warning');
-                lblFrase.innerText = "¡Buen ritmo, sigue así! 🚕";
-                lblFrase.className = "text-white small fw-bold";
+                elPorc.classList.add('bg-dark');
+                if(lblFrase) {
+                    lblFrase.innerText = "¡Buen ritmo, sigue así! 🚕";
+                    lblFrase.className = "text-white small fw-bold";
+                }
             } else if (porcentaje < 75) {
                 barra.classList.add('bg-info');
-                lblFrase.innerText = "¡Ya pasamos la mitad! 💪";
-                lblFrase.className = "text-info small fw-bold";
+                elPorc.classList.add('bg-dark');
+                if(lblFrase) {
+                    lblFrase.innerText = "¡Ya pasamos la mitad! 💪";
+                    lblFrase.className = "text-info small fw-bold";
+                }
             } else if (porcentaje < 100) {
                 barra.classList.add('bg-primary');
-                lblFrase.innerText = "¡La meta está cerca! 🔥";
-                lblFrase.className = "text-warning small fw-bold";
+                elPorc.classList.add('bg-dark');
+                if(lblFrase) {
+                    lblFrase.innerText = "¡La meta está cerca! 🔥";
+                    lblFrase.className = "text-warning small fw-bold";
+                }
             } else {
                 barra.classList.add('bg-success');
-                lblFrase.innerText = "¡ERES UNA MÁQUINA! 🏆";
-                lblFrase.className = "text-success small fw-bold text-uppercase";
-                document.getElementById('lblPorcentaje').classList.replace('bg-dark', 'bg-success');
-                document.getElementById('lblPorcentaje').classList.add('text-white');
+                // Badge verde al ganar
+                elPorc.classList.remove('bg-dark');
+                elPorc.classList.add('bg-success', 'text-white');
+                if(lblFrase) {
+                    lblFrase.innerText = "¡ERES UNA MÁQUINA! 🏆";
+                    lblFrase.className = "text-success small fw-bold text-uppercase";
+                }
             }
         }
     } catch (e) {
-        console.error(e);
+        console.error("Error cargando meta:", e);
     }
 }
 
-async function cargarMetaDiaria() {
-    try {
-        const response = await fetch(`${API_URL}/billetera?periodo=hoy`);
-        const resultado = await response.json();
+// ==========================================
+// GESTIÓN DE META DIARIA (MEJORADA)
+// ==========================================
 
-        if (resultado.success) {
-            const data = resultado.data;
-            const gananciaHoy = parseFloat(data.ganancia_hoy) || 0; 
-            const meta = parseFloat(data.meta_diaria) || 200;
-
-            // Cálculos
-            let porcentaje = (gananciaHoy / meta) * 100;
-            if (porcentaje > 100) porcentaje = 100;
-            if (porcentaje < 0) porcentaje = 0;
-
-            // --- AQUÍ ESTABA EL ERROR: ACTUALIZAMOS LOS IDs ---
-
-            // 1. El número grande (Ganancia Hoy)
-            const elTotal = document.getElementById('lblTotalDia');
-            if (elTotal) elTotal.innerText = gananciaHoy.toFixed(2);
-
-            // 2. La etiqueta pequeña de la meta (Abajo a la izquierda)
-            const elMetaNum = document.getElementById('lblMetaNum');
-            if (elMetaNum) elMetaNum.innerText = `Meta: S/ ${meta}`;
-
-            // 3. El Badge del porcentaje (Arriba a la derecha)
-            const elPorc = document.getElementById('lblPorcentaje');
-            if (elPorc) elPorc.innerText = `${porcentaje.toFixed(0)}%`;
-            
-            // 4. La Barra de Progreso
-            const barra = document.getElementById('barraMeta');
-            if (barra) {
-                barra.style.width = `${porcentaje}%`;
-                barra.className = 'progress-bar progress-bar-striped progress-bar-animated fw-bold';
-                
-                // Colores de la barra según progreso
-                if (porcentaje < 20) barra.classList.add('bg-warning', 'text-dark');
-                else if (porcentaje < 80) barra.classList.add('bg-info', 'text-dark');
-                else barra.classList.add('bg-success');
-            }
-
-            // 5. La Frase Motivacional (Abajo a la derecha)
-            const frase = document.getElementById('lblFrase');
-            if (frase) {
-                if (porcentaje < 20) frase.innerText = "☕ Arrancando motores...";
-                else if (porcentaje < 50) frase.innerText = "🚕 Vamos sumando.";
-                else if (porcentaje < 80) frase.innerText = "🔥 ¡Ya casi llegas!";
-                else frase.innerText = "🎉 ¡META CUMPLIDA!";
-            }
-        }
-    } catch (error) { 
-        console.error("Error meta:", error); 
-    }
-}
-
-// 2. FUNCIÓN PARA CAMBIAR LA META (CLICK EN LA TARJETA)
-async function cambiarMeta() {
-    // Obtenemos la meta actual del texto para ponerla en el prompt
+// 1. Abrir el Modal (Reemplaza al prompt)
+function cambiarMeta() {
+    // Obtenemos la meta actual para pre-llenar el input
     const textoActual = document.getElementById('lblMetaNum').innerText.replace('Meta: S/ ', '');
-    
-    const nuevaMeta = prompt("🎯 DEFINIR OBJETIVO DE HOY\n\n¿Cuánto quieres ganar hoy?", textoActual);
-    
+    const metaNum = parseFloat(textoActual) || 200;
+
+    // Ponemos el valor en el input
+    document.getElementById('inputMetaDiaria').value = metaNum;
+
+    // Abrimos el modal
+    const modal = new bootstrap.Modal(document.getElementById('modalMetaDiaria'));
+    modal.show();
+
+    // Pequeño truco: enfocar el input automáticamente después de que abra
+    setTimeout(() => {
+        document.getElementById('inputMetaDiaria').select();
+    }, 500);
+}
+
+// 2. Helper para los botones rápidos (150, 200, 250...)
+function setMetaRapida(valor) {
+    document.getElementById('inputMetaDiaria').value = valor;
+    // Opcional: Guardar automáticamente al hacer click (para ser más veloz)
+    guardarNuevaMeta(); 
+}
+
+// 3. Guardar en el Servidor (Tu lógica original adaptada)
+async function guardarNuevaMeta() {
+    const nuevaMeta = document.getElementById('inputMetaDiaria').value;
+
     if (nuevaMeta && !isNaN(nuevaMeta) && nuevaMeta > 0) {
+        
+        // Efecto visual en el botón
+        const btn = document.querySelector('button[onclick="guardarNuevaMeta()"]');
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        btn.disabled = true;
+
         try {
-            const response = await fetch(`${API_URL}/meta`, { // Ruta simplificada
+            const response = await fetch(`${API_URL}/meta`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ meta: nuevaMeta })
             });
             
             const res = await response.json();
+            
             if (res.success) {
-                // Recargamos la tarjeta para ver el cambio y la nueva frase
-                cargarResumenDia();
-                // Feedback sutil
-                const cardBody = document.querySelector('.card-body');
-                cardBody.style.backgroundColor = '#2ecc71';
-                setTimeout(() => cardBody.style.backgroundColor = '', 300);
+                // Cerrar modal
+                const modalEl = document.getElementById('modalMetaDiaria');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                // Recargar Dashboard
+                cargarMetaDiaria();
+
+                notificar(`🎯 Meta actualizada a S/ ${nuevaMeta}`, "exito");
+            } else {
+                notificar("No se pudo actualizar la meta", "error");
             }
+
         } catch (e) {
-            notificar("Error al guardar meta", "error");
+            console.error(e);
+            notificar("Error de conexión", "error");
+        } finally {
+            // Restaurar botón
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
         }
+    } else {
+        notificar("Ingresa un monto válido", "error");
     }
 }
 
@@ -500,7 +520,7 @@ async function guardarGasto() {
             modal.hide();
 
             // Actualizar interfaz
-            cargarResumenDia(); // Para que baje el neto si tienes esa lógica
+            cargarMetaDiaria(); // Para que baje el neto si tienes esa lógica
             cargarHistorial();  // Por si mostramos gastos ahí
             notificar(`✅ Gasto de ${categoriaSeleccionada} registrado.`, "exito");
         } else {
@@ -1489,7 +1509,7 @@ async function anularCarrera(id) {
         await fetch(`${API_URL}/anular/${id}`, { method: 'DELETE' });
         cargarHistorial();
         cargarMetaDiaria();
-        cargarResumenDia();
+        //cargarResumenDia();
     }
 }
 
@@ -2310,7 +2330,7 @@ async function realizarTransferencia() {
             document.getElementById('notaTransferencia').value = '';
 
             // IMPORTANTE: Actualizar saldos si estamos en el dashboard
-            if (typeof cargarResumenDia === 'function') cargarResumenDia();
+            if (typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
 
         } else {
             notificar(data.message || "Error al transferir", "error");
@@ -2446,7 +2466,7 @@ async function enviarGastoRapido() {
 
             // Actualizar dashboard (Historial y Saldos)
             if (typeof cargarMovimientos === 'function') cargarMovimientos();
-            if (typeof cargarResumenDia === 'function') cargarResumenDia();
+            if (typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
             
             // Si el modal de Billetera estuviera abierto, lo cerramos para obligar a recargar si lo abres de nuevo
             // Opcional: podrías llamar a abrirBilletera() si quisieras actualizarlo en vivo.
@@ -2469,9 +2489,9 @@ window.onload = function() {
     verificarViajeEnCurso(); 
 
     // 2. Cargar datos iniciales
-    cargarResumenDia();
-    cargarHistorial();
     cargarMetaDiaria();
+    cargarHistorial();
+    
     cargarEstadoVehiculo();
     
     // 3. Cargar el badge rojo al inicio

@@ -1057,6 +1057,56 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalMetaDiaria" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content bg-dark text-white border-warning shadow-lg">
+                
+                <div class="modal-header border-secondary pb-2">
+                    <h5 class="modal-title text-warning fw-bold">
+                        <i class="fas fa-trophy me-2"></i>Objetivo de Hoy
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body text-center">
+                    
+                    <p class="text-muted small mb-3">¿Cuánto quieres llevar a casa hoy?</p>
+
+                    <div class="input-group input-group-lg mb-4">
+                        <span class="input-group-text bg-black text-warning border-secondary">S/</span>
+                        <input type="number" id="inputMetaDiaria" class="form-control bg-black text-white border-secondary fw-bold text-center fs-1" placeholder="0">
+                    </div>
+
+                    <label class="small text-muted mb-2 d-block text-start">Selección Rápida:</label>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <button class="btn btn-outline-secondary w-100" onclick="setMetaRapida(150)">150</button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-outline-warning w-100" onclick="setMetaRapida(200)">200</button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-outline-success w-100" onclick="setMetaRapida(250)">250</button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-outline-light w-100" onclick="setMetaRapida(300)">300</button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-outline-info w-100" onclick="setMetaRapida(350)">350</button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-outline-danger w-100" onclick="setMetaRapida(400)">400</button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-warning w-100 fw-bold py-2 shadow" onclick="guardarNuevaMeta()">
+                        <i class="fas fa-save me-2"></i> FIJAR META
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
 
