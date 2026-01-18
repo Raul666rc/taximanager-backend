@@ -1618,35 +1618,91 @@ async function cargarEstadoVehiculo() {
         const result = await res.json();
 
         if (result.success) {
-            const d = result.data;
+            // El backend ahora devuelve { info: {...}, partes: [...] }
+            const info = result.data.info;
+            const partes = result.data.partes;
             
-            // 1. MECÁNICA (Esto sigue igual)
-            document.getElementById('lblOdometro').innerText = d.odometro.toLocaleString();
-            document.getElementById('lblProximoCambio').innerText = d.proximo_cambio.toLocaleString();
-            
-            const barra = document.getElementById('barraAceite');
-            const alerta = document.getElementById('lblAlertaAceite');
-            
-            document.getElementById('lblPorcentajeAceite').innerText = d.porcentaje_vida.toFixed(0) + '%';
-            barra.style.width = `${d.porcentaje_vida}%`;
+            // 1. ODOMETRO
+            document.getElementById('lblOdometro').innerText = info.odometro_actual.toLocaleString();
 
-            barra.className = 'progress-bar progress-bar-striped progress-bar-animated'; 
-            if (d.porcentaje_vida > 50) {
-                barra.classList.add('bg-success'); alerta.style.display = 'none';
-            } else if (d.porcentaje_vida > 20) {
-                barra.classList.add('bg-warning', 'text-dark'); alerta.style.display = 'none';
-            } else {
-                barra.classList.add('bg-danger'); alerta.style.display = 'block';
-            }
+            // 2. GENERAR BARRAS DINÁMICAS
+            const contenedor = document.getElementById('contenedorMantenimiento');
+            let html = '';
 
-            // 2. LEGAL (NUEVO: Llamamos a la función semáforo)
-            analizarDocumento('Soat', d.fecha_soat);
-            analizarDocumento('Revision', d.fecha_revision);
-            analizarDocumento('Gnv', d.fecha_gnv);
+            partes.forEach(p => {
+                // Definir colores según estado
+                let colorBarra = 'bg-success';
+                let colorIcono = 'text-success';
+                let botonReset = '';
+
+                if (p.estado_visual === 'alerta') {
+                    colorBarra = 'bg-warning text-dark';
+                    colorIcono = 'text-warning';
+                } else if (p.estado_visual === 'vencido') {
+                    colorBarra = 'bg-danger';
+                    colorIcono = 'text-danger';
+                    // Si está vencido o alerta, mostramos botón para arreglar
+                    botonReset = `
+                        <button class="btn btn-sm btn-outline-light ms-2" onclick="resetearParte(${p.id}, '${p.nombre}')" style="font-size: 0.7rem;">
+                            <i class="fas fa-check"></i>
+                        </button>`;
+                }
+
+                html += `
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-white">
+                            <i class="fas ${p.icono} ${colorIcono} me-1" style="width:20px; text-align:center;"></i> 
+                            ${p.nombre}
+                        </small>
+                        <div class="d-flex align-items-center">
+                            <small class="${colorIcono} fw-bold me-1">${p.km_restantes} km rest.</small>
+                            ${botonReset}
+                        </div>
+                    </div>
+                    <div class="progress bg-secondary bg-opacity-25" style="height: 6px;">
+                        <div class="progress-bar ${colorBarra}" role="progressbar" style="width: ${p.porcentaje_vida}%"></div>
+                    </div>
+                </div>`;
+            });
+
+            contenedor.innerHTML = html;
+
+            // 3. DOCUMENTOS (Tu lógica actual funciona perfecto, la mantenemos)
+            analizarDocumento('Soat', info.fecha_soat);
+            analizarDocumento('Revision', info.fecha_revision);
+            analizarDocumento('Gnv', info.fecha_gnv);
         }
     } catch (e) {
         console.error("Error cargando vehículo:", e);
     }
+}
+
+// NUEVA FUNCIÓN: Resetear una parte específica (Ej: Ya cambié bujías)
+async function resetearParte(idParte, nombreParte) {
+    if (!confirm(`🔧 ¿Confirmas que acabas de realizar el servicio de: ${nombreParte}?`)) return;
+
+    const actualTexto = document.getElementById('lblOdometro').innerText.replace(/,/g, '');
+    const actual = parseInt(actualTexto) || 0;
+    
+    // Preguntamos el KM exacto por si lo hizo hace un rato
+    const nuevoKm = prompt(`Ingresa el kilometraje actual del tablero:`, actual);
+    if (!nuevoKm) return;
+
+    try {
+        const res = await fetch(`${API_URL}/vehiculo/mantenimiento/${idParte}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nuevo_km: parseInt(nuevoKm) })
+        });
+        
+        if (res.ok) {
+            notificar("✅ Mantenimiento registrado", "exito");
+            cargarEstadoVehiculo();
+        } else {
+            notificar("Error al registrar", "error");
+        }
+    } catch (e) { console.error(e); }
 }
 
 // 2. ACTUALIZAR KILOMETRAJE (POST)

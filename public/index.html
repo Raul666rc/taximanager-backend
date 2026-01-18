@@ -123,16 +123,19 @@
                             </button>
                         </div>
 
-                        <div class="position-relative mb-2 mt-3">
-                            <div class="progress bg-black" style="height: 25px; border-radius: 12px; box-shadow: inset 0 0 5px rgba(0,0,0,0.5);">
-                                <div id="barraAceite" class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
-                                    role="progressbar" style="width: 100%"></div>
-                            </div>
-                            <div class="position-absolute top-0 start-0 w-100 text-center text-white fw-bold d-flex align-items-center justify-content-center h-100" 
-                                style="font-size: 0.85rem; text-shadow: 1px 1px 3px black;">
-                                Vida Aceite: <span id="lblPorcentajeAceite" class="ms-1">100%</span>
-                            </div>
-                        </div>
+                        <div class="card bg-black border-secondary mb-3">
+    <div class="card-header border-secondary d-flex justify-content-between align-items-center py-2">
+        <span class="text-white fw-bold"><i class="fas fa-cogs me-2"></i>Estado Mecánico</span>
+        <button class="btn btn-sm btn-outline-warning" onclick="actualizarOdometro()">
+            <i class="fas fa-tachometer-alt me-1"></i> <span id="lblOdometro">0</span> km
+        </button>
+    </div>
+    <div class="card-body p-2">
+        <div id="contenedorMantenimiento" class="d-flex flex-column gap-3">
+            <div class="text-center text-muted small">Cargando motor...</div>
+        </div>
+    </div>
+</div>
                         
                         <div class="text-end small text-muted">
                             Siguiente cambio: <span id="lblProximoCambio" class="text-white">0</span> km
