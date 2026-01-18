@@ -83,6 +83,7 @@ router.get('/finanzas/movimientos', FinanzasController.listarMovimientos);
 router.post('/finanzas/gasto-rapido', FinanzasController.registrarGastoRapido);
 
 router.get('/finanzas/metas', MetasController.obtenerEstadoMetas);
+router.post('/finanzas/metas/editar', MetasController.actualizarMeta);
 
 // Ruta para descargar el Excel/CSV
 router.get('/reporte/descargar', ViajeController.descargarReporte);

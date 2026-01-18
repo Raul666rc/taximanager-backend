@@ -30,6 +30,25 @@ class MetasController {
             res.status(500).json({ success: false, message: "Error calculando metas" });
         }
     }
+
+    // NUEVO: Editar Meta
+    static async actualizarMeta(req, res) {
+        try {
+            const { cuenta_id, nuevo_monto } = req.body;
+
+            if (!cuenta_id || !nuevo_monto) {
+                return res.status(400).json({ success: false, message: "Datos incompletos" });
+            }
+
+            await MetasModel.actualizarMeta(cuenta_id, nuevo_monto);
+            
+            res.json({ success: true, message: "Meta actualizada correctamente" });
+
+        } catch (error) {
+            console.error("Error actualizando meta:", error);
+            res.status(500).json({ success: false, message: "Error del servidor" });
+        }
+    }
 }
 
 module.exports = MetasController;

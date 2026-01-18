@@ -19,6 +19,13 @@ class MetasModel {
         const [rows] = await db.query(query);
         return rows;
     }
+
+    // NUEVO: Actualizar el monto objetivo de una cuenta específica
+    static async actualizarMeta(cuentaId, nuevoMonto) {
+        const query = "UPDATE metas_cuentas SET monto_objetivo = ? WHERE cuenta_id = ?";
+        const [result] = await db.query(query, [nuevoMonto, cuentaId]);
+        return result.affectedRows > 0;
+    }
 }
 
 module.exports = MetasModel;

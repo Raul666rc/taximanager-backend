@@ -2484,14 +2484,14 @@ async function enviarGastoRapido() {
 }
 
 // ==========================================
-// MÓDULO CONTROL DE METAS
+// MÓDULO CONTROL DE METAS (CON EDICIÓN)
 // ==========================================
 async function cargarControlMetas() {
     const contenedor = document.getElementById('contenedorMetas');
     if (!contenedor) return;
 
     try {
-        const res = await fetch(`${API_URL}/finanzas/metas`); // Llama a tu nuevo Controller
+        const res = await fetch(`${API_URL}/finanzas/metas`);
         const result = await res.json();
 
         if (result.success) {
@@ -2504,22 +2504,31 @@ async function cargarControlMetas() {
             let html = '';
             metas.forEach(m => {
                 let colorBarra = 'bg-danger';
-                let frase = '¡A llenar el chanchito! 🐖';
+                let frase = 'Fondo bajo...';
                 
-                if (m.porcentaje > 25) { colorBarra = 'bg-warning'; frase = 'Buen comienzo... 🧱'; }
-                if (m.porcentaje > 50) { colorBarra = 'bg-info'; frase = '¡Mitad de camino! 🔥'; }
-                if (m.porcentaje > 80) { colorBarra = 'bg-success'; frase = '¡Ya casi! 🎯'; }
-                if (m.porcentaje >= 100) { frase = '¡LOGRADO! 🏆'; }
+                if (m.porcentaje > 25) { colorBarra = 'bg-warning'; frase = 'En proceso...'; }
+                if (m.porcentaje > 50) { colorBarra = 'bg-info'; frase = 'Fondo saludable'; }
+                if (m.porcentaje > 80) { colorBarra = 'bg-success'; frase = 'Fondo robusto'; }
+                if (m.porcentaje >= 100) { frase = 'FONDO COMPLETO'; }
 
-                // Limpiamos el nombre para que no salga el icono repetido si ya lo tiene la cuenta
                 const nombreLimpio = m.nombre.replace(/💰|📉|🛠️|🎓/g, '').trim();
 
+                // NOTA: En este HTML agregamos el botón del LAPIZ (edit)
                 html += `
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-end mb-1">
                         <div>
                             <div class="small fw-bold text-white text-uppercase">${nombreLimpio}</div>
-                            <div class="text-muted" style="font-size: 0.7rem;">Meta: S/ ${m.total.toLocaleString()}</div>
+                            
+                            <div class="text-muted d-flex align-items-center" style="font-size: 0.7rem;">
+                                Meta: S/ ${m.total.toLocaleString()}
+                                <button class="btn btn-link p-0 ms-2 text-warning" 
+                                        onclick="editarMetaObjetivo(${m.id}, '${nombreLimpio}', ${m.total})" 
+                                        style="font-size: 0.8rem; text-decoration: none;">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                            </div>
+
                         </div>
                         <div class="text-end">
                             <div class="fw-bold text-white">S/ ${m.ahorrado.toLocaleString()}</div>
@@ -2538,6 +2547,36 @@ async function cargarControlMetas() {
             contenedor.innerHTML = html;
         }
     } catch (e) { console.error(e); }
+}
+
+// NUEVA FUNCIÓN: Abrir prompt para cambiar la meta
+// Recibe "m.id" que viene de la query SQL (c.id), es decir, el ID de la CUENTA (ej: 4, 5, 6)
+async function editarMetaObjetivo(cuentaId, nombre, montoActual) {
+    const nuevoMonto = prompt(`✏️ EDITAR FONDO: ${nombre}\n\nActualmente el tope es: S/ ${montoActual}\n\nIngresa el nuevo monto objetivo:`, montoActual);
+
+    if (nuevoMonto && !isNaN(nuevoMonto) && nuevoMonto > 0) {
+        try {
+            const res = await fetch(`${API_URL}/finanzas/metas/editar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    cuenta_id: cuentaId, // Aquí mandamos el ID de la cuenta (ej: 4)
+                    nuevo_monto: parseFloat(nuevoMonto) 
+                })
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                notificar("✅ Meta actualizada", "exito");
+                cargarControlMetas(); // Recargamos solo esta sección
+            } else {
+                notificar("Error al actualizar", "error");
+            }
+        } catch (e) {
+            notificar("Error de conexión", "error");
+        }
+    }
 }
 
 // INIT
