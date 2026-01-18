@@ -104,3 +104,10 @@ body {
     text-rendering: auto;
     line-height: 1;
 }
+
+/* Efecto de giro suave para el engranaje */
+.hover-spin:hover {
+    transform: rotate(90deg);
+    color: #ffc107 !important; /* Se pone amarillo al tocarlo */
+    transition: all 0.3s ease;
+}
