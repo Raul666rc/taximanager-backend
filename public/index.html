@@ -1154,6 +1154,36 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalGestionCuentas" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="fas fa-tasks me-2"></i>Mis Cuentas</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    
+                    <div id="listaCuentasAdmin" class="list-group list-group-flush">
+                        </div>
+
+                    <div class="p-3 bg-secondary bg-opacity-10 border-top border-secondary">
+                        <h6 class="text-info small mb-2"><i class="fas fa-plus-circle me-1"></i>Agregar Nueva Cuenta</h6>
+                        <div class="input-group mb-2">
+                            <select id="newTipoCuenta" class="form-select form-select-sm bg-dark text-white border-secondary" style="max-width: 100px;">
+                                <option value="WARDA">Warda</option>
+                                <option value="BANCO">Banco</option>
+                                <option value="EFECTIVO">Efectivo</option>
+                            </select>
+                            <input type="text" id="newNombreCuenta" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Nombre (Ej: Warda Viaje)">
+                            <button class="btn btn-sm btn-info" onclick="guardarCuenta(null)">Crear</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
 

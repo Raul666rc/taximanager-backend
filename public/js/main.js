@@ -2612,6 +2612,114 @@ async function guardarMetaEditada() {
 }
 
 
+// ==========================================
+// MÓDULO GESTIÓN DE CUENTAS (ADMIN)
+// ==========================================
+
+// 1. Abrir Modal y Cargar Lista
+async function abrirGestionCuentas() {
+    const modal = new bootstrap.Modal(document.getElementById('modalGestionCuentas'));
+    modal.show();
+    cargarListaCuentasAdmin();
+}
+
+// 2. Cargar Lista (Activas e Inactivas)
+async function cargarListaCuentasAdmin() {
+    const contenedor = document.getElementById('listaCuentasAdmin');
+    contenedor.innerHTML = '<div class="text-center p-3">Cargando...</div>';
+
+    try {
+        const res = await fetch(`${API_URL}/cuentas/listar`);
+        const result = await res.json();
+
+        if (result.success) {
+            let html = '';
+            result.data.forEach(c => {
+                // Opacidad si está inactiva
+                const opacidad = c.activo ? '1' : '0.5';
+                const iconoOjo = c.activo ? 'fa-eye text-success' : 'fa-eye-slash text-secondary';
+                const nombreClase = c.activo ? 'text-white' : 'text-muted text-decoration-line-through';
+
+                html += `
+                <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center py-2" style="opacity: ${opacidad}">
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-sm btn-link text-decoration-none p-0 me-3" onclick="toggleEstadoCuenta(${c.id}, ${c.activo})">
+                            <i class="fas ${iconoOjo}"></i>
+                        </button>
+                        
+                        <div class="me-2">
+                            <input type="text" id="editNombre_${c.id}" value="${c.nombre}" 
+                                   class="form-control form-control-sm bg-transparent border-0 ${nombreClase} p-0 fw-bold" 
+                                   onchange="guardarCuenta(${c.id})">
+                        </div>
+                    </div>
+                    
+                    <span class="badge bg-secondary rounded-pill" style="font-size: 0.65rem;">${c.tipo}</span>
+                </div>`;
+            });
+            contenedor.innerHTML = html;
+        }
+    } catch (e) { console.error(e); }
+}
+
+// 3. Guardar (Crear o Editar)
+async function guardarCuenta(id) {
+    let datos = {};
+
+    if (id) {
+        // EDICIÓN (Al cambiar el texto del input)
+        const nuevoNombre = document.getElementById(`editNombre_${id}`).value;
+        if(!nuevoNombre) return notificar("El nombre no puede estar vacío", "error");
+        datos = { id: id, nombre: nuevoNombre };
+    } else {
+        // CREACIÓN (Botón Crear)
+        const nombre = document.getElementById('newNombreCuenta').value;
+        const tipo = document.getElementById('newTipoCuenta').value;
+        if(!nombre) return notificar("Escribe un nombre", "error");
+        datos = { nombre: nombre, tipo: tipo };
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/cuentas/guardar`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(datos)
+        });
+        const result = await res.json();
+        
+        if (result.success) {
+            if(!id) { // Si es nuevo, limpiar inputs
+                document.getElementById('newNombreCuenta').value = '';
+                notificar("✅ Cuenta creada", "exito");
+                cargarListaCuentasAdmin(); // Recargar lista
+            } else {
+                notificar("✅ Nombre actualizado", "exito");
+            }
+            
+            // Actualizar Billetera de fondo si está abierta
+            if(typeof cargarResumenDia === 'function') cargarResumenDia(); // o cargarControlMetas()
+        }
+    } catch (e) { notificar("Error al guardar", "error"); }
+}
+
+// 4. Activar / Desactivar
+async function toggleEstadoCuenta(id, estadoActual) {
+    // Invertimos el estado (Si es 1 pasa a 0, si es 0 pasa a 1)
+    const nuevoEstado = estadoActual ? 0 : 1;
+
+    try {
+        const res = await fetch(`${API_URL}/cuentas/estado`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id, activo: nuevoEstado })
+        });
+        if (res.ok) {
+            cargarListaCuentasAdmin(); // Refrescar visualmente
+            // IMPORTANTE: Si desactivas una cuenta, asegúrate de recargar la app o los selectores
+        }
+    } catch (e) { console.error(e); }
+}
+
 // INIT
 window.onload = function() {
     // 1. Recuperar sesión

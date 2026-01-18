@@ -12,6 +12,8 @@ const ReporteController = require('../controllers/ReporteController');
 const VehiculoController = require('../controllers/VehiculoController');
 const MetasController = require('../controllers/MetasController');
 
+const CuentasController = require('../controllers/CuentasController');
+
 // Definimos las URLs
 // POST http://localhost:3000/api/viajes/iniciar
 router.post('/iniciar', ViajeController.iniciarCarrera);
@@ -96,6 +98,12 @@ router.post('/vehiculo/actualizar', VehiculoController.actualizarKilometraje);
 router.post('/vehiculo/mantenimiento', VehiculoController.registrarCambioAceite);
 router.post('/vehiculo/documentos', VehiculoController.guardarDocumentos);
 router.post('/vehiculo/mantenimiento/:id', VehiculoController.registrarMantenimientoParte);
+
+
+// ABAJO (Sección Configuración)
+router.get('/cuentas/listar', CuentasController.listarCuentas);
+router.post('/cuentas/guardar', CuentasController.guardarCuenta);
+router.post('/cuentas/estado', CuentasController.toggleEstado);
 
 
 module.exports = router;
