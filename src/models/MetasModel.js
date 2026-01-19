@@ -2,29 +2,32 @@ const db = require('../config/db');
 
 class MetasModel {
     
-    // Obtener el progreso (Se mantiene igual, estaba perfecto)
+    // 1. OBTENER PROGRESO (LISTADO)
+    // Usamos LEFT JOIN para ver TODAS las cuentas WARDA/BANCO, 
+    // incluso si todavía no tienen meta (saldrá meta: 0 o null)
     static async obtenerProgreso() {
         const query = `
             SELECT 
                 c.id, 
                 c.nombre, 
                 c.saldo_actual AS ahorrado, 
-                IFNULL(m.monto_objetivo, 0) AS total 
+                COALESCE(m.monto_objetivo, 0) AS total 
             FROM cuentas c
             LEFT JOIN metas_cuentas m ON m.cuenta_id = c.id
-            WHERE c.activo = 1 AND c.tipo = 'WARDA'
+            WHERE c.activo = 1 
+              AND c.tipo NOT IN ('EFECTIVO') -- Excluimos efectivo, pero incluimos Bancos y Wardas
         `;
-        // NOTA: Cambié JOIN por LEFT JOIN para que traiga las cuentas aunque no tengan meta configurada aún
         
         const [rows] = await db.query(query);
         return rows;
     }
 
-    // ACTUALIZAR META (CORREGIDO CON LÓGICA INTELIGENTE)
+    // 2. GUARDAR META (Lógica Inteligente)
     static async actualizarMeta(cuentaId, nuevoMonto) {
-        // Esta consulta hace dos cosas:
-        // 1. Intenta INSERTAR una nueva meta.
-        // 2. Si el 'cuenta_id' ya existe (ON DUPLICATE KEY), entonces ACTUALIZA el monto.
+        // EXPLICACIÓN:
+        // Intenta insertar una nueva fila.
+        // Si MySQL detecta que el 'cuenta_id' ya existe (gracias al UNIQUE INDEX),
+        // automáticamente salta a la parte 'ON DUPLICATE KEY UPDATE' y solo cambia el monto.
         const query = `
             INSERT INTO metas_cuentas (cuenta_id, monto_objetivo) 
             VALUES (?, ?) 
