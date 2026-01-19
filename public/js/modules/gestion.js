@@ -44,26 +44,80 @@ async function cargarControlMetas() {
     } catch (e) { console.error(e); }
 }
 
+// ==========================================
+// CORRECCIÓN EN GESTION.JS (Metas Financieras)
+// ==========================================
+
+// 1. ABRIR EL MODAL (Aseguramos que el ID se guarde bien)
 function abrirModalMeta(id, nom, monto) {
+    // Debug: Ver en consola si llega el ID
+    console.log("Abriendo meta para cuenta ID:", id);
+    
     document.getElementById('hdnCuentaIdMeta').value = id;
     document.getElementById('lblNombreCuentaMeta').innerText = nom;
-    document.getElementById('inputNuevaMeta').value = monto;
-    new bootstrap.Modal(document.getElementById('modalEditarMeta')).show();
+    document.getElementById('inputNuevaMeta').value = parseFloat(monto).toFixed(2); // Formato limpio
+    
+    const modalEl = document.getElementById('modalEditarMeta');
+    new bootstrap.Modal(modalEl).show();
+    
+    // Auto-seleccionar el monto para escribir rápido
+    setTimeout(() => document.getElementById('inputNuevaMeta').select(), 500);
 }
 
+// 2. GUARDAR EN BD (Conversión estricta de datos)
 async function guardarMetaEditada() {
     const id = document.getElementById('hdnCuentaIdMeta').value;
     const monto = document.getElementById('inputNuevaMeta').value;
-    if(monto) {
-        await fetch(`${API_URL}/finanzas/metas/editar`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ cuenta_id: id, nuevo_monto: monto })
+
+    // Validación básica
+    if(!id || !monto) return notificar("Error: Datos incompletos", "error");
+
+    const btn = document.querySelector('#modalEditarMeta button.btn-info');
+    const txtOriginal = btn.innerHTML;
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+    try {
+        // EL SECRETO: Convertir explícitamente a Número
+        // parseInt = Entero (para el ID)
+        // parseFloat = Decimal (para el dinero)
+        const payload = { 
+            cuenta_id: parseInt(id), 
+            nuevo_monto: parseFloat(monto) 
+        };
+
+        console.log("Enviando Payload:", payload); // Para verificar en consola
+
+        const res = await fetch(`${API_URL}/finanzas/metas/editar`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
         });
-        notificar("✅ Meta actualizada", "success");
-        bootstrap.Modal.getInstance(document.getElementById('modalEditarMeta')).hide();
-        cargarControlMetas();
-        // También actualizamos billetera si está abierta
-        if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
+        
+        const data = await res.json();
+
+        if (data.success) {
+            notificar("✅ Meta actualizada correctamente", "success");
+            
+            // Cerrar Modal
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalEditarMeta'));
+            modalInstance.hide();
+            
+            // Recargar las tarjetas visualmente
+            await cargarControlMetas();
+            
+            // Actualizar también la billetera si es necesario
+            if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
+
+        } else {
+            notificar("Error del servidor: " + data.message, "error");
+        }
+    } catch (e) { 
+        console.error(e);
+        notificar("Error de conexión", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = txtOriginal;
     }
 }
 
