@@ -178,6 +178,32 @@ class ViajeController {
         }
     }
 
+    // GUARDAR NUEVA META DIARIA (Taxi)
+    static async guardarMetaDiaria(req, res) {
+        try {
+            const { monto } = req.body; // Recibimos { monto: 300 }
+
+            if (!monto) return res.status(400).json({ success: false, message: "Monto inválido" });
+
+            // Asumiendo que tienes una tabla 'configuracion' o guardas la meta en algún lado.
+            // Si usas una tabla simple 'configuracion' (clave, valor):
+            const query = "UPDATE configuracion SET valor = ? WHERE clave = 'meta_diaria'";
+            
+            // SI NO TIENES TABLA CONFIGURACION y usas un valor fijo o una tabla de metas_diarias, ajusta aquí.
+            // Opción genérica segura (Upsert):
+            // const query = "INSERT INTO configuracion (clave, valor) VALUES ('meta_diaria', ?) ON DUPLICATE KEY UPDATE valor = ?";
+            
+            // Usaremos el query simple asumiendo que ya existe el registro:
+            await db.query(query, [monto]);
+
+            res.json({ success: true, message: "Meta diaria actualizada" });
+
+        } catch (error) {
+            console.error("Error guardando meta diaria:", error);
+            res.status(500).json({ success: false, message: "Error del servidor" });
+        }
+    }
+
     // Acción: Obtener lista de carreras (Con filtro de fecha opcional)
     static async obtenerHistorialHoy(req, res) {
         try {

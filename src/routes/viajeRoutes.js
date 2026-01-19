@@ -46,6 +46,8 @@ router.get('/historial', ViajeController.obtenerHistorialHoy);
 // Botón Mapa en Historial: Obtiene los puntos GPS para dibujar la línea azul en el mapa
 router.get('/ruta/:id', ViajeController.obtenerRutaGPS);
 
+// AGREGAR ESTA LÍNEA (Recupera la función de editar meta diaria)
+router.post('/config/meta', ViajeController.guardarMetaDiaria);
 
 // ==================================================================
 // 3. MÓDULO FINANZAS (EL CORAZÓN DEL DINERO)

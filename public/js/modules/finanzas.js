@@ -68,12 +68,37 @@ async function cargarMetaDiaria() {
 }
 
 // 2. GESTIÓN DE META (MODAL)
-function cambiarMeta() {
-    const textoActual = document.getElementById('lblMetaNum').innerText.replace('Meta: S/ ', '');
-    document.getElementById('inputMetaDiaria').value = parseFloat(textoActual) || 200;
-    const modal = new bootstrap.Modal(document.getElementById('modalMetaDiaria'));
-    modal.show();
-    setTimeout(() => document.getElementById('inputMetaDiaria').select(), 500);
+// 2. CAMBIAR META DIARIA (Popup)
+async function cambiarMeta() {
+    // Obtenemos el valor actual del texto (ej: "Meta: 200")
+    const textoActual = document.getElementById('lblMetaNum').innerText.replace(/\D/g, ''); 
+    
+    // Usamos el modal bonito si quieres, o el prompt rápido por ahora
+    // Vamos a usar prompt para no complicar, pero conectado a la ruta nueva
+    const nuevoMonto = prompt("🎯 Define tu nueva Meta Diaria (S/.):", textoActual);
+
+    if (nuevoMonto && !isNaN(nuevoMonto)) {
+        try {
+            // AQUÍ ESTABA EL ERROR: Apuntamos a la nueva ruta
+            const res = await fetch(`${API_URL}/config/meta`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ monto: parseInt(nuevoMonto) })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                notificar("✅ Meta actualizada a S/ " + nuevoMonto, "success");
+                cargarMetaDiaria(); // Refrescar la barra
+            } else {
+                notificar("Error: " + data.message, "error");
+            }
+        } catch (e) {
+            console.error(e);
+            notificar("Error de conexión al actualizar meta", "error");
+        }
+    }
 }
 
 function setMetaRapida(valor) {
