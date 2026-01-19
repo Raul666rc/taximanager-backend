@@ -5,7 +5,7 @@
 // Variables Globales del Módulo (Cierre de Caja)
 let sysEfe = 0, sysYape = 0, ingresosHoyBD = 0, gastosHoyBD = 0, difEfe = 0, difYape = 0;
 
-// 1. CARGAR META DIARIA (DASHBOARD)
+// 1. CARGAR META DIARIA (DASHBOARD) - CORREGIDO PARA EFECTO NEÓN
 async function cargarMetaDiaria() {
     try {
         const response = await fetch(`${API_URL}/resumen`);
@@ -24,41 +24,44 @@ async function cargarMetaDiaria() {
 
             if (!elTotal || !barra) return; 
 
-            // Renderizado
+            // Renderizado Texto
             elTotal.innerText = total.toFixed(2);
             elMetaNum.innerText = `Meta: S/ ${meta.toFixed(0)}`;
 
             let porcentaje = (total / meta) * 100;
-            // Tope visual 100% para que la barra no se salga
             if (porcentaje > 100) porcentaje = 100;
             
+            // Renderizado Barra
             barra.style.width = `${porcentaje}%`;
             elPorc.innerText = `${(total/meta*100).toFixed(0)}%`;
             
-            // Lógica de Colores y Frases (INTACTA)
-            barra.className = 'progress-bar progress-bar-striped progress-bar-animated';
-            elPorc.className = 'badge border border-secondary text-warning'; 
+            // --- AQUÍ ESTABA EL ERROR ---
+            // Antes borraba 'progress-bar-neon'. Ahora lo mantenemos como base.
+            barra.className = 'progress-bar-neon'; // Clase base del CSS Premium
+            
+            // Limpiamos colores previos
             barra.classList.remove('bg-danger', 'bg-warning', 'bg-info', 'bg-primary', 'bg-success');
             
+            // Lógica de Semáforo (Neón)
             if (porcentaje < 15) { 
-                barra.classList.add('bg-danger'); elPorc.classList.add('bg-dark'); 
-                if(lblFrase) { lblFrase.innerText = "¡Arrancamos motores! 🚦"; lblFrase.className = "text-muted small fst-italic"; } 
+                barra.classList.add('bg-danger'); // Rojo Neón
+                if(lblFrase) { lblFrase.innerText = "¡Arrancamos! 🚦"; lblFrase.className = "text-muted small fst-italic"; } 
             } 
             else if (porcentaje < 40) { 
-                barra.classList.add('bg-warning'); elPorc.classList.add('bg-dark'); 
+                barra.classList.add('bg-warning'); // Amarillo Neón
                 if(lblFrase) { lblFrase.innerText = "¡Buen ritmo! 🚕"; lblFrase.className = "text-white small fw-bold"; } 
             } 
             else if (porcentaje < 75) { 
-                barra.classList.add('bg-info'); elPorc.classList.add('bg-dark'); 
-                if(lblFrase) { lblFrase.innerText = "¡Pasamos la mitad! 💪"; lblFrase.className = "text-info small fw-bold"; } 
+                barra.classList.add('bg-info'); // Cian Neón
+                if(lblFrase) { lblFrase.innerText = "¡Vamos bien! 💪"; lblFrase.className = "text-info small fw-bold"; } 
             } 
             else if (porcentaje < 100) { 
-                barra.classList.add('bg-primary'); elPorc.classList.add('bg-dark'); 
+                barra.classList.add('bg-primary'); // Morado Neón
                 if(lblFrase) { lblFrase.innerText = "¡Ya casi! 🔥"; lblFrase.className = "text-warning small fw-bold"; } 
             } 
             else { 
-                barra.classList.add('bg-success'); elPorc.classList.remove('bg-dark'); elPorc.classList.add('bg-success', 'text-white'); 
-                if(lblFrase) { lblFrase.innerText = "¡ERES UNA MÁQUINA! 🏆"; lblFrase.className = "text-success small fw-bold text-uppercase"; } 
+                barra.classList.add('bg-success'); // Verde Neón
+                if(lblFrase) { lblFrase.innerText = "¡META CUMPLIDA! 🏆"; lblFrase.className = "text-success small fw-bold text-uppercase"; } 
             }
         }
     } catch (e) { console.error("Error cargando meta:", e); }
