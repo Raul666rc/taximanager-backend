@@ -18,21 +18,29 @@ async function cargarEstadoVehiculo() {
             document.getElementById('lblPorcentajeAceite').innerText = d.porcentaje_vida.toFixed(0) + '%';
             barra.style.width = `${d.porcentaje_vida}%`;
             
-            if (d.porcentaje_vida < 20) {
-                barra.className = 'progress-bar bg-danger';
-                document.getElementById('lblAlertaAceite').style.display = 'block';
-            } else {
-                barra.className = 'progress-bar bg-success';
+            // Lógica de colores barra
+            barra.className = 'progress-bar progress-bar-striped progress-bar-animated';
+            if (d.porcentaje_vida > 50) {
+                barra.classList.add('bg-success');
                 document.getElementById('lblAlertaAceite').style.display = 'none';
+            } else if (d.porcentaje_vida > 20) {
+                barra.classList.add('bg-warning', 'text-dark');
+                document.getElementById('lblAlertaAceite').style.display = 'none';
+            } else {
+                barra.classList.add('bg-danger');
+                document.getElementById('lblAlertaAceite').style.display = 'block';
             }
 
             // Fechas Documentos
-            const setFecha = (id, f) => document.getElementById(id).innerText = f ? new Date(f).toLocaleDateString() : '--';
+            const setFecha = (id, f) => {
+                const el = document.getElementById(id);
+                if(el) el.innerText = f ? new Date(f).toLocaleDateString('es-PE', {year:'numeric', month:'2-digit', day:'2-digit'}) : '--/--/--';
+            };
             setFecha('fechaSoat', d.fecha_soat);
             setFecha('fechaRevision', d.fecha_revision);
             setFecha('fechaGnv', d.fecha_gnv);
             
-            // Inputs Config
+            // Inputs Config (Para el modal)
             if(d.fecha_soat) document.getElementById('inputSoat').value = d.fecha_soat.split('T')[0];
             if(d.fecha_revision) document.getElementById('inputRevision').value = d.fecha_revision.split('T')[0];
             if(d.fecha_gnv) document.getElementById('inputGnv').value = d.fecha_gnv.split('T')[0];
@@ -55,15 +63,29 @@ async function actualizarOdometro() {
 
 async function registrarMantenimiento() {
     if(!confirm("⚠️ ¿Confirmas cambio de aceite?")) return;
-    const km = prompt("Kilometraje ACTUAL del tablero:");
-    if(km) {
-        await fetch(`${API_URL}/vehiculo/mantenimiento`, {
+    
+    // Sugerencia visual
+    const act = parseInt(document.getElementById('lblOdometro').innerText.replace(/,/g,'')) || 0;
+    
+    const km = prompt("1️⃣ Kilometraje ACTUAL del tablero:", act);
+    if(!km) return;
+    
+    const intervalo = prompt("2️⃣ ¿Cada cuántos Km?", "5000");
+    if(!intervalo) return;
+
+    try {
+        const res = await fetch(`${API_URL}/vehiculo/mantenimiento`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nuevo_km: parseInt(km), intervalo_km: 5000 })
+            body: JSON.stringify({ nuevo_km: parseInt(km), intervalo_km: parseInt(intervalo) })
         });
-        notificar("✅ Mantenimiento registrado", "success");
-        cargarEstadoVehiculo();
-    }
+        const r = await res.json();
+        if(r.success) {
+            notificar("✅ Mantenimiento registrado", "success");
+            cargarEstadoVehiculo();
+        } else {
+            notificar("Error: " + r.message, "error");
+        }
+    } catch (e) { notificar("Error conexión", "error"); }
 }
 
 function configurarAuto() { new bootstrap.Modal(document.getElementById('modalConfigAuto')).show(); }
@@ -80,44 +102,90 @@ async function guardarDocumentos() {
     bootstrap.Modal.getInstance(document.getElementById('modalConfigAuto')).hide();
 }
 
-// 2. HISTORIAL
+// 2. HISTORIAL DE VIAJES (DISEÑO DETALLADO RESTAURADO)
 async function cargarHistorial() {
     const input = document.getElementById('filtroFechaHistorial');
-    if(!input.value) input.value = new Date(new Date().getTime() - 5*3600000).toISOString().split('T')[0];
+    // Si no hay fecha, poner hoy (Ajuste Perú -5h)
+    if(!input.value) {
+        const hoy = new Date();
+        hoy.setHours(hoy.getHours() - 5);
+        input.value = hoy.toISOString().split('T')[0];
+    }
     
-    const res = await fetch(`${API_URL}/historial?fecha=${input.value}`);
-    const r = await res.json();
-    
-    const lista = document.getElementById('listaHistorial');
-    lista.innerHTML = '';
-    
-    if(r.success && r.data.length > 0) {
-        document.getElementById('msgVacio').classList.add('d-none');
-        r.data.forEach(v => {
-            lista.innerHTML += `
-            <div class="card bg-dark border-secondary mb-2">
-                <div class="card-body p-2 d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="badge bg-secondary">${v.origen_tipo}</span>
-                        <span class="text-white fw-bold ms-2">${v.hora_fin}</span>
+    try {
+        const res = await fetch(`${API_URL}/historial?fecha=${input.value}`);
+        const r = await res.json();
+        
+        const lista = document.getElementById('listaHistorial');
+        const msgVacio = document.getElementById('msgVacio');
+        
+        lista.innerHTML = '';
+        
+        if(r.success && r.data.length > 0) {
+            msgVacio.classList.add('d-none');
+            
+            r.data.forEach(viaje => {
+                // Lógica de Colores Apps (ACTUALIZADA CON "OTROS")
+                let badgeColor = 'bg-secondary'; // Color por defecto (Gris)
+                
+                if(viaje.origen_tipo === 'INDRIVER') badgeColor = 'bg-success';        // Verde
+                if(viaje.origen_tipo === 'UBER')     badgeColor = 'bg-light text-dark';// Blanco
+                if(viaje.origen_tipo === 'CALLE')    badgeColor = 'bg-warning text-dark';// Amarillo
+                if(viaje.origen_tipo === 'OTROS')    badgeColor = 'bg-info text-dark';   // Azul Cian (Nuevo)
+
+                // Lógica Icono Pago
+                const iconoPago = viaje.metodo_cobro_id === 1 
+                    ? '<i class="fas fa-money-bill-wave text-success"></i>' 
+                    : '<i class="fas fa-qrcode text-warning"></i>';
+
+                // Renderizado de Tarjeta Detallada
+                const html = `
+                <div class="card bg-dark border-secondary mb-2 shadow-sm">
+                    <div class="card-body p-2 d-flex align-items-center">
+                        
+                        <div class="me-3 d-flex flex-column gap-2">
+                            <button class="btn btn-outline-warning btn-sm border-0 p-1" onclick="verMapa(${viaje.id})">
+                                <i class="fas fa-map-marked-alt fa-lg"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm border-0 p-1" onclick="anularCarrera(${viaje.id})">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+
+                        <div class="d-flex flex-column flex-grow-1">
+                            <div class="mb-1">
+                                <span class="badge ${badgeColor}">${viaje.origen_tipo}</span>
+                            </div>
+                            <div class="text-info small fw-bold" style="font-size: 0.8rem;">
+                                <i class="far fa-clock me-1"></i>${viaje.hora_fin}
+                            </div>
+                            ${viaje.origen_texto ? `<div class="text-muted text-truncate" style="font-size: 0.7rem; max-width: 150px;"><i class="fas fa-map-pin me-1 text-danger"></i>${viaje.origen_texto}</div>` : ''}
+                        </div>
+
+                        <div class="text-end ms-2">
+                            <div class="fw-bold text-white fs-5 lh-1">S/ ${parseFloat(viaje.monto_cobrado).toFixed(2)}</div>
+                            <div class="mt-1 fs-5">${iconoPago}</div>
+                        </div>
+
                     </div>
-                    <div class="d-flex align-items-center">
-                        <span class="text-success fw-bold me-3">S/ ${parseFloat(v.monto_cobrado).toFixed(2)}</span>
-                        <button class="btn btn-sm btn-outline-warning p-1 me-1" onclick="verMapa(${v.id})"><i class="fas fa-map"></i></button>
-                        <button class="btn btn-sm btn-outline-danger p-1" onclick="anularCarrera(${v.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>`;
-        });
-    } else {
-        document.getElementById('msgVacio').classList.remove('d-none');
+                </div>`;
+                
+                lista.innerHTML += html;
+            });
+        } else {
+            msgVacio.classList.remove('d-none');
+        }
+    } catch(e) { 
+        console.error("Error historial", e); 
+        notificar("Error cargando historial", "error");
     }
 }
 
 async function anularCarrera(id) {
-    if(confirm("¿Eliminar carrera?")) {
+    if(confirm("¿Eliminar carrera permanentemente?")) {
         await fetch(`${API_URL}/anular/${id}`, { method: 'DELETE' });
         cargarHistorial();
+        // Actualizar Meta si existe la función
         if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
     }
 }

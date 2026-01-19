@@ -105,15 +105,42 @@
                 </div>
             </div>
 
-            <div id="selectorApps" class="btn-group w-100 px-2" role="group">
-                <input type="radio" class="btn-check" name="appOrigen" id="appIndriver" value="INDRIVER" checked>
-                <label class="btn btn-outline-success py-2" for="appIndriver"><i class="fas fa-car-side me-1"></i> InDrive</label>
+            <div id="selectorApps" class="w-100 mt-4 px-2">
+                <div class="row g-2">
+                    
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appCalle" value="CALLE" checked>
+                        <label class="btn btn-outline-warning w-100 h-100 py-2 d-flex flex-column align-items-center justify-content-center" for="appCalle">
+                            <i class="fas fa-hand-paper fa-lg mb-1"></i>
+                            <span class="small fw-bold" style="font-size: 0.7rem;">Calle</span>
+                        </label>
+                    </div>
 
-                <input type="radio" class="btn-check" name="appOrigen" id="appUber" value="UBER">
-                <label class="btn btn-outline-light py-2" for="appUber"><i class="fab fa-uber me-1"></i> Uber</label>
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appIndriver" value="INDRIVER">
+                        <label class="btn btn-outline-success w-100 h-100 py-2 d-flex flex-column align-items-center justify-content-center" for="appIndriver">
+                            <i class="fas fa-car-side fa-lg mb-1"></i>
+                            <span class="small fw-bold" style="font-size: 0.7rem;">InDrive</span>
+                        </label>
+                    </div>
 
-                <input type="radio" class="btn-check" name="appOrigen" id="appCalle" value="CALLE">
-                <label class="btn btn-outline-warning py-2" for="appCalle"><i class="fas fa-hand-paper me-1"></i> Calle</label>
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appUber" value="UBER">
+                        <label class="btn btn-outline-light w-100 h-100 py-2 d-flex flex-column align-items-center justify-content-center" for="appUber">
+                            <i class="fab fa-uber fa-lg mb-1"></i>
+                            <span class="small fw-bold" style="font-size: 0.7rem;">Uber</span>
+                        </label>
+                    </div>
+
+                    <div class="col-3">
+                        <input type="radio" class="btn-check" name="appOrigen" id="appOtros" value="OTROS">
+                        <label class="btn btn-outline-info w-100 h-100 py-2 d-flex flex-column align-items-center justify-content-center" for="appOtros">
+                            <i class="fas fa-mobile-alt fa-lg mb-1"></i>
+                            <span class="small fw-bold" style="font-size: 0.7rem;">Otros</span>
+                        </label>
+                    </div>
+
+                </div>
             </div>
 
         </div>
