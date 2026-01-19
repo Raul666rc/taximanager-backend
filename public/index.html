@@ -88,24 +88,29 @@
                 <i class="fas fa-power-off fa-3x mb-2"></i><br>INICIAR
             </button>
 
-            <div id="panelEnCarrera" class="d-none w-100 px-2">
-                <div class="d-grid gap-2">
-                    <div class="row g-2">
-                        <div class="col-6">
-                             <button class="btn btn-warning w-100 py-3 fw-bold" onclick="registrarParada()">
-                                <i class="fas fa-map-marker-alt fa-lg d-block mb-1"></i> Parada
-                            </button>
-                        </div>
-                        <div class="col-6">
-                             <a href="waze://" class="btn btn-info w-100 py-3 fw-bold">
-                                <i class="fab fa-waze fa-lg d-block mb-1"></i> Waze
-                            </a>
-                        </div>
-                    </div>
-                    <button class="btn btn-danger btn-lg fw-bold py-3 shadow" data-bs-toggle="modal" data-bs-target="#modalCobrar">
-                        <i class="fas fa-flag-checkered me-2"></i> TERMINAR Y COBRAR
-                    </button>
+            <div id="panelEnCarrera" class="d-none w-100 px-2 d-flex flex-column gap-3">
+                
+                <div class="alert alert-dark border-success text-success text-center m-0 py-2 shadow-sm animate__animated animate__pulse animate__infinite">
+                    <small class="fw-bold tracking-wider">
+                        <i class="fas fa-circle text-danger me-2 blink"></i>REC • GRABANDO RUTA
+                    </small>
                 </div>
+
+                <button class="btn btn-warning w-100 shadow-lg btn-race-secondary" onclick="registrarParada()">
+                    <div class="d-flex align-items-center justify-content-center gap-3">
+                        <i class="fas fa-map-pin fa-2x"></i>
+                        <span class="fs-4 fw-bold">PARADA</span>
+                    </div>
+                </button>
+
+                <button class="btn btn-danger w-100 shadow-lg btn-race-primary" data-bs-toggle="modal" data-bs-target="#modalCobrar">
+                    <div class="d-flex flex-column align-items-center justify-content-center">
+                        <i class="fas fa-flag-checkered fa-4x mb-2"></i>
+                        <span class="display-6 fw-bold">FINALIZAR</span>
+                        <small class="text-white-50">Terminar y Cobrar</small>
+                    </div>
+                </button>
+
             </div>
 
             <div id="selectorApps" class="w-100 mt-3 px-1">
