@@ -202,3 +202,112 @@ small, .small {
     background-color: #198754;
     color: #fff;
 }
+/* =========================================
+   6. TARJETA META PREMIUM (ESTILOS NUEVOS)
+   ========================================= */
+
+/* El contenedor principal de la tarjeta */
+.card-meta-premium {
+    background: #161618; /* Negro suave */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+    min-height: 150px;
+}
+
+/* Efecto al presionar (Feedback táctil) */
+.card-meta-premium:active {
+    transform: scale(0.98);
+    border-color: rgba(255, 193, 7, 0.5) !important; /* Borde amarillo al tocar */
+}
+
+/* El resplandor de fondo (Efecto ambiental) */
+.meta-glow-effect {
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,193,7,0.08) 0%, rgba(0,0,0,0) 60%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Tipografía mejorada para números */
+.numero-glow {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    font-family: 'Segoe UI', sans-serif; /* O una fuente monoespaciada si prefieres */
+    letter-spacing: -1px;
+}
+
+.tracking-wider {
+    letter-spacing: 1px;
+}
+
+/* Badge estilo "Cristal" */
+.badge-glass {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffc107;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+}
+
+/* Contenedor de la barra (El riel oscuro) */
+.progress-container {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 2;
+}
+
+/* La Barra Neón (Base) */
+.progress-bar-neon {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    /* El color base será amarillo, pero las clases de Bootstrap (bg-success, etc.) lo sobrescribirán */
+    background-color: #ffc107; 
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.5); /* Resplandor inicial */
+}
+
+/* --- OVERRIDES PARA COLORES NEÓN (JS usa estas clases) --- */
+
+/* Cuando JS pone .bg-danger (Rojo) */
+.progress-bar-neon.bg-danger {
+    background-color: #ff4757 !important;
+    box-shadow: 0 0 12px rgba(255, 71, 87, 0.6);
+}
+
+/* Cuando JS pone .bg-warning (Amarillo) */
+.progress-bar-neon.bg-warning {
+    background-color: #ffa502 !important;
+    box-shadow: 0 0 12px rgba(255, 165, 2, 0.6);
+}
+
+/* Cuando JS pone .bg-info (Azul) */
+.progress-bar-neon.bg-info {
+    background-color: #0fb9b1 !important;
+    box-shadow: 0 0 12px rgba(15, 185, 177, 0.6);
+}
+
+/* Cuando JS pone .bg-primary (Azul Oscuro/Morado) */
+.progress-bar-neon.bg-primary {
+    background-color: #3742fa !important;
+    box-shadow: 0 0 12px rgba(55, 66, 250, 0.6);
+}
+
+/* Cuando JS pone .bg-success (Verde - Meta cumplida) */
+.progress-bar-neon.bg-success {
+    background-color: #2ed573 !important;
+    box-shadow: 0 0 15px rgba(46, 213, 115, 0.8); /* Resplandor más fuerte */
+}

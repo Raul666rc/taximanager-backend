@@ -15,36 +15,56 @@ async function cargarMetaDiaria() {
             const total = parseFloat(result.total) || 0;
             const meta = parseFloat(result.meta) || 200;
 
+            // Elementos del DOM
             const elTotal = document.getElementById('lblTotalDia');
-            const elMetaNum = document.getElementById('lblMetaNum');
-            const elPorc = document.getElementById('lblPorcentaje');
             const barra = document.getElementById('barraMeta');
+            const elPorc = document.getElementById('lblPorcentaje');
             const lblFrase = document.getElementById('lblFrase');
+            const elMetaNum = document.getElementById('lblMetaNum');
 
             if (!elTotal || !barra) return; 
 
+            // Renderizado
             elTotal.innerText = total.toFixed(2);
             elMetaNum.innerText = `Meta: S/ ${meta.toFixed(0)}`;
 
             let porcentaje = (total / meta) * 100;
+            // Tope visual 100% para que la barra no se salga
             if (porcentaje > 100) porcentaje = 100;
             
             barra.style.width = `${porcentaje}%`;
             elPorc.innerText = `${(total/meta*100).toFixed(0)}%`;
+            
+            // Lógica de Colores y Frases (INTACTA)
             barra.className = 'progress-bar progress-bar-striped progress-bar-animated';
             elPorc.className = 'badge border border-secondary text-warning'; 
             barra.classList.remove('bg-danger', 'bg-warning', 'bg-info', 'bg-primary', 'bg-success');
             
-            if (porcentaje < 15) { barra.classList.add('bg-danger'); elPorc.classList.add('bg-dark'); if(lblFrase) { lblFrase.innerText = "¡Arrancamos motores! 🚦"; lblFrase.className = "text-muted small fst-italic"; } } 
-            else if (porcentaje < 40) { barra.classList.add('bg-warning'); elPorc.classList.add('bg-dark'); if(lblFrase) { lblFrase.innerText = "¡Buen ritmo! 🚕"; lblFrase.className = "text-white small fw-bold"; } } 
-            else if (porcentaje < 75) { barra.classList.add('bg-info'); elPorc.classList.add('bg-dark'); if(lblFrase) { lblFrase.innerText = "¡Pasamos la mitad! 💪"; lblFrase.className = "text-info small fw-bold"; } } 
-            else if (porcentaje < 100) { barra.classList.add('bg-primary'); elPorc.classList.add('bg-dark'); if(lblFrase) { lblFrase.innerText = "¡Ya casi! 🔥"; lblFrase.className = "text-warning small fw-bold"; } } 
-            else { barra.classList.add('bg-success'); elPorc.classList.remove('bg-dark'); elPorc.classList.add('bg-success', 'text-white'); if(lblFrase) { lblFrase.innerText = "¡ERES UNA MÁQUINA! 🏆"; lblFrase.className = "text-success small fw-bold text-uppercase"; } }
+            if (porcentaje < 15) { 
+                barra.classList.add('bg-danger'); elPorc.classList.add('bg-dark'); 
+                if(lblFrase) { lblFrase.innerText = "¡Arrancamos motores! 🚦"; lblFrase.className = "text-muted small fst-italic"; } 
+            } 
+            else if (porcentaje < 40) { 
+                barra.classList.add('bg-warning'); elPorc.classList.add('bg-dark'); 
+                if(lblFrase) { lblFrase.innerText = "¡Buen ritmo! 🚕"; lblFrase.className = "text-white small fw-bold"; } 
+            } 
+            else if (porcentaje < 75) { 
+                barra.classList.add('bg-info'); elPorc.classList.add('bg-dark'); 
+                if(lblFrase) { lblFrase.innerText = "¡Pasamos la mitad! 💪"; lblFrase.className = "text-info small fw-bold"; } 
+            } 
+            else if (porcentaje < 100) { 
+                barra.classList.add('bg-primary'); elPorc.classList.add('bg-dark'); 
+                if(lblFrase) { lblFrase.innerText = "¡Ya casi! 🔥"; lblFrase.className = "text-warning small fw-bold"; } 
+            } 
+            else { 
+                barra.classList.add('bg-success'); elPorc.classList.remove('bg-dark'); elPorc.classList.add('bg-success', 'text-white'); 
+                if(lblFrase) { lblFrase.innerText = "¡ERES UNA MÁQUINA! 🏆"; lblFrase.className = "text-success small fw-bold text-uppercase"; } 
+            }
         }
     } catch (e) { console.error("Error cargando meta:", e); }
 }
 
-// 2. GESTIÓN DE META
+// 2. GESTIÓN DE META (MODAL)
 function cambiarMeta() {
     const textoActual = document.getElementById('lblMetaNum').innerText.replace('Meta: S/ ', '');
     document.getElementById('inputMetaDiaria').value = parseFloat(textoActual) || 200;
@@ -62,7 +82,10 @@ async function guardarNuevaMeta() {
     const nuevaMeta = document.getElementById('inputMetaDiaria').value;
     if (nuevaMeta && !isNaN(nuevaMeta) && nuevaMeta > 0) {
         const btn = document.querySelector('button[onclick="guardarNuevaMeta()"]');
-        const txt = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+        const txt = btn.innerHTML; 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+        btn.disabled = true;
+        
         try {
             const res = await fetch(`${API_URL}/meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ meta: nuevaMeta }) });
             if ((await res.json()).success) {
@@ -70,11 +93,12 @@ async function guardarNuevaMeta() {
                 cargarMetaDiaria();
                 notificar(`🎯 Meta actualizada a S/ ${nuevaMeta}`, "exito");
             }
-        } catch (e) { notificar("Error conexión", "error"); } finally { btn.innerHTML = txt; btn.disabled = false; }
+        } catch (e) { notificar("Error conexión", "error"); } 
+        finally { btn.innerHTML = txt; btn.disabled = false; }
     }
 }
 
-// 3. GASTOS
+// 3. GASTOS (REGULAR Y RÁPIDO)
 async function guardarGasto() {
     const monto = document.getElementById('montoGasto').value;
     let descripcion = document.getElementById('descGasto').value;
@@ -85,11 +109,22 @@ async function guardarGasto() {
     if (!descripcion) descripcion = categoria; 
 
     try {
-        const res = await fetch(`${API_URL}/gastos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monto, descripcion, cuenta_id: cuentaId, categoria }) });
+        const res = await fetch(`${API_URL}/gastos`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ monto, descripcion, cuenta_id: cuentaId, categoria }) 
+        });
+        
         if ((await res.json()).success) {
-            document.getElementById('montoGasto').value = ''; document.getElementById('descGasto').value = '';
-            bootstrap.Modal.getInstance(document.getElementById('modalGasto')).hide();
-            cargarMetaDiaria(); if(typeof cargarHistorial === 'function') cargarHistorial();
+            document.getElementById('montoGasto').value = ''; 
+            document.getElementById('descGasto').value = '';
+            
+            const modalEl = document.getElementById('modalGasto');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            
+            cargarMetaDiaria(); 
+            if(typeof cargarHistorial === 'function') cargarHistorial();
             notificar(`✅ Gasto de ${categoria} registrado.`, "exito");
         }
     } catch (e) { notificar("Error conexión", "error"); }
@@ -104,51 +139,85 @@ async function enviarGastoRapido() {
     if (!monto || monto <= 0) return notificar("Ingresa un monto válido", "error");
 
     const btn = document.querySelector('button[onclick="enviarGastoRapido()"]');
-    const txt = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+    const txt = btn.innerHTML; 
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+    btn.disabled = true;
 
     try {
-        const res = await fetch(`${API_URL}/finanzas/gasto-rapido`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ monto, categoria, nota: notaFinal }) });
+        const res = await fetch(`${API_URL}/finanzas/gasto-rapido`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ monto, categoria, nota: notaFinal }) 
+        });
+        
         if ((await res.json()).success) {
             notificar(`✅ Gasto de S/ ${monto} registrado`, "success");
-            bootstrap.Modal.getInstance(document.getElementById('modalGastoRapido')).hide();
-            document.getElementById('montoGastoRapido').value = ''; document.getElementById('notaGastoRapido').value = '';
-            document.getElementById('catGasolina').checked = true;
-            cargarMovimientos(); cargarMetaDiaria();
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalGastoRapido'));
+            modal.hide();
+            
+            document.getElementById('montoGastoRapido').value = ''; 
+            document.getElementById('notaGastoRapido').value = '';
+            document.getElementById('catGasolina').checked = true; // Reset a Gasolina
+            
+            // Recargar Dashboard si existen las funciones
+            if(typeof cargarMovimientos === 'function') cargarMovimientos();
+            cargarMetaDiaria();
         }
-    } catch (e) { notificar("Error conexión", "error"); } finally { btn.innerHTML = txt; btn.disabled = false; }
+    } catch (e) { notificar("Error conexión", "error"); } 
+    finally { btn.innerHTML = txt; btn.disabled = false; }
 }
 
-// 4. BILLETERA
+// 4. BILLETERA (DASHBOARD COMPLETO)
 async function abrirBilletera(periodo = 'mes') {
     try {
         const res = await fetch(`${API_URL}/billetera?periodo=${periodo}`);
         const result = await res.json();
+        
         if (result.success) {
-            const data = result.data; const cuentas = data.cuentas;
+            const data = result.data; 
+            const cuentas = data.cuentas;
             const findSaldo = (id) => cuentas.find(c => c.id === id)?.saldo_actual || 0;
 
+            // Render Saldos
             document.getElementById('txtEfectivo').innerText = `S/ ${parseFloat(findSaldo(1)).toFixed(2)}`;
             document.getElementById('txtYape').innerText = `S/ ${parseFloat(findSaldo(2)).toFixed(2)}`;
             document.getElementById('txtAhorro').innerText = `S/ ${parseFloat(findSaldo(3)).toFixed(2)}`;
             document.getElementById('txtWardaTaller').innerText = `S/ ${parseFloat(findSaldo(4)).toFixed(2)}`;
             document.getElementById('txtWardaDeuda').innerText = `S/ ${parseFloat(findSaldo(5)).toFixed(2)}`;
             document.getElementById('txtWardaEmergencia').innerText = `S/ ${parseFloat(findSaldo(6)).toFixed(2)}`;
-            document.getElementById('txtGastos').innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
+            
+            const txtGastos = document.getElementById('txtGastos');
+            if(txtGastos) txtGastos.innerText = `S/ ${parseFloat(data.gasto_mensual).toFixed(2)}`;
 
-            // Lista Movimientos
+            // Render Lista Movimientos (Dentro del Modal)
             const divMovs = document.getElementById('listaMovimientos');
             if (divMovs && data.movimientos) {
                 let html = '';
                 data.movimientos.forEach(m => {
                     let i = 'fa-circle', c = 'text-white', s = '';
+                    
                     if (m.tipo === 'INGRESO') { i = 'fa-arrow-up'; c = 'text-success'; s = '+'; }
                     else if (m.tipo === 'GASTO') { i = 'fa-arrow-down'; c = 'text-danger'; s = '-'; }
                     else if (m.tipo === 'PAGO_DEUDA') { i = 'fa-check-double'; c = 'text-info'; s = '-'; }
                     else if (m.tipo === 'TRANSFERENCIA') { i = 'fa-exchange-alt'; c = 'text-warning'; s = ' '; }
-                    html += `<div class="d-flex justify-content-between align-items-center border-bottom border-secondary py-2"><div class="d-flex align-items-center"><div class="me-3 ${c}"><i class="fas ${i}"></i></div><div><div class="small fw-bold text-white">${m.descripcion}</div><div class="text-muted" style="font-size: 0.7rem;">${m.fecha_fmt}</div></div></div><div class="fw-bold ${c}">${s} S/ ${parseFloat(m.monto).toFixed(2)}</div></div>`;
+                    
+                    html += `
+                    <div class="d-flex justify-content-between align-items-center border-bottom border-secondary py-2">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 ${c}"><i class="fas ${i}"></i></div>
+                            <div>
+                                <div class="small fw-bold text-white">${m.descripcion}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">${m.fecha_fmt}</div>
+                            </div>
+                        </div>
+                        <div class="fw-bold ${c}">${s} S/ ${parseFloat(m.monto).toFixed(2)}</div>
+                    </div>`;
                 });
                 divMovs.innerHTML = html || '<div class="text-center text-muted small py-3">Sin movimientos</div>';
             }
+            
+            // Llamada a Gráficos (Si el módulo grafico.js está cargado)
             if(typeof dibujarDona === 'function') dibujarDona(data.estadisticas);
             if(typeof dibujarBarras === 'function') dibujarBarras(data.semana);
             
@@ -164,16 +233,38 @@ async function cargarMovimientos() {
     try {
         const res = await fetch(`${API_URL}/finanzas/movimientos`);
         const result = await res.json();
+        
         if (result.success) {
-            if (result.data.length === 0) { contenedor.innerHTML = '<div class="text-center py-3 text-muted">No hay movimientos aún.</div>'; return; }
+            if (result.data.length === 0) { 
+                contenedor.innerHTML = '<div class="text-center py-3 text-muted">No hay movimientos aún.</div>'; 
+                return; 
+            }
+            
             let html = '';
             result.data.forEach(m => {
                 let i = 'fa-arrow-down', cI = 'bg-danger', cT = 'text-danger', s = '-';
+                
                 if (m.tipo === 'INGRESO') { i = 'fa-arrow-up'; cI = 'bg-success'; cT = 'text-success'; s = '+'; }
                 if (m.categoria && m.categoria.includes('Transferencia')) { i = 'fa-right-left'; cI = 'bg-info'; cT = 'text-info'; s = ''; }
+                
                 const fecha = new Date(m.fecha).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
                 const hora = new Date(m.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-                html += `<div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center px-3 py-2"><div class="d-flex align-items-center"><div class="rounded-circle ${cI} d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 35px; height: 35px;"><i class="fa-solid ${i} text-white small"></i></div><div style="line-height: 1.2;"><div class="text-white fw-bold small text-uppercase mb-0 text-truncate" style="max-width: 180px;">${m.descripcion}</div><small class="text-muted" style="font-size: 0.7rem;">${fecha} • ${hora} | <span class="text-secondary">${m.nombre_cuenta || 'General'}</span></small></div></div><div class="text-end"><div class="${cT} fw-bold" style="font-size: 0.95rem;">${s} S/ ${parseFloat(m.monto).toFixed(2)}</div></div></div>`;
+                
+                html += `
+                <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center px-3 py-2">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle ${cI} d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 35px; height: 35px;">
+                            <i class="fa-solid ${i} text-white small"></i>
+                        </div>
+                        <div style="line-height: 1.2;">
+                            <div class="text-white fw-bold small text-uppercase mb-0 text-truncate" style="max-width: 180px;">${m.descripcion}</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">${fecha} • ${hora} | <span class="text-secondary">${m.nombre_cuenta || 'General'}</span></small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="${cT} fw-bold" style="font-size: 0.95rem;">${s} S/ ${parseFloat(m.monto).toFixed(2)}</div>
+                    </div>
+                </div>`;
             });
             contenedor.innerHTML = html;
         }
@@ -182,9 +273,11 @@ async function cargarMovimientos() {
 
 // 5. TRANSFERENCIAS
 async function abrirModalTransferencia(datosReparto = null) {
+    // Cerrar otros modales que estorben
     const mb = bootstrap.Modal.getInstance(document.getElementById('modalBilletera')); if (mb) mb.hide();
     const mc = bootstrap.Modal.getInstance(document.getElementById('modalCierreCaja')); if (mc) mc.hide();
 
+    // Configurar Panel de Recordatorio (Chuleta)
     const panelRec = document.getElementById('divRecordatorioReparto');
     if (datosReparto) {
         panelRec.classList.remove('d-none');
@@ -199,19 +292,32 @@ async function abrirModalTransferencia(datosReparto = null) {
 
     const sO = document.getElementById('selectOrigen'), sD = document.getElementById('selectDestino'), lbl = document.getElementById('lblSaldoDisponible');
     sO.innerHTML = '<option>Cargando...</option>'; sD.innerHTML = '<option>Cargando...</option>'; lbl.innerText = "...";
+    
     new bootstrap.Modal(document.getElementById('modalTransferencia')).show();
 
     try {
         const res = await fetch(`${API_URL}/finanzas/cuentas`);
         const result = await res.json();
+        
         if (result.success) {
-            let html = ''; result.data.forEach(c => html += `<option value="${c.id}">${c.nombre}</option>`);
-            sO.innerHTML = html; sD.innerHTML = html;
+            let html = ''; 
+            result.data.forEach(c => html += `<option value="${c.id}">${c.nombre}</option>`);
             
-            saldosCache = {}; result.data.forEach(c => saldosCache[c.id] = parseFloat(c.saldo_actual));
+            sO.innerHTML = html; 
+            sD.innerHTML = html;
             
-            if (datosReparto) { if(saldosCache[1]) sO.value = 1; if(saldosCache[6]) sD.value = 6; } 
-            else { if(saldosCache[1]) sO.value = 1; if(saldosCache[3]) sD.value = 3; }
+            // Cachear Saldos
+            saldosCache = {}; 
+            result.data.forEach(c => saldosCache[c.id] = parseFloat(c.saldo_actual));
+            
+            // Selección Inteligente (Lógica mantenida)
+            if (datosReparto) { 
+                if(saldosCache[1]) sO.value = 1; // Efectivo
+                if(saldosCache[6]) sD.value = 6; // Warda Emergencia (o lo que definieras como destino por defecto)
+            } else { 
+                if(saldosCache[1]) sO.value = 1; // Efectivo
+                if(saldosCache[3]) sD.value = 3; // Arca
+            }
             actualizarSaldoOrigen();
         } else lbl.innerText = "Error";
     } catch (e) { lbl.innerText = "Sin conexión"; }
@@ -220,6 +326,7 @@ async function abrirModalTransferencia(datosReparto = null) {
 function actualizarSaldoOrigen() {
     const id = document.getElementById('selectOrigen').value;
     const lbl = document.getElementById('lblSaldoDisponible');
+    
     if (saldosCache && saldosCache[id] !== undefined) {
         const s = saldosCache[id];
         lbl.innerText = `S/ ${s.toFixed(2)}`;
@@ -238,18 +345,28 @@ async function realizarTransferencia() {
     if (saldosCache[oId] !== undefined && monto > saldosCache[oId]) return notificar("Saldo insuficiente", "error");
 
     const btn = document.querySelector('button[onclick="realizarTransferencia()"]');
-    const txt = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+    const txt = btn.innerHTML; 
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+    btn.disabled = true;
 
     try {
-        const res = await fetch(`${API_URL}/transferir`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ cuenta_origen_id: oId, cuenta_destino_id: dId, monto, nota }) });
+        const res = await fetch(`${API_URL}/transferir`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ cuenta_origen_id: oId, cuenta_destino_id: dId, monto, nota }) 
+        });
         const data = await res.json();
+        
         if (data.success) {
             notificar("✅ Transferencia exitosa", "success");
             bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
-            document.getElementById('montoTransferencia').value = ''; document.getElementById('notaTransferencia').value = '';
+            document.getElementById('montoTransferencia').value = ''; 
+            document.getElementById('notaTransferencia').value = '';
+            
             cargarMetaDiaria();
         } else notificar(data.message, "error");
-    } catch (e) { notificar("Error conexión", "error"); } finally { btn.innerHTML = txt; btn.disabled = false; }
+    } catch (e) { notificar("Error conexión", "error"); } 
+    finally { btn.innerHTML = txt; btn.disabled = false; }
 }
 
 function irATransferirConDatos() {
@@ -262,20 +379,26 @@ function irATransferirConDatos() {
     abrirModalTransferencia(datos);
 }
 
-// 6. CIERRE DE CAJA
+// 6. CIERRE DE CAJA (LÓGICA MATEMÁTICA VERIFICADA)
 async function abrirCierreCaja() {
     document.getElementById('paso1_conteo').classList.remove('d-none');
     document.getElementById('paso2_resultado').classList.add('d-none');
     document.getElementById('paso3_reparto').classList.add('d-none');
-    document.getElementById('inputRealEfectivo').value = ''; document.getElementById('inputRealYape').value = '';
+    
+    document.getElementById('inputRealEfectivo').value = ''; 
+    document.getElementById('inputRealYape').value = '';
+    
     new bootstrap.Modal(document.getElementById('modalCierreCaja')).show();
 
     try {
         const res = await fetch(`${API_URL}/finanzas/cierre-datos`);
         const r = await res.json();
         if(r.success) {
-            sysEfe = parseFloat(r.saldo_efectivo); sysYape = parseFloat(r.saldo_yape);
-            ingresosHoyBD = parseFloat(r.ingresos_hoy) || 0; gastosHoyBD = parseFloat(r.gastos_hoy) || 0;
+            sysEfe = parseFloat(r.saldo_efectivo); 
+            sysYape = parseFloat(r.saldo_yape);
+            ingresosHoyBD = parseFloat(r.ingresos_hoy) || 0; 
+            gastosHoyBD = parseFloat(r.gastos_hoy) || 0;
+            
             document.getElementById('lblSysEfectivo').innerText = sysEfe.toFixed(2);
             document.getElementById('lblSysYape').innerText = sysYape.toFixed(2);
         }
@@ -283,59 +406,108 @@ async function abrirCierreCaja() {
 }
 
 function verificarCierre() {
-    const inEfe = document.getElementById('inputRealEfectivo').value, inYape = document.getElementById('inputRealYape').value;
+    const inEfe = document.getElementById('inputRealEfectivo').value;
+    const inYape = document.getElementById('inputRealYape').value;
+    
     if(inEfe === '' || inYape === '') return notificar("Completa montos", "error");
     
-    difEfe = parseFloat(inEfe) - sysEfe; difYape = parseFloat(inYape) - sysYape;
+    difEfe = parseFloat(inEfe) - sysEfe; 
+    difYape = parseFloat(inYape) - sysYape;
     const difTotal = difEfe + difYape;
 
     document.getElementById('paso1_conteo').classList.add('d-none');
     document.getElementById('paso2_resultado').classList.remove('d-none');
     
-    const ico = document.getElementById('iconoResultado'), tit = document.getElementById('tituloResultado'), msg = document.getElementById('mensajeResultado');
-    if (Math.abs(difTotal) < 1) { ico.innerHTML = "✅"; tit.className = "fw-bold mb-2 text-success"; tit.innerText = "¡Caja Cuadrada!"; msg.innerText = "Todo coincide."; }
-    else if (difTotal < 0) { ico.innerHTML = "⚠️"; tit.className = "fw-bold mb-2 text-danger"; tit.innerText = "Falta Dinero"; msg.innerText = `Falta S/ ${Math.abs(difTotal).toFixed(2)}`; }
-    else { ico.innerHTML = "🤑"; tit.className = "fw-bold mb-2 text-info"; tit.innerText = "Sobra Dinero"; msg.innerText = `Sobran S/ ${difTotal.toFixed(2)}`; }
+    const ico = document.getElementById('iconoResultado');
+    const tit = document.getElementById('tituloResultado');
+    const msg = document.getElementById('mensajeResultado');
+    
+    if (Math.abs(difTotal) < 1) { 
+        ico.innerHTML = "✅"; tit.className = "fw-bold mb-2 text-success"; tit.innerText = "¡Caja Cuadrada!"; msg.innerText = "Todo coincide."; 
+    }
+    else if (difTotal < 0) { 
+        ico.innerHTML = "⚠️"; tit.className = "fw-bold mb-2 text-danger"; tit.innerText = "Falta Dinero"; msg.innerText = `Falta S/ ${Math.abs(difTotal).toFixed(2)}`; 
+    }
+    else { 
+        ico.innerHTML = "🤑"; tit.className = "fw-bold mb-2 text-info"; tit.innerText = "Sobra Dinero"; msg.innerText = `Sobran S/ ${difTotal.toFixed(2)}`; 
+    }
 }
 
 async function procesarAjusteYReparto() {
+    // Función auxiliar para evitar crash si falta un elemento visual
     const safeText = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+    
+    // 1. Guardar ajuste en BD
     if (difEfe !== 0) { try { await fetch(`${API_URL}/finanzas/cierre-ajuste`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ diferencia: difEfe }) }); } catch(e) {} }
 
+    // 2. Cálculos Reales
     const totalEnMano = (parseFloat(document.getElementById('inputRealEfectivo').value)||0) + (parseFloat(document.getElementById('inputRealYape').value)||0);
+    
+    // Lógica Base Ayer = SaldoTotal - IngresosHoy + GastosHoy
     const saldoSistemaTotal = sysEfe + sysYape + difEfe + difYape; 
     const baseAyer = saldoSistemaTotal - ingresosHoyBD + gastosHoyBD;
-    let gananciaHoy = totalEnMano - baseAyer; if (gananciaHoy < 0) gananciaHoy = 0; 
+    
+    // Ganancia Neta
+    let gananciaHoy = totalEnMano - baseAyer; 
+    if (gananciaHoy < 0) gananciaHoy = 0; 
 
-    const paraSueldo = gananciaHoy * 0.10, paraArca = gananciaHoy * 0.10, paraNegocio = gananciaHoy * 0.80; 
+    // 3. Estrategia de Reparto (10/10/80) - LÓGICA ORIGINAL
+    const paraSueldo = gananciaHoy * 0.10; 
+    const paraArca = gananciaHoy * 0.10; 
+    const paraNegocio = gananciaHoy * 0.80; 
+
+    // Desglose del Negocio
     let remanenteNegocio = paraNegocio - 40.00; // -Comida
     let paraDeuda = remanenteNegocio > 0 ? remanenteNegocio * 0.40 : 0;
     let paraTaller = remanenteNegocio > 0 ? remanenteNegocio * 0.20 : 0;
     let paraGasolina = remanenteNegocio > 0 ? remanenteNegocio * 0.40 : 0;
 
-    safeText('resTotalMano', `S/ ${totalEnMano.toFixed(2)}`); safeText('resBaseAyer', `S/ ${baseAyer.toFixed(2)}`); safeText('resGananciaHoy', `S/ ${gananciaHoy.toFixed(2)}`); safeText('montoFinalReparto', `S/ ${gananciaHoy.toFixed(2)}`);
-    safeText('sugPersonal', `S/ ${paraSueldo.toFixed(2)}`); safeText('sugArca', `S/ ${paraArca.toFixed(2)}`); safeText('sugNegocioTotal', `S/ ${paraNegocio.toFixed(2)}`);
-    safeText('detComida', `S/ 40.00`); safeText('detDeuda', `S/ ${paraDeuda.toFixed(2)}`); safeText('detTaller', `S/ ${paraTaller.toFixed(2)}`); safeText('detGasolina', `S/ ${paraGasolina.toFixed(2)}`);
+    // 4. Pintar datos
+    safeText('resTotalMano', `S/ ${totalEnMano.toFixed(2)}`); 
+    safeText('resBaseAyer', `S/ ${baseAyer.toFixed(2)}`); 
+    safeText('resGananciaHoy', `S/ ${gananciaHoy.toFixed(2)}`); 
+    safeText('montoFinalReparto', `S/ ${gananciaHoy.toFixed(2)}`);
+    
+    safeText('sugPersonal', `S/ ${paraSueldo.toFixed(2)}`); 
+    safeText('sugArca', `S/ ${paraArca.toFixed(2)}`); 
+    safeText('sugNegocioTotal', `S/ ${paraNegocio.toFixed(2)}`);
+    
+    safeText('detComida', `S/ 40.00`); 
+    safeText('detDeuda', `S/ ${paraDeuda.toFixed(2)}`); 
+    safeText('detTaller', `S/ ${paraTaller.toFixed(2)}`); 
+    safeText('detGasolina', `S/ ${paraGasolina.toFixed(2)}`);
+    
     safeText('saldoRemanente', `S/ ${(baseAyer + paraGasolina).toFixed(2)}`);
 
     document.getElementById('paso2_resultado').classList.add('d-none');
     document.getElementById('paso3_reparto').classList.remove('d-none');
 }
 
-function reiniciarCierre() { document.getElementById('paso1_conteo').classList.remove('d-none'); document.getElementById('paso2_resultado').classList.add('d-none'); }
+function reiniciarCierre() { 
+    document.getElementById('paso1_conteo').classList.remove('d-none'); 
+    document.getElementById('paso2_resultado').classList.add('d-none'); 
+}
 
+// 7. ASISTENTE BABILONIA (INTACTO)
 async function calcularRepartoBabilonia() {
     const btn = document.querySelector('button[onclick="calcularRepartoBabilonia()"]');
-    const txt = btn.innerHTML; btn.innerHTML = '<i class="fas fa-calculator fa-spin"></i>'; btn.disabled = true;
+    const txt = btn.innerHTML; 
+    btn.innerHTML = '<i class="fas fa-calculator fa-spin"></i>'; 
+    btn.disabled = true;
+    
     try {
         const res = await fetch(`${API_URL.replace('/viajes', '')}/reparto/sugerencia`); 
         const json = await res.json();
+        
         if (!json.success) throw new Error(json.message);
+        
         const { sugerido } = json.data;
         const totalStr = prompt(`💰 GANANCIA NETA SISTEMA: S/ ${parseFloat(sugerido).toFixed(2)}\n\n¿Monto a repartir?`, sugerido);
+        
         if (!totalStr || isNaN(totalStr)) return;
         
         const total = parseFloat(totalStr);
+        // Lógica Babilonia: 10/10/80
         const pPer = total * 0.1, pArca = total * 0.1, op = total * 0.8;
         const pMant = op * 0.2, pDeuda = op * 0.3, pGas = op * 0.5;
 
@@ -343,17 +515,35 @@ async function calcularRepartoBabilonia() {
             abrirModalTransferencia();
             document.getElementById('montoTransferencia').value = pDeuda.toFixed(2);
         }
-    } catch (e) { prompt("Error servidor. ¿Monto?", "0") && abrirModalTransferencia(); } finally { btn.innerHTML = txt; btn.disabled = false; }
+    } catch (e) { 
+        console.error(e);
+        // Fallback manual
+        const manual = prompt("No se pudo calcular automático.\n¿Monto a repartir?", "0");
+        if(manual) abrirModalTransferencia();
+    } finally { 
+        btn.innerHTML = txt; btn.disabled = false; 
+    }
 }
 
-function descargarReporteFinanciero() { if(confirm("¿Descargar Reporte?")) window.location.href = `${API_URL}/reporte/finanzas`; }
+function descargarReporteFinanciero() { 
+    if(confirm("¿Descargar Reporte de Gastos e Ingresos?")) window.location.href = `${API_URL}/reporte/finanzas`; 
+}
 
-// 7. ESTADÍSTICAS AVANZADAS
-function abrirEstadisticas() { new bootstrap.Modal(document.getElementById('modalEstadisticas')).show(); filtrarEstadisticas('mes'); }
+// 8. ESTADÍSTICAS AVANZADAS
+function abrirEstadisticas() { 
+    new bootstrap.Modal(document.getElementById('modalEstadisticas')).show(); 
+    filtrarEstadisticas('mes'); 
+}
 
 function filtrarEstadisticas(rango) {
-    const hoy = new Date(); let inicio = new Date(), fin = new Date();
-    document.querySelectorAll('#modalEstadisticas .btn').forEach(b => { b.classList.remove('active', 'btn-outline-info'); if(!b.classList.contains('btn-info')) b.classList.add('btn-outline-light'); });
+    const hoy = new Date(); 
+    let inicio = new Date(), fin = new Date();
+    
+    // Limpieza botones
+    document.querySelectorAll('#modalEstadisticas .btn').forEach(b => { 
+        b.classList.remove('active', 'btn-outline-info'); 
+        if(!b.classList.contains('btn-info')) b.classList.add('btn-outline-light'); 
+    });
     
     if(rango === 'ayer') { inicio.setDate(hoy.getDate()-1); fin.setDate(hoy.getDate()-1); }
     else if(rango === 'semana') inicio.setDate(hoy.getDate()-7);
@@ -365,7 +555,9 @@ function filtrarEstadisticas(rango) {
     const dStr = new Date(inicio.getTime()-off).toISOString().split('T')[0];
     const hStr = new Date(fin.getTime()-off).toISOString().split('T')[0];
     
-    document.getElementById('filtroDesde').value = dStr; document.getElementById('filtroHasta').value = hStr;
+    document.getElementById('filtroDesde').value = dStr; 
+    document.getElementById('filtroHasta').value = hStr;
+    
     cargarDatosGrafico(dStr, hStr);
 }
 
@@ -380,6 +572,7 @@ async function cargarDatosGrafico(desde, hasta) {
         const res = await fetch(`${API_URL}/finanzas/grafico-gastos?desde=${desde}&hasta=${hasta}`);
         if (!res.ok) throw new Error("Error HTTP");
         const r = await res.json();
+        
         if (r.success) {
             if (r.data.length === 0) notificar("Sin datos en este rango", "info");
             if (typeof renderizarGraficoGastos === 'function') renderizarGraficoGastos(r.labels, r.data);
