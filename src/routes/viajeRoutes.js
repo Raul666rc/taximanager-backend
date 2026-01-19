@@ -78,14 +78,23 @@ router.get('/compromisos', FinanzasController.listarCompromisos);
 router.post('/compromisos/cancelar', FinanzasController.cancelarCompromiso);
 // En la sección de Finanzas
 router.get('/reparto/sugerencia', FinanzasController.obtenerSugerenciaReparto);
+
+// ==========================================
+// RUTAS DE FINANZAS Y CUENTAS
+// ==========================================
 router.get('/finanzas/cierre-datos', FinanzasController.obtenerDatosCierre);
 router.post('/finanzas/cierre-ajuste', FinanzasController.procesarAjusteCaja);
-router.get('/finanzas/cuentas', FinanzasController.listarCuentas);
 router.get('/finanzas/movimientos', FinanzasController.listarMovimientos);
 router.post('/finanzas/gasto-rapido', FinanzasController.registrarGastoRapido);
+router.get('/finanzas/cuentas', FinanzasController.obtenerCuentas);
 
 router.get('/finanzas/metas', MetasController.obtenerEstadoMetas);
 router.post('/finanzas/metas/editar', MetasController.actualizarMeta);
+
+// ABAJO (Sección Configuración)
+router.get('/cuentas/listar', CuentasController.listarCuentas);
+router.post('/cuentas/guardar', CuentasController.guardarCuenta);
+router.post('/cuentas/estado', CuentasController.toggleEstado);
 
 // Ruta para descargar el Excel/CSV
 router.get('/reporte/descargar', ViajeController.descargarReporte);
@@ -100,10 +109,7 @@ router.post('/vehiculo/documentos', VehiculoController.guardarDocumentos);
 router.post('/vehiculo/mantenimiento/:id', VehiculoController.registrarMantenimientoParte);
 
 
-// ABAJO (Sección Configuración)
-router.get('/cuentas/listar', CuentasController.listarCuentas);
-router.post('/cuentas/guardar', CuentasController.guardarCuenta);
-router.post('/cuentas/estado', CuentasController.toggleEstado);
+
 
 
 module.exports = router;
