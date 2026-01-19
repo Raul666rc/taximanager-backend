@@ -1,40 +1,76 @@
-/* public/css/styles.css */
+/* ==========================================================================
+   1. CONFIGURACIÓN BASE Y TIPOGRAFÍA
+   ========================================================================== */
 
-/* ESTILOS GENERALES (Modo Oscuro) */
+/* Configuración General del Cuerpo */
 body {
-    background-color: #000000; 
-    color: white;            /* Blanco suave */
+    background-color: #000000;   /* Fondo negro puro (OLED friendly) */
+    color: white;                /* Texto base blanco */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding-bottom: 80px;      /* Espacio para no tapar contenido abajo */
+    padding-bottom: 80px;        /* Espacio inferior para evitar toques fantasma */
 }
 
-    /* --- CORRECCIÓN DE VISIBILIDAD --- */
-    
-    /* Hacemos que el texto "apagado" sea mucho más brillante y legible */
-    .text-muted {
-        color: #d1d1d1 !important; /* Gris Plata Brillante */
-    }
+/* Comportamiento del Scroll */
+html {
+    scroll-behavior: smooth;     /* Desplazamiento suave entre secciones */
+}
 
-    /* Aumentamos un poquito el tamaño de los textos pequeños */
-    small, .small {
-        font-size: 0.85rem; 
-        font-weight: 500; /* Un poco más gordita la letra */
-    }
+/* Corrección de Visibilidad para Textos Apagados */
+.text-muted {
+    color: #d1d1d1 !important;   /* Gris plata brillante (más legible en fondo negro) */
+}
 
-    /* Mejoramos el borde de las tarjetas para que se distingan del fondo negro */
-    .card {
-        border: 1px solid #333 !important;
-        background-color: #121212 !important; /* Un negro un pelín más claro que el fondo */
-    }
+/* Ajustes para textos pequeños */
+small, .small {
+    font-size: 0.85rem; 
+    font-weight: 500;            /* Un poco más de grosor para legibilidad */
+}
 
-    /* El input de la meta también necesita verse mejor */
-    .input-group-text {
-        background-color: #222;
-        color: white;
-        border-color: #444;
-    }
+/* FORZAR VISIBILIDAD DE ICONOS FONT AWESOME 6 */
+/* Esto asegura que los iconos sólidos se vean bien rellenos */
+.fas, .fa-solid {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    -webkit-font-smoothing: antialiased;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
 
-/* TARJETA DE RESUMEN (Dashboard) */
+/* ==========================================================================
+   2. ESTRUCTURA Y LAYOUT (EL COCKPIT)
+   ========================================================================== */
+
+/* Contenedor de Pantalla Completa (Zona Operativa) */
+.seccion-full-screen {
+    min-height: 100vh;           /* Ocupa el 100% de la altura visible del celular */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Distribuye: Cabecera arriba, Botón centro, Footer abajo */
+    padding-bottom: 80px;
+    position: relative;
+    background-color: #000000;
+}
+
+/* Ajustes del Mapa (Leaflet) */
+#mapaLeaflet {
+    z-index: 1;                  /* Asegura que el mapa quede detrás de los modales */
+    background-color: #212529;   /* Fondo gris mientras carga */
+}
+
+/* ==========================================================================
+   3. COMPONENTES: TARJETAS Y CONTENEDORES
+   ========================================================================== */
+
+/* Estilo base de Tarjetas (Bootstrap Overrides) */
+.card {
+    border: 1px solid #333 !important;       /* Borde sutil */
+    background-color: #121212 !important;    /* Negro "elevado" (Material Design) */
+}
+
+/* Tarjetas específicas del Dashboard (Estadísticas) */
 .card-stats {
     background-color: #1e1e1e;
     border: 1px solid #333;
@@ -43,9 +79,32 @@ body {
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
-/* BOTÓN PRINCIPAL (El más importante) */
+/* ==========================================================================
+   4. COMPONENTES: BOTONES Y ACCIONES
+   ========================================================================== */
+
+/* Botón Circular Gigante (INICIAR CARRERA) */
+.btn-circle-xl {
+    width: 200px;
+    height: 200px;
+    font-size: 1.5rem;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 30px rgba(25, 135, 84, 0.4); /* Resplandor verde */
+    border: 6px solid #198754;
+    transition: transform 0.1s;
+}
+
+.btn-circle-xl:active {
+    transform: scale(0.95); /* Efecto de presión al tocar */
+}
+
+/* Botones de Acción Rectangulares (Estilo Legacy) */
 .btn-action-main {
-    height: 120px; /* Gigante para dedo */
+    height: 120px;
     font-size: 1.8rem;
     font-weight: bold;
     border-radius: 20px;
@@ -57,17 +116,58 @@ body {
     transition: transform 0.1s;
 }
 .btn-action-main:active {
-    transform: scale(0.98); /* Efecto de presión */
+    transform: scale(0.98);
 }
 
-/* BOTONES SECUNDARIOS */
+/* Botones Secundarios */
 .btn-action-sec {
     height: 80px;
     font-size: 1.2rem;
     border-radius: 15px;
 }
 
-/* INPUTS GIGANTES (Para escribir fácil) */
+/* Efecto Hover: Giro para iconos de configuración */
+.hover-spin:hover {
+    transform: rotate(90deg);
+    color: #ffc107 !important; /* Se pone amarillo al tocarlo */
+    transition: all 0.3s ease;
+}
+
+/* Badge Flotante (Notificación Roja) */
+#badgeDeudasCount {
+    font-size: 0.65rem;
+    padding: 0.35em 0.5em;
+}
+
+/* Animación Flecha "Bajar a Oficina" */
+.flecha-bajar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: rebote 2s infinite;
+    opacity: 0.5;
+    cursor: pointer;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    transition: opacity 0.3s;
+}
+
+.flecha-bajar:hover {
+    opacity: 1;
+}
+
+@keyframes rebote {
+    0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+    40% { transform: translateX(-50%) translateY(-10px); }
+    60% { transform: translateX(-50%) translateY(-5px); }
+}
+
+/* ==========================================================================
+   5. COMPONENTES: FORMULARIOS E INPUTS
+   ========================================================================== */
+
+/* Inputs Gigantes (Facilidad de escritura en auto) */
 .form-control-lg {
     height: 60px;
     font-size: 1.5rem;
@@ -76,6 +176,7 @@ body {
     border: 1px solid #444;
     color: white;
 }
+
 .form-control-lg:focus {
     background-color: #333;
     color: white;
@@ -83,31 +184,21 @@ body {
     box-shadow: none;
 }
 
-/* RADIO BUTTONS COMO BOTONES (Yape vs Efectivo) */
+/* Estilo para los addons de inputs (S/.) */
+.input-group-text {
+    background-color: #222;
+    color: white;
+    border-color: #444;
+}
+
+/* Radio Buttons personalizados (Se comportan como botones sólidos) */
+/* Estado Activo: Amarillo (Advertencia/Calle) */
 .btn-check:checked + .btn-outline-warning {
     background-color: #ffc107;
     color: #000;
 }
+/* Estado Activo: Verde (Éxito/InDriver) */
 .btn-check:checked + .btn-outline-success {
     background-color: #198754;
     color: #fff;
-}
-
-/* FORZAR VISIBILIDAD DE ICONOS FA 6 */
-.fas, .fa-solid {
-    font-family: "Font Awesome 6 Free" !important;
-    font-weight: 900 !important; /* Vital para que se vean los iconos sólidos */
-    -webkit-font-smoothing: antialiased;
-    display: inline-block;
-    font-style: normal;
-    font-variant: normal;
-    text-rendering: auto;
-    line-height: 1;
-}
-
-/* Efecto de giro suave para el engranaje */
-.hover-spin:hover {
-    transform: rotate(90deg);
-    color: #ffc107 !important; /* Se pone amarillo al tocarlo */
-    transition: all 0.3s ease;
 }
