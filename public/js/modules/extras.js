@@ -2,21 +2,21 @@
 // MÓDULO: EXTRAS (AUTO, HISTORIAL, MANTENIMIENTO)
 // ==========================================
 
-// 1. MI AUTO
+// 1. MI AUTO (AHORA CON CÁLCULO DE VENCIMIENTOS LEGALES)
 async function cargarEstadoVehiculo() {
     try {
         const res = await fetch(`${API_URL}/vehiculo`);
         const r = await res.json();
         if (r.success) {
             const d = r.data;
-            // Odómetro
+            
+            // --- A. KILOMETRAJE Y ACEITE (Lógica existente) ---
             const lblOdo = document.getElementById('lblOdometro');
             if (lblOdo) lblOdo.innerText = d.odometro.toLocaleString();
             
             const lblProx = document.getElementById('lblProximoCambio');
             if (lblProx) lblProx.innerText = d.proximo_cambio.toLocaleString();
             
-            // Barra Aceite
             const barra = document.getElementById('barraAceite');
             const lblPorc = document.getElementById('lblPorcentajeAceite');
             const alertAceite = document.getElementById('lblAlertaAceite');
@@ -25,7 +25,6 @@ async function cargarEstadoVehiculo() {
                 lblPorc.innerText = d.porcentaje_vida.toFixed(0) + '%';
                 barra.style.width = `${d.porcentaje_vida}%`;
                 
-                // Lógica de colores barra
                 barra.className = 'progress-bar progress-bar-striped progress-bar-animated';
                 if (d.porcentaje_vida > 50) {
                     barra.classList.add('bg-success');
@@ -39,16 +38,56 @@ async function cargarEstadoVehiculo() {
                 }
             }
 
-            // Fechas Documentos
-            const setFecha = (id, f) => {
-                const el = document.getElementById(id);
-                if(el) el.innerText = f ? new Date(f).toLocaleDateString('es-PE', {year:'numeric', month:'2-digit', day:'2-digit'}) : '--/--/--';
-            };
-            setFecha('fechaSoat', d.fecha_soat);
-            setFecha('fechaRevision', d.fecha_revision);
-            setFecha('fechaGnv', d.fecha_gnv);
+            // --- B. DOCUMENTOS LEGALES (NUEVA LÓGICA) ---
             
-            // Inputs Config (Para el modal)
+            // Función auxiliar para pintar los badges
+            const actualizarBadge = (idBadge, idTexto, fechaStr) => {
+                const badge = document.getElementById(idBadge);
+                const texto = document.getElementById(idTexto);
+                
+                if (!badge || !texto) return;
+
+                if (!fechaStr) {
+                    texto.innerText = "--/--/--";
+                    badge.innerText = "Sin Datos";
+                    badge.className = "badge bg-secondary rounded-pill px-3";
+                    return;
+                }
+
+                // 1. Poner fecha bonita
+                const fechaVenc = new Date(fechaStr);
+                // Ajuste de zona horaria simple para evitar desfases de día
+                const fechaVencLocal = new Date(fechaVenc.getTime() + (fechaVenc.getTimezoneOffset() * 60000));
+                
+                texto.innerText = fechaVencLocal.toLocaleDateString('es-PE', {year:'numeric', month:'2-digit', day:'2-digit'});
+
+                // 2. Calcular días restantes
+                const hoy = new Date();
+                const diffTime = fechaVenc - hoy;
+                const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                // 3. Decidir color y texto del badge
+                if (diasRestantes < 0) {
+                    badge.className = "badge bg-danger rounded-pill px-3 animate__animated animate__pulse animate__infinite";
+                    badge.innerText = "¡VENCIDO!";
+                } else if (diasRestantes <= 7) {
+                    badge.className = "badge bg-danger text-white rounded-pill px-3";
+                    badge.innerText = `${diasRestantes} días (URGENTE)`;
+                } else if (diasRestantes <= 30) {
+                    badge.className = "badge bg-warning text-dark rounded-pill px-3";
+                    badge.innerText = `${diasRestantes} días`;
+                } else {
+                    badge.className = "badge bg-success rounded-pill px-3";
+                    badge.innerText = "Vigente";
+                }
+            };
+
+            // Ejecutar para los 3 documentos
+            actualizarBadge('badgeSoat', 'fechaSoat', d.fecha_soat);
+            actualizarBadge('badgeRevision', 'fechaRevision', d.fecha_revision);
+            actualizarBadge('badgeGnv', 'fechaGnv', d.fecha_gnv);
+            
+            // Pre-llenar inputs del modal de configuración
             if(d.fecha_soat) document.getElementById('inputSoat').value = d.fecha_soat.split('T')[0];
             if(d.fecha_revision) document.getElementById('inputRevision').value = d.fecha_revision.split('T')[0];
             if(d.fecha_gnv) document.getElementById('inputGnv').value = d.fecha_gnv.split('T')[0];
