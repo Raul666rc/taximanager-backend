@@ -637,14 +637,18 @@ class FinanzasController {
     // ==========================================
     
     // Listar todas las cuentas y sus saldos actuales
-    static async listarCuentas(req, res) {
+    // EN FinanzasController.js
+
+    static async obtenerCuentas(req, res) {
         try {
-            // CORRECCIÓN: Usamos 'nombre' (como está en tu BD)
-            const [rows] = await db.query("SELECT id, nombre, saldo_actual FROM cuentas");
+            // CONSULTA: Solo traemos las activas (1)
+            // Ordenamos por ID para que el Efectivo (1) siempre salga primero
+            const [rows] = await db.query("SELECT * FROM cuentas WHERE activo = 1 ORDER BY id ASC");
+            
             res.json({ success: true, data: rows });
         } catch (error) {
             console.error(error);
-            res.status(500).json({ success: false, message: "Error al obtener cuentas" });
+            res.status(500).json({ success: false, message: 'Error al obtener cuentas' });
         }
     }
 }

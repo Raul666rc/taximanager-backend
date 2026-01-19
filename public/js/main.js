@@ -532,10 +532,12 @@ async function guardarGasto() {
     }
 }
 
-// ABRIR MODAL TRANSFERENCIA (CON CHULETA DE REPARTO)
+// ==========================================
+// ABRIR MODAL TRANSFERENCIA (DINÁMICO)
+// ==========================================
 async function abrirModalTransferencia(datosReparto = null) {
     
-    // 1. Cerrar otros modales para evitar conflictos
+    // 1. Cerrar otros modales
     const modalBilletera = bootstrap.Modal.getInstance(document.getElementById('modalBilletera'));
     if (modalBilletera) modalBilletera.hide();
 
@@ -544,7 +546,6 @@ async function abrirModalTransferencia(datosReparto = null) {
 
     // 2. Configurar la "Chuleta" (Panel de Recordatorio)
     const panelRec = document.getElementById('divRecordatorioReparto');
-    
     if (datosReparto) {
         panelRec.classList.remove('d-none');
         document.getElementById('recSueldo').innerText = datosReparto.sueldo;
@@ -556,62 +557,65 @@ async function abrirModalTransferencia(datosReparto = null) {
         document.getElementById('montoTransferencia').value = '';
     }
 
-    // 3. Abrir Modal
+    // 3. Preparar UI (Mostrar Cargando...)
+    const selectOrigen = document.getElementById('selectOrigen');
+    const selectDestino = document.getElementById('selectDestino');
+    const lblSaldo = document.getElementById('lblSaldoDisponible');
+    
+    selectOrigen.innerHTML = '<option>Cargando...</option>';
+    selectDestino.innerHTML = '<option>Cargando...</option>';
+    lblSaldo.innerText = "Consultando...";
+
+    // 4. Abrir Modal
     const modalTrans = new bootstrap.Modal(document.getElementById('modalTransferencia'));
     modalTrans.show();
 
-    // 4. Llenar Selects (CON EL NOMBRE CORREGIDO)
-    const cuentas = [
-        {id: 1, nombre: '💵 Efectivo (Bolsillo)'},
-        {id: 2, nombre: '🟣 Yape / BCP'},
-        {id: 3, nombre: '💰 Warda - Arca Oro'},
-        {id: 4, nombre: '🛠️ Warda - Taller'},
-        {id: 5, nombre: '📉 Warda - Deuda 8k'},
-        {id: 6, nombre: '🎓 Warda - Sueldo'} // <-- CAMBIO REALIZADO AQUÍ
-    ];
-    
-    const selectOrigen = document.getElementById('selectOrigen');
-    const selectDestino = document.getElementById('selectDestino');
-    let html = '';
-    cuentas.forEach(c => html += `<option value="${c.id}">${c.nombre}</option>`);
-    
-    selectOrigen.innerHTML = html;
-    selectDestino.innerHTML = html;
-    
-    // Configuración inicial inteligente
-    if (datosReparto) {
-        selectOrigen.value = 1; 
-        selectDestino.value = 6; // Sugerir ir a Sueldo primero
-    } else {
-        selectOrigen.value = 1;
-        selectDestino.value = 3;
-    }
-
-    // 5. OBTENER SALDOS REALES (CON LA RUTA CORREGIDA)
-    const lblSaldo = document.getElementById('lblSaldoDisponible');
-    lblSaldo.innerText = "Consultando...";
-    lblSaldo.className = "fw-bold text-muted";
-
+    // 5. PEDIR DATOS AL SERVIDOR (Aquí ocurre la magia dinámica)
     try {
-        // Hacemos la petición a la nueva ruta que creamos
         const res = await fetch(`${API_URL}/finanzas/cuentas`);
         const result = await res.json();
-        
+
         if (result.success) {
-            // Guardamos los saldos en caché: { "1": 150.00, "2": 50.00 ... }
+            const cuentasActivas = result.data; // Viene de la BD (solo activas)
+            
+            // A. Llenar los Selects dinámicamente
+            let htmlOptions = '';
+            cuentasActivas.forEach(c => {
+                // El value es el ID, el texto es el NOMBRE que viene de la BD
+                htmlOptions += `<option value="${c.id}">${c.nombre}</option>`;
+            });
+
+            selectOrigen.innerHTML = htmlOptions;
+            selectDestino.innerHTML = htmlOptions;
+
+            // B. Guardar Saldos en Caché (Para actualización rápida)
             saldosCache = {};
-            result.data.forEach(c => {
+            cuentasActivas.forEach(c => {
                 saldosCache[c.id] = parseFloat(c.saldo_actual);
             });
-            
-            // Actualizamos visualmente el saldo ahora mismo
+
+            // C. Seleccionar valores por defecto INTELIGENTEMENTE
+            if (datosReparto) {
+                // Si es reparto, Origen = Efectivo (ID 1), Destino = Sueldo (ID 6)
+                // Verificamos si existen en la lista activa antes de seleccionar
+                if(saldosCache[1]) selectOrigen.value = 1; 
+                if(saldosCache[6]) selectDestino.value = 6; 
+            } else {
+                // Transferencia normal: Efectivo -> Arca
+                if(saldosCache[1]) selectOrigen.value = 1;
+                if(saldosCache[3]) selectDestino.value = 3;
+            }
+
+            // D. Actualizar visualmente el saldo del origen seleccionado
             actualizarSaldoOrigen();
+
         } else {
-             lblSaldo.innerText = "Error datos";
+            lblSaldo.innerText = "Error al cargar cuentas";
         }
     } catch (e) {
-        console.error("Error cargando saldos:", e);
-        lblSaldo.innerText = "--";
+        console.error("Error conexión:", e);
+        lblSaldo.innerText = "Sin conexión";
+        selectOrigen.innerHTML = '<option>Error</option>';
     }
 }
 
