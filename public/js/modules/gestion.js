@@ -46,36 +46,40 @@ async function cargarControlMetas() {
 }
 
 // ABRIR EL MODAL (Método robusto)
+// 1. ABRIR EL MODAL (Usando Input Oculto)
 function abrirModalMeta(id, nom, monto) {
-    console.log("📝 Editando meta -> ID:", id, "Monto:", monto);
+    console.log("📝 Editando ID:", id);
 
-    // 1. Guardamos el ID en un atributo del modal (Más seguro que input hidden)
-    const modalEl = document.getElementById('modalEditarMeta');
-    modalEl.dataset.cuentaId = id;
+    // PASO CLAVE: Usamos el input oculto que ya existe en tu HTML
+    const inputId = document.getElementById('hdnCuentaIdMeta');
+    
+    if (inputId) {
+        inputId.value = id; // Guardamos el ID aquí
+    } else {
+        console.error("❌ No encuentro el input 'hdnCuentaIdMeta' en el HTML");
+        return;
+    }
 
-    // 2. Llenamos los textos
     document.getElementById('lblNombreCuentaMeta').innerText = nom;
     document.getElementById('inputNuevaMeta').value = parseFloat(monto).toFixed(2);
     
-    // 3. Mostramos
-    new bootstrap.Modal(modalEl).show();
+    // Mostramos el modal
+    new bootstrap.Modal(document.getElementById('modalEditarMeta')).show();
     setTimeout(() => document.getElementById('inputNuevaMeta').select(), 500);
 }
 
-// GUARDAR (Depuración activada)
+// 2. GUARDAR (Leyendo del Input Oculto)
 async function guardarMetaEditada() {
-    // 1. Recuperar datos
-    const modalEl = document.getElementById('modalEditarMeta');
-    const id = modalEl.dataset.cuentaId; // Recuperar del dataset
+    // RECUPERAR DATOS DEL INPUT OCULTO
+    const idInput = document.getElementById('hdnCuentaIdMeta');
+    const id = idInput ? idInput.value : null;
     const montoStr = document.getElementById('inputNuevaMeta').value;
 
-    // 2. Validaciones
-    if (!id || id === "undefined") {
-        return notificar("Error: No se identificó la cuenta (ID perdido)", "error");
-    }
-    if (!montoStr || parseFloat(montoStr) < 0) {
-        return notificar("Ingresa un monto válido", "error");
-    }
+    console.log("💾 Intentando guardar -> ID:", id, "Monto:", montoStr);
+
+    // Validaciones
+    if (!id) return notificar("Error: ID de cuenta perdido. Recarga la página.", "error");
+    if (!montoStr) return notificar("Ingresa un monto válido", "error");
 
     const btn = document.querySelector('#modalEditarMeta button.btn-info');
     const txtOriginal = btn.innerHTML;
@@ -83,13 +87,10 @@ async function guardarMetaEditada() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
     try {
-        // 3. Preparar Payload (Enviamos como número limpio)
         const payload = {
-            cuenta_id: id,            // Enviamos el ID tal cual (el backend suele manejar strings numéricos bien)
-            nuevo_monto: montoStr     // Enviamos el monto tal cual escribió el usuario
+            cuenta_id: parseInt(id),      // Convertimos a Entero
+            nuevo_monto: parseFloat(montoStr) // Convertimos a Decimal
         };
-
-        console.log("📤 Enviando:", payload); // MIRAR CONSOLA SI FALLA
 
         const res = await fetch(`${API_URL}/finanzas/metas/editar`, {
             method: 'POST', 
@@ -101,13 +102,13 @@ async function guardarMetaEditada() {
 
         if (data.success) {
             notificar("✅ Meta actualizada", "success");
-            bootstrap.Modal.getInstance(modalEl).hide();
-            await cargarControlMetas(); // Refrescar lista
             
-            // Actualizar dashboard principal si existe
+            // Cerrar y Limpiar
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarMeta')).hide();
+            await cargarControlMetas(); 
+            
             if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
         } else {
-            // Si el servidor se queja, mostramos qué dijo
             notificar("Error Servidor: " + (data.message || "Desconocido"), "error");
         }
     } catch (e) { 
