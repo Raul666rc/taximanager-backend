@@ -126,7 +126,7 @@ async function registrarParada() {
 }
 
 // ==========================================
-// 3. FINALIZAR (TURBO MODE)
+// 3. FINALIZAR (BLINDADO A PRUEBA DE FALLOS)
 // ==========================================
 async function guardarCarrera() {
     const monto = document.querySelector('#modalCobrar input[type="number"]').value;
@@ -134,20 +134,15 @@ async function guardarCarrera() {
     
     if (!monto) return notificar("Ingresa el monto", "error");
 
+    // 1. Bloqueo visual inmediato para evitar doble click
     const btn = document.querySelector('#modalCobrar .btn-success');
     const textoOriginal = btn.innerHTML;
-    
-    // Feedback inmediato
     btn.disabled = true; 
-    btn.className = 'btn btn-warning w-100 btn-lg fw-bold'; // Amarillo
-    btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Guardando...';
+    btn.className = 'btn btn-warning w-100 btn-lg fw-bold';
+    btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Procesando...';
 
-    // LA CLAVE DE LA VELOCIDAD:
-    // maximumAge: 60000 -> Acepta una ubicación de hace hasta 1 minuto. 
-    // Al finalizar no necesitas precisión milimétrica de ese segundo, necesitas irte rápido.
-    const opcionesGPS = { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 };
-
-    navigator.geolocation.getCurrentPosition(async (pos) => {
+    // Función interna para enviar datos (se usa con o sin GPS)
+    const enviarAlServidor = async (lat, lng) => {
         try {
             let duracion = 0;
             if(viajeInicioTime) duracion = Math.floor((new Date() - viajeInicioTime)/60000);
@@ -159,8 +154,8 @@ async function guardarCarrera() {
                     id_viaje: viajeActualId,
                     monto: parseFloat(monto),
                     metodo_pago_id: esYape ? 2 : 1,
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
+                    lat: lat,
+                    lng: lng,
                     duracion_min: duracion
                 })
             });
@@ -168,46 +163,57 @@ async function guardarCarrera() {
             const data = await res.json();
 
             if (data.success) {
-                // Éxito: Cerrar todo rápido
+                // ÉXITO: CERRAR TODO Y VOLVER AL INICIO
+                notificar("🏁 Carrera Finalizada", "success");
+                
+                // 1. Ocultar Modal
                 const modalEl = document.getElementById('modalCobrar');
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 modal.hide();
                 
-                notificar("🏁 Carrera Finalizada", "success");
-                
-                // Reset UI
-                mostrarPanelInicio(); // Usamos la función auxiliar del módulo si está disponible, o manual:
+                // 2. Restaurar Pantalla (Vital)
                 document.getElementById('panelEnCarrera').classList.add('d-none');
                 document.getElementById('btnIniciar').classList.remove('d-none');
                 document.getElementById('selectorApps').classList.remove('d-none');
                 
+                // 3. Limpieza Variables
                 document.querySelector('#modalCobrar input[type="number"]').value = '';
                 viajeActualId = null;
 
-                // Actualizar datos de fondo (sin bloquear al usuario)
+                // 4. Actualizar datos de fondo
                 if(typeof cargarHistorial === 'function') cargarHistorial();
                 if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
+
             } else {
                 notificar("Error: " + data.message, "error");
             }
-        } catch (e) { 
-            notificar("Error de conexión", "error"); 
-        } finally { 
-            // Restaurar botón (por si falló o para la próxima)
+        } catch (e) {
+            notificar("Error de conexión con el servidor", "error");
+        } finally {
+            // Restaurar botón del modal por si hay que reintentar
             setTimeout(() => {
                 btn.disabled = false; 
                 btn.className = 'btn btn-success w-100 btn-lg fw-bold';
                 btn.innerHTML = textoOriginal; 
             }, 500);
         }
-    }, (err) => {
-        // PLAN B: Si el GPS falla o tarda más de 3s
-        console.warn("GPS falló al finalizar, reintentando...", err);
-        notificar("GPS Lento: Acércate a la ventana e intenta de nuevo.", "warning");
-        btn.disabled = false; 
-        btn.className = 'btn btn-success w-100 btn-lg fw-bold';
-        btn.innerHTML = textoOriginal; 
-    }, opcionesGPS);
+    };
+
+    // 2. Intentamos obtener GPS rápido
+    const opcionesGPS = { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 };
+
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            // Caso ideal: Tenemos GPS
+            enviarAlServidor(pos.coords.latitude, pos.coords.longitude);
+        }, 
+        (err) => {
+            // Caso Fallo GPS: NO NOS DETENEMOS. Enviamos 0,0
+            console.warn("GPS falló al finalizar, enviando sin ubicación.", err);
+            enviarAlServidor(0, 0); 
+        }, 
+        opcionesGPS
+    );
 }
 
 // 4. RECUPERAR AL RECARGAR
