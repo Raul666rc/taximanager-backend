@@ -56,42 +56,82 @@ async function cargarEstadoVehiculo() {
     } catch (e) { console.error("Error auto", e); }
 }
 
-async function actualizarOdometro() {
-    const act = parseInt(document.getElementById('lblOdometro').innerText.replace(/,/g,'')) || 0;
-    const nuevo = prompt("🚗 Nuevo Kilometraje:", act);
-    if(nuevo && parseInt(nuevo) > act) {
+// ==========================================
+// LÓGICA DE MODALES DE MANTENIMIENTO (NUEVA)
+// ==========================================
+
+// 1. ABRIR MODAL CORREGIR KM
+function actualizarOdometro() {
+    // Leemos el valor actual para pre-llenar el input
+    const textoActual = document.getElementById('lblOdometro').innerText.replace(/,/g,'');
+    document.getElementById('inputNuevoKm').value = parseInt(textoActual) || 0;
+    
+    // Abrimos el modal bonito
+    new bootstrap.Modal(document.getElementById('modalCorregirKm')).show();
+    
+    // Poner foco en el input automáticamente
+    setTimeout(() => document.getElementById('inputNuevoKm').select(), 500);
+}
+
+// 2. GUARDAR CORRECCIÓN (Acción del botón modal)
+async function guardarCorreccionKm() {
+    const nuevo = document.getElementById('inputNuevoKm').value;
+    const actual = parseInt(document.getElementById('lblOdometro').innerText.replace(/,/g,'')) || 0;
+
+    if(!nuevo || parseInt(nuevo) <= 0) return notificar("Ingresa un valor válido", "error");
+    if(parseInt(nuevo) < actual) {
+        if(!confirm("¿El nuevo kilometraje es MENOR al actual? Confirmar retroceso.")) return;
+    }
+
+    try {
         await fetch(`${API_URL}/vehiculo/actualizar`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ nuevo_km: parseInt(nuevo) })
         });
+        
         notificar("✅ Kilometraje actualizado", "success");
-        cargarEstadoVehiculo();
-    }
+        bootstrap.Modal.getInstance(document.getElementById('modalCorregirKm')).hide();
+        cargarEstadoVehiculo(); // Refrescar pantalla
+    } catch (e) { notificar("Error de conexión", "error"); }
 }
 
-async function registrarMantenimiento() {
-    if(!confirm("⚠️ ¿Confirmas cambio de aceite?")) return;
+// 3. ABRIR MODAL MANTENIMIENTO
+function registrarMantenimiento() {
+    // Pre-llenar con el km actual del sistema
+    const textoActual = document.getElementById('lblOdometro').innerText.replace(/,/g,'');
+    document.getElementById('inputMantKm').value = parseInt(textoActual) || 0;
     
-    const act = parseInt(document.getElementById('lblOdometro').innerText.replace(/,/g,'')) || 0;
-    const km = prompt("1️⃣ Kilometraje ACTUAL del tablero:", act);
-    if(!km) return;
-    
-    const intervalo = prompt("2️⃣ ¿Cada cuántos Km?", "5000");
-    if(!intervalo) return;
+    // Abrir modal
+    new bootstrap.Modal(document.getElementById('modalRegMantenimiento')).show();
+}
+
+// 4. GUARDAR MANTENIMIENTO (Acción del botón modal)
+async function guardarMantenimiento() {
+    const km = document.getElementById('inputMantKm').value;
+    const intervalo = document.getElementById('inputMantIntervalo').value;
+
+    if(!km || km <= 0) return notificar("Verifica el kilometraje", "error");
+
+    const btn = document.querySelector('#modalRegMantenimiento .btn-warning');
+    const txt = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
     try {
         const res = await fetch(`${API_URL}/vehiculo/mantenimiento`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ nuevo_km: parseInt(km), intervalo_km: parseInt(intervalo) })
         });
+        
         const r = await res.json();
         if(r.success) {
-            notificar("✅ Mantenimiento registrado", "success");
-            cargarEstadoVehiculo();
+            notificar("✅ Mantenimiento registrado y reiniciado", "success");
+            bootstrap.Modal.getInstance(document.getElementById('modalRegMantenimiento')).hide();
+            cargarEstadoVehiculo(); // Refrescar barras
         } else {
             notificar("Error: " + r.message, "error");
         }
-    } catch (e) { notificar("Error conexión", "error"); }
+    } catch (e) { notificar("Error conexión", "error"); } 
+    finally { btn.disabled = false; btn.innerHTML = txt; }
 }
 
 function configurarAuto() { new bootstrap.Modal(document.getElementById('modalConfigAuto')).show(); }
