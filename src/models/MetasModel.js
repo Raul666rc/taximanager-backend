@@ -2,29 +2,37 @@ const db = require('../config/db');
 
 class MetasModel {
     
-    // Obtener el progreso de las Wardas que tienen meta configurada
+    // Obtener el progreso (Se mantiene igual, estaba perfecto)
     static async obtenerProgreso() {
-        // JOIN: Trae el saldo REAL de tu tabla 'cuentas' 
-        // y lo junta con la meta de 'metas_cuentas'
         const query = `
             SELECT 
                 c.id, 
                 c.nombre, 
                 c.saldo_actual AS ahorrado, 
-                m.monto_objetivo AS total
-            FROM metas_cuentas m
-            JOIN cuentas c ON m.cuenta_id = c.id
+                IFNULL(m.monto_objetivo, 0) AS total 
+            FROM cuentas c
+            LEFT JOIN metas_cuentas m ON m.cuenta_id = c.id
+            WHERE c.activo = 1 AND c.tipo = 'WARDA'
         `;
+        // NOTA: Cambié JOIN por LEFT JOIN para que traiga las cuentas aunque no tengan meta configurada aún
         
         const [rows] = await db.query(query);
         return rows;
     }
 
-    // NUEVO: Actualizar el monto objetivo de una cuenta específica
+    // ACTUALIZAR META (CORREGIDO CON LÓGICA INTELIGENTE)
     static async actualizarMeta(cuentaId, nuevoMonto) {
-        const query = "UPDATE metas_cuentas SET monto_objetivo = ? WHERE cuenta_id = ?";
-        const [result] = await db.query(query, [nuevoMonto, cuentaId]);
-        return result.affectedRows > 0;
+        // Esta consulta hace dos cosas:
+        // 1. Intenta INSERTAR una nueva meta.
+        // 2. Si el 'cuenta_id' ya existe (ON DUPLICATE KEY), entonces ACTUALIZA el monto.
+        const query = `
+            INSERT INTO metas_cuentas (cuenta_id, monto_objetivo) 
+            VALUES (?, ?) 
+            ON DUPLICATE KEY UPDATE monto_objetivo = VALUES(monto_objetivo)
+        `;
+        
+        const [result] = await db.query(query, [cuentaId, nuevoMonto]);
+        return result;
     }
 }
 
