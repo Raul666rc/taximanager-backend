@@ -88,12 +88,21 @@
                 <i class="fas fa-power-off fa-3x mb-2"></i><br>INICIAR
             </button>
 
-            <div id="panelEnCarrera" class="d-none w-100 px-2 d-flex flex-column gap-3">
+            <div id="panelEnCarrera" class="d-none w-100 px-1 d-flex flex-column gap-3">
                 
-                <div class="alert alert-dark border-success text-success text-center m-0 py-2 shadow-sm animate__animated animate__pulse animate__infinite">
-                    <small class="fw-bold tracking-wider">
-                        <i class="fas fa-circle text-danger me-2 blink"></i>REC • GRABANDO RUTA
-                    </small>
+                <div class="row g-2">
+                    <div class="col-7">
+                        <div class="card bg-dark border-secondary text-center py-2 shadow-sm">
+                            <small class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem;">Tiempo</small>
+                            <div id="liveTimer" class="display-4 fw-bold text-white lh-1">00:00</div>
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <div class="card bg-dark border-secondary text-center py-2 shadow-sm">
+                            <small class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem;">Distancia (Aprox)</small>
+                            <div class="h2 fw-bold text-info mb-0 lh-1"><span id="liveDistancia">0.0</span> <small class="fs-6 text-muted">km</small></div>
+                        </div>
+                    </div>
                 </div>
 
                 <button class="btn btn-warning w-100 shadow-lg btn-race-secondary" onclick="registrarParada()">
@@ -107,9 +116,14 @@
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <i class="fas fa-flag-checkered fa-4x mb-2"></i>
                         <span class="display-6 fw-bold">FINALIZAR</span>
-                        <small class="text-white-50">Terminar y Cobrar</small>
                     </div>
                 </button>
+
+                <div class="text-center mt-2">
+                    <button class="btn btn-sm btn-link text-muted text-decoration-none" onclick="cancelarCarreraFalsa()">
+                        <i class="fas fa-times-circle me-1"></i> Cancelar carrera (Error)
+                    </button>
+                </div>
 
             </div>
 

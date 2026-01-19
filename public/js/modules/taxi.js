@@ -6,36 +6,56 @@ let viajeActualId = null;
 let viajeInicioCoords = null;
 let viajeInicioTime = null;
 let mapaGlobal = null;
+let timerInterval = null; // Variable para el reloj en vivo
 
-// ==========================================
-// 1. INICIAR CARRERA (AHORA A PRUEBA DE FALLOS)
-// ==========================================
+// Función para formatear el reloj (00:00)
+function actualizarReloj() {
+    if (!viajeInicioTime) return;
+    const ahora = new Date();
+    const diff = ahora - viajeInicioTime;
+    
+    // Cálculo horas, minutos, segundos
+    const hrs = Math.floor(diff / 3600000);
+    const min = Math.floor((diff % 3600000) / 60000);
+    const sec = Math.floor((diff % 60000) / 1000);
+
+    const strMin = min.toString().padStart(2, '0');
+    const strSec = sec.toString().padStart(2, '0');
+    
+    // Si pasa de una hora, mostramos HH:MM:SS, sino MM:SS
+    const tiempoTexto = hrs > 0 ? `${hrs}:${strMin}:${strSec}` : `${strMin}:${strSec}`;
+    
+    const el = document.getElementById('liveTimer');
+    if (el) el.innerText = tiempoTexto;
+
+    // Cálculo APROXIMADO de distancia (Línea recta simple para UI visual)
+    // Nota: La distancia real la calcula el backend con los puntos GPS, esto es solo visual
+    if(viajeInicioCoords) {
+        // Esto se actualizaría mejor si tuviéramos la posición actual constante, 
+        // por ahora lo dejamos en 0.0 o simulado si prefieres.
+        // Para V3.1 implementaremos watchPosition real para esto.
+    }
+}
+
+// 1. INICIAR CARRERA
 async function iniciarCarrera() {
-    // Validación básica de navegador
-    if (!navigator.geolocation) return notificar("Tu celular no tiene GPS", "error");
+    if (!navigator.geolocation) return notificar("Sin GPS", "error");
 
     const appSeleccionada = document.querySelector('input[name="appOrigen"]:checked').value;
     const btn = document.getElementById('btnIniciar');
     
-    // 1. Feedback visual inmediato
     btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin fa-3x mb-2"></i><span class="fs-4">Conectando...</span>';
     btn.disabled = true;
 
-    // LÓGICA INTERNA: Enviar al servidor (con o sin coordenadas)
     const procesarInicio = async (lat, lng) => {
         try {
-            // Guardamos hora local para cálculos inmediatos
             viajeInicioCoords = { lat, lng };
             viajeInicioTime = new Date();
 
             const response = await fetch(`${API_URL}/iniciar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    origen_tipo: appSeleccionada,
-                    lat: lat,
-                    lng: lng
-                })
+                body: JSON.stringify({ origen_tipo: appSeleccionada, lat: lat, lng: lng })
             });
 
             const resultado = await response.json();
@@ -43,170 +63,142 @@ async function iniciarCarrera() {
             if (resultado.success) {
                 viajeActualId = resultado.data.id_viaje;
                 
-                // TRANSICIÓN DE PANTALLA
+                // UI: Cambio de pantalla
                 document.getElementById('selectorApps').classList.add('d-none');
                 document.getElementById('btnIniciar').classList.add('d-none');
                 document.getElementById('panelEnCarrera').classList.remove('d-none');
-                document.getElementById('txtCronometro').innerText = "En curso: " + new Date().toLocaleTimeString();
                 
+                // INICIAR RELOJ
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(actualizarReloj, 1000);
+                actualizarReloj(); // Primera llamada inmediata
+
                 notificar("🚖 ¡Carrera Iniciada!", "success");
-            } else {
-                throw new Error(resultado.message);
-            }
+            } else { throw new Error(resultado.message); }
 
         } catch (error) { 
-            console.error(error);
-            notificar("Error al iniciar: " + error.message, "error");
-            restaurarBotonInicio(); // Si falla el server, devolvemos el botón a la normalidad
+            notificar("Error: " + error.message, "error");
+            restaurarBotonInicio();
         }
     };
 
-    // 2. Intentar GPS Rápido (Máximo 3 segundos)
     const opcionesGPS = { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 };
-
     navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            // ÉXITO GPS
-            procesarInicio(pos.coords.latitude, pos.coords.longitude);
-        },
+        (pos) => procesarInicio(pos.coords.latitude, pos.coords.longitude),
         (err) => {
-            // FALLO GPS: Arrancamos igual con coordenadas 0,0
-            console.warn("GPS lento al iniciar, arrancando sin ubicación.", err);
-            notificar("⚠️ GPS lento. Iniciando sin ubicación.", "info");
+            notificar("⚠️ Iniciando sin ubicación precisa.", "info");
             procesarInicio(0, 0);
         },
         opcionesGPS
     );
 }
 
-// Función auxiliar para dejar el botón listo para la próxima
+// NUEVA: CANCELAR CARRERA (BORRAR)
+async function cancelarCarreraFalsa() {
+    if(!confirm("¿Seguro que quieres cancelar? Se borrará este registro.")) return;
+    
+    // Detener reloj
+    if (timerInterval) clearInterval(timerInterval);
+
+    try {
+        // Avisar al backend para que borre el ID
+        if(viajeActualId) {
+            await fetch(`${API_URL}/anular/${viajeActualId}`, { method: 'DELETE' });
+        }
+        
+        notificar("🗑️ Carrera cancelada", "info");
+        
+        // Restaurar UI
+        document.getElementById('panelEnCarrera').classList.add('d-none');
+        document.getElementById('selectorApps').classList.remove('d-none');
+        restaurarBotonInicio();
+        viajeActualId = null;
+        
+    } catch(e) { notificar("Error al cancelar", "error"); }
+}
+
 function restaurarBotonInicio() {
     const btn = document.getElementById('btnIniciar');
     btn.classList.remove('d-none');
     btn.disabled = false;
-    // CORRECCIÓN: Restauramos el HTML original exacto (Icono grande y texto)
     btn.innerHTML = '<i class="fas fa-power-off fa-4x mb-2"></i><span class="fw-bold fs-3">INICIAR</span>';
 }
 
-
-// ==========================================
-// 2. REGISTRAR PARADA (OPTIMIZADO)
-// ==========================================
+// 2. REGISTRAR PARADA
 async function registrarParada() {
     if (!viajeActualId) return;
-
-    // No bloqueamos la UI para que sea fluido, solo notificamos si falla
     const opcionesGPS = { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 };
-
     navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
             await fetch(`${API_URL}/parada`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    id_viaje: viajeActualId, 
-                    lat: pos.coords.latitude, 
-                    lng: pos.coords.longitude, 
-                    tipo: 'PARADA' 
-                })
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_viaje: viajeActualId, lat: pos.coords.latitude, lng: pos.coords.longitude, tipo: 'PARADA' })
             });
             notificar("📍 Parada registrada", "info");
-        } catch (e) { console.error(e); }
-    }, (err) => {
-        // Si falla GPS en parada, no es crítico, solo avisamos
-        notificar("⚠️ No se pudo guardar la ubicación de la parada", "warning");
-    }, opcionesGPS);
+        } catch (e) {}
+    }, (err) => notificar("⚠️ No se pudo guardar ubicación parada", "warning"), opcionesGPS);
 }
 
-
-// ==========================================
-// 3. FINALIZAR (BLINDADO A PRUEBA DE FALLOS)
-// ==========================================
+// 3. FINALIZAR
 async function guardarCarrera() {
     const monto = document.querySelector('#modalCobrar input[type="number"]').value;
     const esYape = document.getElementById('pago2').checked;
     
     if (!monto) return notificar("Ingresa el monto", "error");
 
-    // Bloqueo visual inmediato
     const btnModal = document.querySelector('#modalCobrar .btn-success');
     const textoOriginalModal = btnModal.innerHTML;
     btnModal.disabled = true; 
-    btnModal.className = 'btn btn-warning w-100 btn-lg fw-bold';
     btnModal.innerHTML = '<i class="fas fa-sync fa-spin"></i> Guardando...';
 
     const finalizarEnServidor = async (lat, lng) => {
         try {
+            // Detener reloj
+            if (timerInterval) clearInterval(timerInterval);
+
             let duracion = 0;
             if(viajeInicioTime) duracion = Math.floor((new Date() - viajeInicioTime)/60000);
 
             const res = await fetch(`${API_URL}/finalizar`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id_viaje: viajeActualId,
-                    monto: parseFloat(monto),
-                    metodo_pago_id: esYape ? 2 : 1,
-                    lat: lat,
-                    lng: lng,
-                    duracion_min: duracion
+                    id_viaje: viajeActualId, monto: parseFloat(monto), metodo_pago_id: esYape ? 2 : 1,
+                    lat: lat, lng: lng, duracion_min: duracion
                 })
             });
 
-            const data = await res.json();
-
-            if (data.success) {
+            if ((await res.json()).success) {
                 notificar("🏁 Carrera Finalizada", "success");
                 
-                // 1. Cerrar Modal
-                const modalEl = document.getElementById('modalCobrar');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                modal.hide();
-                
-                // 2. RESTAURAR INTERFAZ PRINCIPAL (CORRECCIÓN CRÍTICA)
+                // UI Clean up
+                bootstrap.Modal.getInstance(document.getElementById('modalCobrar')).hide();
                 document.getElementById('panelEnCarrera').classList.add('d-none');
                 document.getElementById('selectorApps').classList.remove('d-none');
-                
-                // AQUÍ ESTABA EL PROBLEMA: Llamamos a la función que limpia el botón
-                restaurarBotonInicio(); 
-                
-                // 3. Limpieza Variables
+                restaurarBotonInicio();
                 document.querySelector('#modalCobrar input[type="number"]').value = '';
                 viajeActualId = null;
 
-                // 4. Actualizar datos de fondo
                 if(typeof cargarHistorial === 'function') cargarHistorial();
                 if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
-
-            } else {
-                notificar("Error: " + data.message, "error");
-            }
-        } catch (e) {
-            notificar("Error de conexión", "error");
-        } finally {
-            // Restaurar botón del modal
-            setTimeout(() => {
-                btnModal.disabled = false; 
-                btnModal.className = 'btn btn-success w-100 btn-lg fw-bold';
-                btnModal.innerHTML = textoOriginalModal; 
-            }, 500);
+            } else { notificar("Error al guardar", "error"); }
+        } catch (e) { notificar("Error de conexión", "error"); } 
+        finally {
+            setTimeout(() => { btnModal.disabled = false; btnModal.innerHTML = textoOriginalModal; }, 500);
         }
     };
 
-    // Intentamos GPS Rápido
     const opcionesGPS = { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 };
-
     navigator.geolocation.getCurrentPosition(
         (pos) => finalizarEnServidor(pos.coords.latitude, pos.coords.longitude), 
         (err) => {
-            console.warn("GPS falló al finalizar, enviando sin ubicación.", err);
-            finalizarEnServidor(0, 0); // Guardar de todas formas
+            console.warn("GPS falló, guardando sin ubicación.");
+            finalizarEnServidor(0, 0);
         }, 
         opcionesGPS
     );
 }
 
-// 4. RECUPERAR AL RECARGAR
+// 4. RECUPERAR SESIÓN
 async function verificarViajeEnCurso() {
     try {
         const res = await fetch(`${API_URL}/activo`);
@@ -215,29 +207,27 @@ async function verificarViajeEnCurso() {
             viajeActualId = data.viaje.id;
             viajeInicioTime = new Date(data.viaje.fecha_hora_inicio);
             
-            // Ocultar inicio, mostrar carrera
             document.getElementById('selectorApps').classList.add('d-none');
             document.getElementById('btnIniciar').classList.add('d-none');
             document.getElementById('panelEnCarrera').classList.remove('d-none');
             
-            document.getElementById('txtCronometro').innerText = "Recuperado: " + viajeInicioTime.toLocaleTimeString();
-            console.log("♻️ Viaje recuperado ID:", viajeActualId);
+            // Reactivar reloj
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(actualizarReloj, 1000);
+            actualizarReloj();
+            
+            console.log("♻️ Sesión recuperada");
         } else {
-            // Si no hay viaje, asegurarnos que el botón de inicio esté bien
             restaurarBotonInicio();
         }
-    } catch (e) { 
-        console.error(e);
-        restaurarBotonInicio(); // Por seguridad
-    }
+    } catch (e) { restaurarBotonInicio(); }
 }
 
-// 5. VER MAPA
+// 5. VER MAPA (Igual que antes)
 async function verMapa(id) {
     const modalEl = document.getElementById('modalMapa');
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
-
     try {
         const res = await fetch(`${API_URL}/ruta/${id}`);
         const data = await res.json();
@@ -245,12 +235,8 @@ async function verMapa(id) {
             setTimeout(() => {
                 if(mapaGlobal) mapaGlobal.remove();
                 const pts = data.data;
-                const latIni = parseFloat(pts[0].lat);
-                const lngIni = parseFloat(pts[0].lng);
-                
-                mapaGlobal = L.map('mapaLeaflet').setView([latIni, lngIni], 14);
+                mapaGlobal = L.map('mapaLeaflet').setView([parseFloat(pts[0].lat), parseFloat(pts[0].lng)], 14);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapaGlobal);
-                
                 let linea = [];
                 pts.forEach(p => {
                     const c = [parseFloat(p.lat), parseFloat(p.lng)];
@@ -258,14 +244,11 @@ async function verMapa(id) {
                     if(p.tipo === 'INICIO') L.marker(c).addTo(mapaGlobal).bindPopup('Inicio');
                     if(p.tipo === 'FIN') L.marker(c).addTo(mapaGlobal).bindPopup('Fin');
                 });
-                
                 if(linea.length > 1) {
                     const poly = L.polyline(linea, {color: 'blue', weight: 4}).addTo(mapaGlobal);
                     mapaGlobal.fitBounds(poly.getBounds());
                 }
             }, 500);
-        } else {
-            document.getElementById('mapaLeaflet').innerHTML = '<div class="text-white p-5 text-center">Sin datos de ruta GPS.</div>';
-        }
-    } catch(e) { document.getElementById('mapaLeaflet').innerHTML = '<div class="text-danger p-5 text-center">Error cargando mapa.</div>'; }
+        } else document.getElementById('mapaLeaflet').innerHTML = '<div class="text-white p-5 text-center">Sin datos GPS.</div>';
+    } catch(e) {}
 }
