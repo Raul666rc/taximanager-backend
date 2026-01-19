@@ -85,16 +85,16 @@ small, .small {
 
 /* Botón Circular Gigante (INICIAR CARRERA) */
 .btn-circle-xl {
-    width: 200px;
-    height: 200px;
+    width: 240px;
+    height: 240px;
     font-size: 1.5rem;
     border-radius: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 30px rgba(25, 135, 84, 0.4); /* Resplandor verde */
-    border: 6px solid #198754;
+    box-shadow: 0 0 40px rgba(25, 135, 84, 0.5); /* Resplandor verde */
+    border: 8px solid #198754;
     transition: transform 0.1s;
 }
 
