@@ -93,28 +93,57 @@ async function iniciarCarrera() {
     );
 }
 
-// NUEVA: CANCELAR CARRERA (BORRAR)
-async function cancelarCarreraFalsa() {
-    if(!confirm("¿Seguro que quieres cancelar? Se borrará este registro.")) return;
-    
-    // Detener reloj
+// ==========================================
+// NUEVA LÓGICA DE CANCELACIÓN (CON MODAL)
+// ==========================================
+
+// 1. Abrir el modal (reemplaza al confirm nativo)
+function abrirConfirmarCancelacion() {
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmarCancelacion'));
+    modal.show();
+}
+
+// 2. Ejecutar borrado (se llama desde el botón "SÍ, BORRAR" del modal)
+async function procederCancelacion() {
+    // Feedback visual en el botón del modal
+    const btn = document.querySelector('#modalConfirmarCancelacion .btn-danger');
+    const txtOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+
+    // Detener reloj inmediatamente
     if (timerInterval) clearInterval(timerInterval);
 
     try {
-        // Avisar al backend para que borre el ID
+        // Avisar al backend para que borre el ID si existe
         if(viajeActualId) {
             await fetch(`${API_URL}/anular/${viajeActualId}`, { method: 'DELETE' });
         }
         
-        notificar("🗑️ Carrera cancelada", "info");
+        notificar("🗑️ Carrera descartada", "info");
         
-        // Restaurar UI
+        // Cerrar modal
+        const modalEl = document.getElementById('modalConfirmarCancelacion');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance.hide();
+
+        // Restaurar UI (Volver al botón INICIAR)
         document.getElementById('panelEnCarrera').classList.add('d-none');
         document.getElementById('selectorApps').classList.remove('d-none');
         restaurarBotonInicio();
+        
+        // Limpieza
         viajeActualId = null;
         
-    } catch(e) { notificar("Error al cancelar", "error"); }
+    } catch(e) { 
+        notificar("Error al cancelar", "error"); 
+    } finally {
+        // Restaurar botón del modal por si se reusa
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = txtOriginal;
+        }, 500);
+    }
 }
 
 function restaurarBotonInicio() {
