@@ -524,30 +524,30 @@
 
                 <div class="modal-body pb-0">
                     
-                    <div id="divRecordatorioReparto" class="bg-black border border-info border-opacity-50 rounded p-3 mb-4 d-none position-relative overflow-hidden">
-                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-info opacity-10" style="filter: blur(20px);"></div>
+                    <div id="divRecordatorioReparto" class="bg-black border border-info rounded p-3 mb-4 d-none shadow-sm">
                         
-                        <div class="position-relative z-1">
-                            <small class="text-info fw-bold d-block mb-2 text-center text-uppercase border-bottom border-secondary pb-1">
-                                <i class="fas fa-tasks me-1"></i> Guía de Reparto
+                        <div class="d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2">
+                            <small class="text-info fw-bold text-uppercase">
+                                <i class="fas fa-lightbulb me-1"></i> Sugerencia de Reparto
                             </small>
-                            <div class="row g-2 text-center">
-                                <div class="col-3 border-end border-secondary">
-                                    <div class="text-muted small" style="font-size: 0.6rem;">SUELDO</div>
-                                    <div class="fw-bold text-white" id="recSueldo">0.00</div>
-                                </div>
-                                <div class="col-3 border-end border-secondary">
-                                    <div class="text-muted small" style="font-size: 0.6rem;">ARCA</div>
-                                    <div class="fw-bold text-warning" id="recArca">0.00</div>
-                                </div>
-                                <div class="col-3 border-end border-secondary">
-                                    <div class="text-muted small" style="font-size: 0.6rem;">DEUDA</div>
-                                    <div class="fw-bold text-danger" id="recDeuda">0.00</div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="text-muted small" style="font-size: 0.6rem;">TALLER</div>
-                                    <div class="fw-bold text-info" id="recTaller">0.00</div>
-                                </div>
+                        </div>
+
+                        <div class="row g-2 text-center">
+                            <div class="col-3 border-end border-secondary">
+                                <div class="text-white-50 small fw-bold" style="font-size: 0.65rem;">SUELDO</div>
+                                <div class="fw-bold text-white fs-6" id="recSueldo">0.00</div>
+                            </div>
+                            <div class="col-3 border-end border-secondary">
+                                <div class="text-white-50 small fw-bold" style="font-size: 0.65rem;">ARCA</div>
+                                <div class="fw-bold text-warning fs-6" id="recArca">0.00</div>
+                            </div>
+                            <div class="col-3 border-end border-secondary">
+                                <div class="text-white-50 small fw-bold" style="font-size: 0.65rem;">DEUDA</div>
+                                <div class="fw-bold text-danger fs-6" id="recDeuda">0.00</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-white-50 small fw-bold" style="font-size: 0.65rem;">TALLER</div>
+                                <div class="fw-bold text-info fs-6" id="recTaller">0.00</div>
                             </div>
                         </div>
                     </div>
@@ -559,7 +559,7 @@
                                 
                                 <div class="mb-1">
                                     <div class="d-flex justify-content-between">
-                                        <label class="small text-muted text-uppercase fw-bold">Desde (Origen)</label>
+                                        <label class="small text-white-50 text-uppercase fw-bold">Desde (Origen)</label>
                                         <small class="text-success fw-bold" id="lblSaldoDisponible">...</small>
                                     </div>
                                     <select class="form-select bg-dark text-white border-secondary fw-bold shadow-none" id="selectOrigen" onchange="actualizarSaldoOrigen()"></select>
@@ -573,7 +573,7 @@
                                 </div>
 
                                 <div class="mb-0">
-                                    <label class="small text-muted text-uppercase fw-bold">Hacia (Destino)</label>
+                                    <label class="small text-white-50 text-uppercase fw-bold">Hacia (Destino)</label>
                                     <select class="form-select bg-dark text-white border-secondary shadow-none" id="selectDestino"></select>
                                 </div>
                             </div>
@@ -978,16 +978,31 @@
 
     <div class="modal fade" id="modalContratos" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title"><i class="fas fa-file-signature text-warning me-2"></i>Mis Suscripciones</h5>
+            <div class="modal-content bg-dark text-white border-warning shadow-lg">
+                
+                <div class="modal-header border-secondary bg-black">
+                    <h5 class="modal-title text-warning fw-bold text-uppercase" style="letter-spacing: 1px;">
+                        <i class="fas fa-file-signature me-2 animate__animated animate__pulse animate__infinite"></i>
+                        Mis Suscripciones
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-0">
-                    <div id="listaContratos" class="list-group list-group-flush"><div class="text-center p-3 text-muted">Cargando...</div></div>
-                    <div class="p-3 text-center text-muted small border-top border-secondary">* Al cancelar, se borrarán todos los pagos futuros pendientes.</div>
+
+                <div class="modal-body p-0 bg-dark">
+                    <div id="listaContratos" class="p-3" style="max-height: 400px; overflow-y: auto;">
+                        <div class="text-center p-5 text-muted">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>Cargando...
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer border-secondary"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Volver</button></div>
+
+                <div class="modal-footer border-secondary bg-black d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center text-danger small">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span style="font-size: 0.7rem;">Cancelar detiene los pagos futuros.</span>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>

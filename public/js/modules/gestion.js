@@ -435,21 +435,85 @@ async function crearPrestamo() {
     }
 }
 
+// ==========================================
+// ABRIR LISTA DE CONTRATOS (DISEÑO PREMIUM)
+// ==========================================
 async function abrirModalContratos() {
-    bootstrap.Modal.getInstance(document.getElementById('modalObligaciones')).hide();
+    // 1. Gestión de Modales (Cerrar el de Obligaciones, abrir el de Contratos)
+    const modalOblig = bootstrap.Modal.getInstance(document.getElementById('modalObligaciones'));
+    if(modalOblig) modalOblig.hide();
+    
     new bootstrap.Modal(document.getElementById('modalContratos')).show();
-    const res = await fetch(`${API_URL}/compromisos`);
-    const r = await res.json();
-    const lista = document.getElementById('listaContratos');
-    if(r.success && lista) {
-        let html = '';
-        r.data.forEach(c => {
-            html += `<div class="list-group-item bg-dark text-white d-flex justify-content-between">
-                <div><div class="fw-bold text-warning">${c.titulo}</div><small class="text-muted">S/ ${parseFloat(c.monto_cuota_aprox).toFixed(2)}</small></div>
-                <button class="btn btn-sm btn-outline-danger" onclick="confirmarCancelacion(${c.id})">Cancelar</button>
-            </div>`;
-        });
-        lista.innerHTML = html || '<div class="p-3 text-center">Sin contratos</div>';
+
+    // 2. Obtener Datos
+    try {
+        const res = await fetch(`${API_URL}/compromisos`);
+        const r = await res.json();
+        const lista = document.getElementById('listaContratos');
+        
+        if(r.success && lista) {
+            // Si no hay contratos
+            if (r.data.length === 0) {
+                lista.innerHTML = `
+                    <div class="text-center p-4 opacity-50">
+                        <i class="fas fa-folder-open fa-3x mb-3 text-warning"></i>
+                        <p class="text-white-50">No tienes suscripciones activas.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            r.data.forEach(c => {
+                // LÓGICA DE ESTILO SEGÚN TIPO
+                const esPrestamo = c.tipo === 'PRESTAMO';
+                const icon = esPrestamo ? 'fa-university' : 'fa-wifi';
+                const colorBorde = esPrestamo ? 'border-warning' : 'border-info';
+                const textoTipo = esPrestamo ? 'PRÉSTAMO' : 'SERVICIO';
+                const badgeClass = esPrestamo ? 'text-warning border-warning' : 'text-info border-info';
+                
+                // Formateo de Cuota
+                const monto = parseFloat(c.monto_cuota_aprox).toFixed(2);
+
+                // Tarjeta Negra con Borde Lateral de Color
+                html += `
+                <div class="card bg-black border-0 border-start border-4 ${colorBorde} mb-3 shadow-sm position-relative overflow-hidden">
+                    <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                        
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 text-center" style="width: 40px;">
+                                <i class="fas ${icon} fs-4 text-white-50"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-transparent border ${badgeClass}" style="font-size: 0.6rem;">${textoTipo}</span>
+                                    <small class="text-white-50" style="font-size: 0.7rem;">Día ${c.dia_pago_mensual}</small>
+                                </div>
+                                <h6 class="text-white fw-bold mb-0 text-uppercase" style="letter-spacing: 0.5px;">${c.titulo}</h6>
+                            </div>
+                        </div>
+
+                        <div class="text-end d-flex align-items-center gap-3">
+                            <div>
+                                <div class="text-white fw-bold fs-5">S/ ${monto}</div>
+                                <small class="text-muted" style="font-size: 0.7rem;">mensual</small>
+                            </div>
+                            
+                            <button class="btn btn-outline-danger btn-sm border-0 rounded-circle" style="width: 35px; height: 35px;" onclick="confirmarCancelacion(${c.id})">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                    
+                    <i class="fas ${icon} position-absolute text-white opacity-10" style="font-size: 5rem; right: -20px; top: -10px; z-index: 0; pointer-events: none;"></i>
+                </div>`;
+            });
+            lista.innerHTML = html;
+        }
+    } catch (e) {
+        console.error(e);
+        const lista = document.getElementById('listaContratos');
+        if(lista) lista.innerHTML = '<div class="text-center text-danger p-3">Error al cargar datos</div>';
     }
 }
 
