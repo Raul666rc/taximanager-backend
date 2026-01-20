@@ -227,6 +227,22 @@ async function guardarCarrera() {
     );
 }
 
+// ==========================================
+// AUTO-FOCO AL COBRAR (UX RÁPIDA)
+// ==========================================
+const modalCobrarEl = document.getElementById('modalCobrar');
+
+// Verificamos que el modal exista para no causar errores
+if (modalCobrarEl) {
+    modalCobrarEl.addEventListener('shown.bs.modal', function () {
+        const input = document.getElementById('inputPrecio');
+        if (input) {
+            input.value = ''; // Limpia el campo (opcional, por si quedó un valor viejo)
+            input.focus();    // ¡Pone el cursor aquí!
+        }
+    });
+}
+
 // 4. RECUPERAR SESIÓN
 async function verificarViajeEnCurso() {
     try {

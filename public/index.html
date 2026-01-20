@@ -404,31 +404,72 @@
             <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
         </button>
 
-        <div style="height: 50px;"></div> </section>
+        <div style="height: 50px;"></div> 
+    </section>
 
 
     <div class="modal fade" id="modalCobrar" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title">Finalizar Carrera</h5>
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content bg-black text-white border-success shadow-lg"
+                style="background: radial-gradient(circle at 50% 0%, rgba(25, 135, 84, 0.2) 0%, #000000 80%);">
+                
+                <div class="modal-header border-secondary border-opacity-50 pb-2">
+                    <h5 class="modal-title text-success fw-bold text-uppercase" style="letter-spacing: 1px;">
+                        <i class="fas fa-flag-checkered me-2 animate__animated animate__rubberBand animate__infinite animate__slow"></i>
+                        Cobrar Viaje
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <label class="form-label text-muted small">Monto Total (S/.)</label>
-                    <input type="number" class="form-control form-control-lg mb-4 bg-black text-white border-success fw-bold text-center" placeholder="0.00">
-                    <label class="form-label text-muted small">Método de Pago</label>
-                    <div class="btn-group w-100 mb-3" role="group">
-                        <input type="radio" class="btn-check" name="pago" id="pago1" checked>
-                        <label class="btn btn-outline-success py-3" for="pago1"><i class="fas fa-money-bill-wave"></i> Efectivo</label>
-                        <input type="radio" class="btn-check" name="pago" id="pago2">
-                        <label class="btn btn-outline-warning py-3" for="pago2"><i class="fas fa-qrcode"></i> Yape / Plin</label>
+
+                <div class="modal-body pt-4">
+                    
+                    <div class="mb-4">
+                        <label class="small text-white-50 text-uppercase fw-bold mb-2 d-block text-center">
+                            Monto a Cobrar
+                        </label>
+                        <div class="input-group input-group-lg border border-success rounded shadow-sm overflow-hidden">
+                            <span class="input-group-text bg-black text-success border-0 fs-3">S/</span>
+                            <input type="number" id="inputPrecio" 
+                                class="form-control bg-black text-white border-0 fw-bold text-center font-monospace" 
+                                placeholder="0.00" step="0.50" style="font-size: 2.5rem;">
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-success w-100 btn-lg fw-bold" onclick="guardarCarrera()">
-                        <i class="fas fa-check-circle me-2"></i> REGISTRAR
+
+                    <div class="mb-4">
+                        <label class="small text-white-50 text-uppercase fw-bold mb-2 d-block text-center">
+                            Forma de Pago
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="pago" id="pago1" value="EFECTIVO" checked>
+                                <label class="btn btn-outline-success w-100 py-3 d-flex flex-column align-items-center justify-content-center h-100 shadow-sm" for="pago1">
+                                    <i class="fas fa-money-bill-wave fs-3 mb-1"></i>
+                                    <span class="fw-bold small">EFECTIVO</span>
+                                </label>
+                            </div>
+                            
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="pago" id="pago2" value="YAPE">
+                                <label class="btn btn-outline-light w-100 py-3 d-flex flex-column align-items-center justify-content-center h-100 shadow-sm" 
+                                    for="pago2" 
+                                    style="border-color: #d63384; color: #d63384;" 
+                                    onmouseover="this.style.backgroundColor='#d63384'; this.style.color='white';" 
+                                    onmouseout="if(!document.getElementById('pago2').checked){this.style.backgroundColor='transparent'; this.style.color='#d63384';}">
+                                    <i class="fas fa-qrcode fs-3 mb-1"></i>
+                                    <span class="fw-bold small">YAPE / PLIN</span>
+                                </label>
+                                
+                                <style>
+                                    #pago2:checked + label { background-color: #d63384 !important; color: white !important; }
+                                </style>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-success w-100 py-3 fw-bold shadow-lg text-uppercase fs-5" onclick="guardarCarrera()">
+                        <i class="fas fa-check-circle me-2"></i> Registrar
                     </button>
+
                 </div>
             </div>
         </div>
