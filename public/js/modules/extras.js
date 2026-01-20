@@ -198,12 +198,17 @@ async function guardarCorreccionKm(confirmado = false) {
 
 // 3. ABRIR MODAL MANTENIMIENTO
 function registrarMantenimiento() {
-    // Pre-llenar con el km actual del sistema
-    const textoActual = document.getElementById('lblOdometro').innerText.replace(/,/g,'');
-    document.getElementById('inputMantKm').value = parseInt(textoActual) || 0;
+    // 1. Obtener el KM actual del tablero (limpiando comas)
+    const kmActual = parseInt(document.getElementById('lblOdometro').innerText.replace(/,/g,'')) || 0;
     
-    // Abrir modal
+    // 2. Llenar el input
+    document.getElementById('inputMantKm').value = kmActual;
+    
+    // 3. Mostrar Modal
     new bootstrap.Modal(document.getElementById('modalRegMantenimiento')).show();
+    
+    // 4. Seleccionar el texto para que si quieres corregir, solo escribas encima
+    setTimeout(() => document.getElementById('inputMantKm').select(), 500);
 }
 
 // 4. GUARDAR MANTENIMIENTO (Acción del botón modal)

@@ -483,28 +483,51 @@
 
     <div class="modal fade" id="modalRegMantenimiento" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content bg-dark text-white border-warning shadow-lg">
-                <div class="modal-header border-secondary pb-2">
-                    <h5 class="modal-title text-warning fw-bold"><i class="fas fa-oil-can me-2"></i>Cambio de Aceite</h5>
+            <div class="modal-content bg-black text-white border-warning shadow-lg"
+                style="background: radial-gradient(circle at 50% 0%, rgba(255, 193, 7, 0.2) 0%, #000000 80%);">
+                
+                <div class="modal-header border-secondary border-opacity-50 pb-2">
+                    <h5 class="modal-title text-warning fw-bold text-uppercase" style="letter-spacing: 1px; text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);">
+                        <i class="fas fa-oil-can me-2 animate__animated animate__tada animate__infinite animate__slow"></i>
+                        Cambio de Aceite
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="small text-muted mb-1">1. Kilometraje Actual (Tablero)</label>
-                        <input type="number" id="inputMantKm" class="form-control form-control-lg bg-black text-white border-secondary fw-bold text-center">
-                    </div>
+
+                <div class="modal-body pt-4">
+                    
                     <div class="mb-4">
-                        <label class="small text-muted mb-1">2. Intervalo (¿Cada cuánto?)</label>
-                        <select id="inputMantIntervalo" class="form-select form-select-lg bg-black text-white border-secondary text-center fw-bold">
-                            <option value="5000" selected>5,000 km (Mineral/Semi)</option>
+                        <label class="small text-white-50 text-uppercase fw-bold mb-2 d-block text-center">
+                            <i class="fas fa-tachometer-alt me-1 text-warning"></i> Kilometraje Actual
+                        </label>
+                        
+                        <div class="input-group input-group-lg border border-warning rounded shadow-sm overflow-hidden">
+                            <input type="number" id="inputMantKm" 
+                                class="form-control bg-black text-white border-0 fw-bold text-center font-monospace" 
+                                placeholder="00000" 
+                                style="font-size: 2rem;">
+                        </div>
+                        <div class="text-center mt-1">
+                            <small class="text-muted" style="font-size: 0.7rem;">Confirma lo que dice tu tablero</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="small text-white-50 text-uppercase fw-bold mb-2 d-block text-center">
+                            <i class="fas fa-history me-1 text-warning"></i> Próximo Cambio en:
+                        </label>
+                        <select id="inputMantIntervalo" class="form-select bg-dark text-white border-secondary text-center fw-bold shadow-sm" style="cursor: pointer;">
+                            <option value="5000" selected>5,000 km (Mineral)</option>
+                            <option value="7500">7,500 km (Semi-Sintético)</option>
                             <option value="10000">10,000 km (Sintético)</option>
-                            <option value="7500">7,500 km</option>
                         </select>
                     </div>
-                    <button class="btn btn-warning w-100 fw-bold py-2 shadow" onclick="guardarMantenimiento()">
-                        <i class="fas fa-check-circle me-2"></i> REGISTRAR CAMBIO
+
+                    <button class="btn btn-warning w-100 py-3 fw-bold shadow-lg text-uppercase text-dark" onclick="guardarMantenimiento()">
+                        <i class="fas fa-check-circle me-2"></i> Registrar Cambio
                     </button>
                 </div>
+
             </div>
         </div>
     </div>
