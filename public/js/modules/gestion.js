@@ -132,98 +132,147 @@ async function abrirObligaciones() {
     cargarObligaciones();
 }
 
-// ==========================================
-// 1. CREAR GASTO PUNTUAL (SECCIÓN VERDE)
-// ==========================================
-async function crearObligacion() {
-    const tit = document.getElementById('nuevaObliTitulo').value;
-    const mon = document.getElementById('nuevaObliMonto').value;
-    const fec = document.getElementById('nuevaObliFecha').value;
-    const pri = document.getElementById('nuevaObliPrioridad').value;
+async function cargarObligaciones() {
+    try {
+        // 1. FETCH CON TIMESTAMP (Para evitar caché)
+        const res = await fetch(`${API_URL}/obligaciones?t=${Date.now()}`);
+        const r = await res.json();
+        
+        // ==========================================
+        // 2. RECUPERANDO EL BADGE (NOTIFICADOR) 🔴
+        // ==========================================
+        const badge = document.getElementById('badgeDeudasCount');
+        if (badge) {
+            // Contamos solo las pendientes reales para el badge
+            const count = r.data ? r.data.length : 0;
+            badge.innerText = count;
+            // Si hay deudas, mostramos el badge rojo, si no, lo ocultamos
+            badge.style.display = count > 0 ? 'inline-block' : 'none';
+            
+            // Animación visual si hay deudas nuevas
+            if(count > 0) badge.classList.add('animate__animated', 'animate__pulse');
+        }
 
-    if(!tit || !mon || !fec) return notificar("Faltan datos", "error");
+        const lista = document.getElementById('listaObligaciones');
+        if(!lista) return;
+
+        if (r.data && r.data.length > 0) {
+            let html = '';
+            
+            // 3. RECUPERANDO EL FILTRO "VER FUTUROS" 🕵️‍♂️
+            const verTodos = document.getElementById('chkVerTodos') ? document.getElementById('chkVerTodos').checked : false;
+            let mostrados = {}; // Para controlar duplicados de contratos futuros
+
+            // Ordenamos por fecha (Lo más urgente primero)
+            r.data.sort((a,b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
+
+            r.data.forEach(o => {
+                // Cálculo de días (Lógica Antigua Recuperada)
+                const dias = parseInt(o.dias_restantes);
+
+                // LÓGICA DE FILTRO: 
+                // Si es un contrato (tiene compromiso_id) y falta mucho (dias >= 0),
+                // solo mostramos el PRIMERO que aparezca (el más cercano) y ocultamos los siguientes
+                // a menos que el check 'verTodos' esté activado.
+                if (!verTodos && o.compromiso_id && dias >= 0) {
+                     if (mostrados[o.compromiso_id]) return; // Si ya mostré la cuota de este mes, salto las siguientes
+                     mostrados[o.compromiso_id] = true;
+                }
+
+                // 4. LÓGICA DE COLORES Y TEXTOS (DISEÑO NUEVO + LÓGICA ANTIGUA) 🎨
+                let borderClass = 'border-secondary';
+                let icon = 'fa-calendar-check text-secondary'; 
+                let colorText = 'text-white';
+                let estadoTexto = `${dias} días`;
+
+                // URGENTE O VENCIDO
+                if (dias < 0) { 
+                    borderClass = 'border-danger border-2'; 
+                    icon = 'fa-exclamation-triangle text-danger animate__animated animate__flash animate__slow animate__infinite'; 
+                    estadoTexto = 'VENCIDO';
+                    colorText = 'text-danger fw-bold';
+                }
+                else if (dias <= 3 || o.prioridad === 'URGENTE') { 
+                    borderClass = 'border-danger'; 
+                    icon = 'fa-clock text-danger'; 
+                    estadoTexto = `Vence en ${dias} días`;
+                }
+                // PRÓXIMO (ALERTA AMARILLA)
+                else if (dias <= 7) { 
+                    borderClass = 'border-warning'; 
+                    icon = 'fa-bell text-warning'; 
+                }
+
+                // Ajuste de fecha (Zona Horaria PE)
+                const fechaObj = new Date(new Date(o.fecha_vencimiento).getTime() + (5*3600000));
+                const fechaStr = fechaObj.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+
+                // 5. RENDERIZADO (EL HTML PREMIUM QUE YA TE GUSTABA)
+                html += `
+                <div class="list-group-item bg-black text-white d-flex justify-content-between align-items-center mb-2 rounded border-start border-4 shadow-sm ${borderClass}">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 text-center" style="width: 30px;">
+                            <i class="fas ${icon} fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold ${colorText}">${o.titulo}</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-white-50"><i class="far fa-calendar-alt me-1"></i>${fechaStr}</small>
+                                <span class="badge bg-secondary bg-opacity-25 text-white border border-secondary" style="font-size: 0.65rem;">${estadoTexto}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-info fs-5">S/ ${parseFloat(o.monto).toFixed(2)}</div>
+                        <button class="btn btn-sm btn-outline-success mt-1 fw-bold" onclick="abrirModalPago(${o.id}, '${o.titulo}', ${o.monto})">
+                            PAGAR <i class="fas fa-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>`;
+            });
+
+            lista.innerHTML = html;
+        } else {
+            lista.innerHTML = '<div class="text-center p-5 text-muted"><i class="fas fa-check-circle fa-3x mb-3 text-success opacity-50"></i><br>¡Estás al día! 🎉</div>';
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function crearObligacion() {
+    // Capturamos datos del HTML nuevo (Sección Verde)
+    const t = document.getElementById('nuevaObliTitulo').value;
+    const m = document.getElementById('nuevaObliMonto').value;
+    const f = document.getElementById('nuevaObliFecha').value;
+    const p = document.getElementById('nuevaObliPrioridad').value;
+
+    if(!t || !m || !f) return notificar("Completa los datos del gasto", "error");
 
     const btn = document.querySelector('button[onclick="crearObligacion()"]');
     const txtOriginal = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
     try {
         const res = await fetch(`${API_URL}/obligaciones`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ titulo: tit, monto: mon, fecha_vencimiento: fec, prioridad: pri })
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ titulo: t, monto: m, fecha_vencimiento: f, prioridad: p })
         });
 
         if((await res.json()).success) {
             notificar("✅ Recordatorio guardado", "success");
             
-            // LIMPIEZA AUTOMÁTICA
+            // LIMPIEZA DE CAMPOS (Esencial)
             document.getElementById('nuevaObliTitulo').value = '';
             document.getElementById('nuevaObliMonto').value = '';
             document.getElementById('nuevaObliFecha').value = '';
             
-            cargarObligaciones(); // Recargar la lista de arriba
+            // Recargamos la lista y el badge
+            cargarObligaciones(); 
         }
     } catch(e) { 
         notificar("Error conexión", "error"); 
     } finally {
         btn.disabled = false; btn.innerHTML = txtOriginal;
     }
-}
-
-// ==========================================
-// 2. RENDERIZAR LISTA (SECCIÓN AZUL)
-// ==========================================
-async function cargarObligaciones() {
-    const verTodos = document.getElementById('chkVerTodos') ? document.getElementById('chkVerTodos').checked : false;
-    const lista = document.getElementById('listaObligaciones');
-    if(!lista) return;
-
-    try {
-        const res = await fetch(`${API_URL}/obligaciones?todos=${verTodos}`);
-        const r = await res.json();
-
-        if (r.success) {
-            if (r.data.length === 0) {
-                lista.innerHTML = '<div class="text-center p-4 text-muted"><i class="fas fa-check-circle fa-2x mb-2 text-success opacity-50"></i><br>¡Estás al día!</div>';
-                return;
-            }
-
-            let html = '';
-            r.data.forEach(o => {
-                // Estilo según prioridad
-                let borderClass = 'border-secondary';
-                let icon = 'fa-circle';
-                let colorText = 'text-white';
-
-                if (o.prioridad === 'URGENTE') { borderClass = 'border-danger border-3'; icon = 'fa-exclamation-circle text-danger'; }
-                else if (o.prioridad === 'ALTA') { borderClass = 'border-warning'; icon = 'fa-arrow-up text-warning'; }
-                
-                // Formateo de fecha amigable
-                const fechaObj = new Date(o.fecha_vencimiento);
-                // Ajuste de zona horaria simple para visualización correcta
-                const fechaStr = fechaObj.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', timeZone: 'UTC' }); 
-
-                html += `
-                <div class="list-group-item bg-black text-white d-flex justify-content-between align-items-center mb-2 rounded border ${borderClass}">
-                    <div class="d-flex align-items-center">
-                        <i class="fas ${icon} me-3"></i>
-                        <div>
-                            <div class="fw-bold ${colorText}">${o.titulo}</div>
-                            <small class="text-muted"><i class="far fa-calendar-alt me-1"></i>Vence: ${fechaStr}</small>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <div class="fw-bold text-info">S/ ${parseFloat(o.monto).toFixed(2)}</div>
-                        <button class="btn btn-sm btn-outline-success mt-1" onclick="abrirModalPago(${o.id}, '${o.titulo}', ${o.monto})">
-                            Pagar <i class="fas fa-chevron-right ms-1"></i>
-                        </button>
-                    </div>
-                </div>`;
-            });
-            lista.innerHTML = html;
-        }
-    } catch (e) { console.error(e); }
 }
 
 async function pagarDeuda(id, monto, titulo) {
