@@ -436,10 +436,10 @@ async function crearPrestamo() {
 }
 
 // ==========================================
-// ABRIR LISTA DE CONTRATOS (DISEÑO PREMIUM)
+// ABRIR LISTA DE CONTRATOS (CORREGIDO: MARCA DE AGUA SUTIL)
 // ==========================================
 async function abrirModalContratos() {
-    // 1. Gestión de Modales (Cerrar el de Obligaciones, abrir el de Contratos)
+    // 1. Gestión de Modales
     const modalOblig = bootstrap.Modal.getInstance(document.getElementById('modalObligaciones'));
     if(modalOblig) modalOblig.hide();
     
@@ -452,7 +452,6 @@ async function abrirModalContratos() {
         const lista = document.getElementById('listaContratos');
         
         if(r.success && lista) {
-            // Si no hay contratos
             if (r.data.length === 0) {
                 lista.innerHTML = `
                     <div class="text-center p-4 opacity-50">
@@ -464,20 +463,18 @@ async function abrirModalContratos() {
 
             let html = '';
             r.data.forEach(c => {
-                // LÓGICA DE ESTILO SEGÚN TIPO
+                // Lógica de Estilo
                 const esPrestamo = c.tipo === 'PRESTAMO';
                 const icon = esPrestamo ? 'fa-university' : 'fa-wifi';
                 const colorBorde = esPrestamo ? 'border-warning' : 'border-info';
                 const textoTipo = esPrestamo ? 'PRÉSTAMO' : 'SERVICIO';
                 const badgeClass = esPrestamo ? 'text-warning border-warning' : 'text-info border-info';
-                
-                // Formateo de Cuota
                 const monto = parseFloat(c.monto_cuota_aprox).toFixed(2);
 
-                // Tarjeta Negra con Borde Lateral de Color
                 html += `
                 <div class="card bg-black border-0 border-start border-4 ${colorBorde} mb-3 shadow-sm position-relative overflow-hidden">
-                    <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                    
+                    <div class="card-body p-3 d-flex justify-content-between align-items-center position-relative z-1">
                         
                         <div class="d-flex align-items-center">
                             <div class="me-3 text-center" style="width: 40px;">
@@ -498,14 +495,16 @@ async function abrirModalContratos() {
                                 <small class="text-muted" style="font-size: 0.7rem;">mensual</small>
                             </div>
                             
-                            <button class="btn btn-outline-danger btn-sm border-0 rounded-circle" style="width: 35px; height: 35px;" onclick="confirmarCancelacion(${c.id})">
+                            <button class="btn btn-outline-danger btn-sm border-0 rounded-circle position-relative" style="width: 35px; height: 35px; z-index: 2;" onclick="confirmarCancelacion(${c.id})">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
 
                     </div>
                     
-                    <i class="fas ${icon} position-absolute text-white opacity-10" style="font-size: 5rem; right: -20px; top: -10px; z-index: 0; pointer-events: none;"></i>
+                    <i class="fas ${icon} position-absolute text-white" 
+                       style="font-size: 6rem; right: -25px; bottom: -25px; opacity: 0.05; z-index: 0; pointer-events: none; transform: rotate(-15deg);">
+                    </i>
                 </div>`;
             });
             lista.innerHTML = html;
