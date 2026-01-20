@@ -836,64 +836,159 @@
 
     <div class="modal fade" id="modalCierreCaja" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title text-warning fw-bold"><i class="fas fa-cash-register me-2"></i>Cierre de Turno</h5>
+            <div class="modal-content bg-black text-white border-success shadow-lg"
+                style="background: radial-gradient(circle at 50% 10%, rgba(25, 135, 84, 0.2) 0%, #000000 90%);">
+                
+                <div class="modal-header border-secondary border-opacity-25 pb-2">
+                    <h5 class="modal-title text-success fw-bold text-uppercase" style="letter-spacing: 1px; text-shadow: 0 0 10px rgba(25, 135, 84, 0.5);">
+                        <i class="fas fa-cash-register me-2 animate__animated animate__pulse animate__infinite"></i>
+                        Cierre de Turno
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-0">
-                    <div id="paso1_conteo" class="p-3">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between text-muted small mb-1"><span>💵 Efectivo Sistema:</span><span class="text-white">S/ <span id="lblSysEfectivo">0.00</span></span></div>
-                            <div class="input-group input-group-lg border border-secondary rounded"><span class="input-group-text bg-black text-secondary border-0"><i class="fas fa-money-bill-wave"></i></span><input type="number" id="inputRealEfectivo" class="form-control bg-black text-white border-0 fw-bold fs-4 text-center" placeholder="0.00"></div>
+
+                <div class="modal-body p-0 position-relative">
+                    
+                    <div id="paso1_conteo" class="p-4">
+                        
+                        <p class="text-white-50 text-center small mb-4">Ingresa los montos reales que tienes en mano.</p>
+
+                        <div class="mb-4 position-relative">
+                            <div class="d-flex justify-content-between align-items-end mb-1">
+                                <label class="text-success fw-bold small text-uppercase"><i class="fas fa-wallet me-1"></i> Efectivo Físico</label>
+                                <small class="text-muted" style="font-size: 0.7rem;">Sistema: S/ <span id="lblSysEfectivo" class="text-white">0.00</span></small>
+                            </div>
+                            <div class="input-group input-group-lg border border-success rounded shadow-sm overflow-hidden">
+                                <span class="input-group-text bg-black text-success border-0 ps-3"><i class="fas fa-money-bill-wave"></i></span>
+                                <input type="number" id="inputRealEfectivo" 
+                                    class="form-control bg-black text-white border-0 fw-bold fs-2 text-center font-monospace" 
+                                    placeholder="0.00">
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between text-muted small mb-1"><span>📱 Yape Sistema:</span><span class="text-white">S/ <span id="lblSysYape">0.00</span></span></div>
-                            <div class="input-group input-group-lg border border-secondary rounded"><span class="input-group-text bg-black text-secondary border-0" style="color: #d63384 !important;"><i class="fas fa-mobile-alt"></i></span><input type="number" id="inputRealYape" class="form-control bg-black text-white border-0 fw-bold fs-4 text-center" placeholder="0.00"></div>
+
+                        <div class="mb-4 position-relative">
+                            <div class="d-flex justify-content-between align-items-end mb-1">
+                                <label class="fw-bold small text-uppercase" style="color: #d63384;"><i class="fas fa-mobile-alt me-1"></i> Yape / Plin</label>
+                                <small class="text-muted" style="font-size: 0.7rem;">Sistema: S/ <span id="lblSysYape" class="text-white">0.00</span></small>
+                            </div>
+                            <div class="input-group input-group-lg border border-secondary rounded shadow-sm overflow-hidden" style="border-color: #d63384 !important;">
+                                <span class="input-group-text bg-black border-0 ps-3" style="color: #d63384;"><i class="fas fa-qrcode"></i></span>
+                                <input type="number" id="inputRealYape" 
+                                    class="form-control bg-black text-white border-0 fw-bold fs-2 text-center font-monospace" 
+                                    placeholder="0.00">
+                            </div>
                         </div>
-                        <button class="btn btn-warning w-100 fw-bold py-3 shadow" onclick="verificarCierre()">VERIFICAR MONTOS <i class="fas fa-arrow-right ms-2"></i></button>
+
+                        <button class="btn btn-success w-100 fw-bold py-3 shadow-lg text-uppercase mt-2" onclick="verificarCierre()">
+                            Verificar Montos <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
                     </div>
-                    <div id="paso2_resultado" class="d-none text-center p-4">
-                        <div id="iconoResultado" class="display-1 mb-3"></div>
-                        <h2 id="tituloResultado" class="fw-bold mb-2"></h2>
-                        <p id="mensajeResultado" class="text-white-50 mb-4 fs-6"></p>
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-success btn-lg fw-bold" id="btnAjustarContinuar" onclick="procesarAjusteYReparto()">CONFIRMAR Y REPARTIR</button>
-                            <button class="btn btn-outline-light" onclick="reiniciarCierre()">Recontar</button>
+
+                    <div id="paso2_resultado" class="d-none text-center p-5">
+                        
+                        <div id="iconoResultado" class="display-1 mb-4 animate__animated animate__bounceIn"></div>
+                        
+                        <h2 id="tituloResultado" class="fw-bold mb-2 text-uppercase display-6" style="letter-spacing: 2px;"></h2>
+                        <p id="mensajeResultado" class="text-white-50 mb-5 fs-5"></p>
+
+                        <div class="d-grid gap-3">
+                            <button class="btn btn-outline-light py-2" onclick="reiniciarCierre()">
+                                <i class="fas fa-redo me-2"></i> Volver a Contar
+                            </button>
+                            <button class="btn btn-success btn-lg fw-bold py-3 shadow-lg animate__animated animate__pulse animate__infinite" id="btnAjustarContinuar" onclick="procesarAjusteYReparto()">
+                                CONFIRMAR Y REPARTIR <i class="fas fa-check-circle ms-2"></i>
+                            </button>
                         </div>
                     </div>
+
                     <div id="paso3_reparto" class="d-none p-3">
-                        <div class="bg-black border border-secondary rounded p-2 mb-3 small">
-                            <div class="d-flex justify-content-between text-muted"><span>💰 Total en Mano:</span><span class="text-white fw-bold" id="resTotalMano">S/ 0.00</span></div>
-                            <div class="d-flex justify-content-between text-muted"><span>📅 Base Ayer:</span><span class="text-white fw-bold" id="resBaseAyer">S/ 0.00</span></div>
-                            <div class="d-flex justify-content-between border-top border-secondary mt-1 pt-1"><span class="text-success fw-bold">GANANCIA HOY:</span><span class="text-success fw-bold fs-6" id="resGananciaHoy">S/ 0.00</span></div>
+                        
+                        <div class="bg-dark bg-opacity-50 border border-secondary border-opacity-50 rounded p-3 mb-3 position-relative overflow-hidden">
+                            <div class="row g-2 text-center">
+                                <div class="col-4 border-end border-secondary">
+                                    <small class="text-muted d-block" style="font-size: 0.6rem;">EN MANO</small>
+                                    <span class="text-white fw-bold small" id="resTotalMano">S/ 0.00</span>
+                                </div>
+                                <div class="col-4 border-end border-secondary">
+                                    <small class="text-muted d-block" style="font-size: 0.6rem;">BASE AYER</small>
+                                    <span class="text-white fw-bold small" id="resBaseAyer">S/ 0.00</span>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-success d-block fw-bold" style="font-size: 0.6rem;">GANANCIA</small>
+                                    <span class="text-success fw-bold small" id="resGananciaHoy">S/ 0.00</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="text-center mb-3">
-                            <div class="text-secondary text-uppercase small fw-bold mb-1">Monto a Repartir (Ganancia)</div>
-                            <div class="bg-black border border-warning rounded p-2 shadow-sm"><h1 class="fw-bold text-white mb-0" id="montoFinalReparto" style="text-shadow: 0 0 15px rgba(255,193,7,0.3);">S/ 0.00</h1></div>
+
+                        <div class="text-center mb-4">
+                            <div class="text-warning text-uppercase small fw-bold mb-1" style="letter-spacing: 2px;">✨ Disponible para Reparto ✨</div>
+                            <div class="bg-black border border-warning rounded p-3 shadow-lg position-relative overflow-hidden">
+                                <div class="position-absolute top-50 start-50 translate-middle w-100 h-100 bg-warning opacity-10" style="filter: blur(30px);"></div>
+                                <h1 class="fw-bold text-white mb-0 display-4 font-monospace position-relative z-1" id="montoFinalReparto" style="text-shadow: 0 0 20px rgba(255,193,7,0.6);">S/ 0.00</h1>
+                            </div>
                         </div>
+
                         <div class="row g-2 mb-3">
-                            <div class="col-6"><div class="p-2 bg-dark border border-light rounded text-center h-100"><div style="font-size: 0.65rem;" class="text-info fw-bold mb-1">SUELDO PROPIO</div><h4 class="fw-bold text-white mb-0" id="sugPersonal">0.00</h4></div></div>
-                            <div class="col-6"><div class="p-2 bg-dark border border-warning rounded text-center h-100"><div style="font-size: 0.65rem;" class="text-warning fw-bold mb-1">ARCA ORO</div><h4 class="fw-bold text-white mb-0" id="sugArca">0.00</h4></div></div>
+                            <div class="col-6">
+                                <div class="p-2 bg-dark border border-secondary rounded text-center h-100 position-relative">
+                                    <i class="fas fa-user-circle text-info position-absolute top-0 end-0 m-2 opacity-25"></i>
+                                    <div style="font-size: 0.65rem;" class="text-info fw-bold mb-1 text-uppercase">Sueldo (10%)</div>
+                                    <h4 class="fw-bold text-white mb-0" id="sugPersonal">0.00</h4>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 bg-dark border border-warning rounded text-center h-100 position-relative">
+                                    <i class="fas fa-piggy-bank text-warning position-absolute top-0 end-0 m-2 opacity-25"></i>
+                                    <div style="font-size: 0.65rem;" class="text-warning fw-bold mb-1 text-uppercase">Arca Oro (10%)</div>
+                                    <h4 class="fw-bold text-white mb-0" id="sugArca">0.00</h4>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card bg-secondary bg-opacity-10 border-success mb-3">
-                            <div class="card-header bg-success bg-opacity-25 py-1 border-success d-flex justify-content-between align-items-center"><small class="text-white fw-bold">NEGOCIO (80%)</small><span class="badge bg-success" id="sugNegocioTotal">S/ 0.00</span></div>
+
+                        <div class="card bg-black border border-secondary mb-3">
+                            <div class="card-header bg-dark py-1 border-secondary d-flex justify-content-between align-items-center">
+                                <small class="text-white-50 fw-bold text-uppercase"><i class="fas fa-briefcase me-1"></i> Negocio (80%)</small>
+                                <span class="badge bg-secondary text-white" id="sugNegocioTotal">S/ 0.00</span>
+                            </div>
                             <ul class="list-group list-group-flush small">
-                                <li class="list-group-item bg-transparent text-white d-flex justify-content-between py-2 border-secondary"><span><i class="fas fa-utensils text-info me-2"></i>Comida Casa</span><span class="fw-bold text-white fs-6" id="detComida">S/ 40.00</span></li>
-                                <li class="list-group-item bg-transparent text-white d-flex justify-content-between py-1 border-secondary"><span><i class="fas fa-chart-line text-danger me-2"></i>Deuda 8k</span><span class="fw-bold text-white-50" id="detDeuda">0.00</span></li>
-                                <li class="list-group-item bg-transparent text-white d-flex justify-content-between py-1 border-secondary"><span><i class="fas fa-tools text-secondary me-2"></i>Taller</span><span class="fw-bold text-white-50" id="detTaller">0.00</span></li>
-                                <li class="list-group-item bg-black text-white d-flex justify-content-between py-2 border-0"><span><i class="fas fa-gas-pump text-warning me-2"></i>Saldo Mañana</span><span class="fw-bold text-warning fs-6" id="detGasolina">0.00</span></li>
+                                <li class="list-group-item bg-transparent text-white d-flex justify-content-between py-2 border-secondary border-opacity-25">
+                                    <span><i class="fas fa-utensils text-success me-2" style="width:15px;"></i>Comida Casa</span>
+                                    <span class="fw-bold text-white" id="detComida">S/ 40.00</span>
+                                </li>
+                                <li class="list-group-item bg-transparent text-white d-flex justify-content-between py-2 border-secondary border-opacity-25">
+                                    <span><i class="fas fa-chart-line text-danger me-2" style="width:15px;"></i>Deuda 8k</span>
+                                    <span class="fw-bold text-white-50" id="detDeuda">0.00</span>
+                                </li>
+                                <li class="list-group-item bg-transparent text-white d-flex justify-content-between py-2 border-secondary border-opacity-25">
+                                    <span><i class="fas fa-tools text-secondary me-2" style="width:15px;"></i>Taller</span>
+                                    <span class="fw-bold text-white-50" id="detTaller">0.00</span>
+                                </li>
+                                <li class="list-group-item bg-warning bg-opacity-10 text-white d-flex justify-content-between py-2 border-0">
+                                    <span class="text-warning"><i class="fas fa-gas-pump me-2" style="width:15px;"></i>Saldo Mañana</span>
+                                    <span class="fw-bold text-warning fs-6" id="detGasolina">0.00</span>
+                                </li>
                             </ul>
                         </div>
-                        <div class="bg-primary bg-opacity-25 border border-primary text-center py-2 mb-3 rounded">
-                            <small class="text-white d-block mb-1 fw-bold" style="font-size: 0.7rem;">SALDO FINAL EN MANO:</small>
-                            <div class="fw-bold text-white"><span class="text-white fs-4" id="saldoRemanente">S/ 0.00</span></div>
+
+                        <div class="bg-gradient-primary p-3 rounded text-center mb-3 shadow border border-primary">
+                            <small class="text-white d-block mb-0 fw-bold text-uppercase opacity-75" style="letter-spacing: 1px;">Saldo Final en Bolsillo</small>
+                            <div class="fw-bold text-white font-monospace"><span class="fs-1" id="saldoRemanente">S/ 0.00</span></div>
+                            <small class="text-white-50" style="font-size: 0.7rem;">(Base Ayer + Gasolina Mañana)</small>
                         </div>
+
                         <div class="d-grid gap-2">
-                            <button class="btn btn-outline-info" onclick="irATransferirConDatos()"><i class="fas fa-exchange-alt me-2"></i> Mover Dinero a Wardas</button>
-                            <button class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">Finalizar</button>
+                            <button class="btn btn-info fw-bold shadow" onclick="irATransferirConDatos()">
+                                <i class="fas fa-exchange-alt me-2"></i> REPARTIR AHORA
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Finalizar sin repartir</button>
                         </div>
-                        <div class="d-none"><span id="resTotalMano"></span><span id="resBaseAyer"></span><span id="resGananciaHoy"></span><span id="detComida"></span><span id="detDeuda"></span><span id="detTaller"></span><span id="detGasolina"></span><span id="saldoRemanente"></span></div>
+
+                        <div class="d-none">
+                            <span id="resTotalMano"></span><span id="resBaseAyer"></span><span id="resGananciaHoy"></span>
+                            <span id="detComida"></span><span id="detDeuda"></span><span id="detTaller"></span><span id="detGasolina"></span>
+                            <span id="saldoRemanente"></span>
+                        </div>
+
                     </div>
                 </div>
             </div>
