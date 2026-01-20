@@ -807,82 +807,111 @@
 
     <div class="modal fade" id="modalObligaciones" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg"> 
-            <div class="modal-content bg-dark text-white border-info">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title text-info"><i class="fas fa-tasks me-2"></i>Cuentas por Pagar</h5>
+            <div class="modal-content bg-black text-white border-info shadow-lg">
+                
+                <div class="modal-header border-secondary bg-dark">
+                    <h5 class="modal-title text-info fw-bold">
+                        <i class="fas fa-tasks me-2"></i>Cuentas por Pagar
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
+
                 <div class="modal-body p-0">
-                    <div class="d-flex justify-content-between align-items-center p-3 bg-dark border-bottom border-secondary">
-                        <div>
+                    
+                    <div class="p-3 bg-dark">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="chkVerTodos" onchange="cargarObligaciones()">
-                                <label class="form-check-label text-white small" for="chkVerTodos">Ver futuros</label>
+                                <label class="form-check-label text-white-50 small" for="chkVerTodos">Ver futuros vencimientos</label>
+                            </div>
+                            <button class="btn btn-sm btn-outline-light border-secondary" onclick="abrirModalContratos()">
+                                <i class="fas fa-file-contract text-warning me-1"></i> Ver Mis Contratos
+                            </button>
+                        </div>
+
+                        <div id="listaObligaciones" class="list-group list-group-flush border rounded border-secondary" style="max-height: 250px; overflow-y: auto;">
+                            <div class="text-center p-4 text-muted small">Cargando deudas...</div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-black border-top border-secondary position-relative">
+                        <span class="badge bg-success position-absolute top-0 start-50 translate-middle shadow">
+                            <i class="fas fa-bolt me-1"></i> Gasto Único
+                        </span>
+                        <div class="row g-2 mt-2">
+                            <div class="col-8">
+                                <label class="text-white-50 small mb-1">Concepto (Ej: Papeleta, Luz)</label>
+                                <input type="text" id="nuevaObliTitulo" class="form-control bg-dark text-white border-secondary" placeholder="Descripción">
+                            </div>
+                            <div class="col-4">
+                                <label class="text-white-50 small mb-1">Monto (S/)</label>
+                                <input type="number" id="nuevaObliMonto" class="form-control bg-dark text-white fw-bold border-success text-end" placeholder="0.00">
+                            </div>
+                            <div class="col-6">
+                                <label class="text-white-50 small mb-1">Vencimiento</label>
+                                <input type="date" id="nuevaObliFecha" class="form-control bg-dark text-white border-secondary text-center">
+                            </div>
+                            <div class="col-6">
+                                <label class="text-white-50 small mb-1">Prioridad</label>
+                                <select id="nuevaObliPrioridad" class="form-select bg-dark text-white border-secondary">
+                                    <option value="NORMAL">Normal</option>
+                                    <option value="ALTA">Alta</option>
+                                    <option value="URGENTE">🚨 URGENTE</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <button class="btn btn-outline-success w-100 fw-bold border-dashed" onclick="crearObligacion()">
+                                    <i class="fas fa-plus me-2"></i> AGREGAR A LA LISTA
+                                </button>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-outline-info" onclick="abrirModalContratos()"><i class="fas fa-file-contract me-1"></i> Mis Contratos</button>
                     </div>
-                    <div id="listaObligaciones" class="list-group list-group-flush mb-3"><div class="text-center p-4 text-muted">Cargando...</div></div>
-                    <div class="p-3 bg-secondary bg-opacity-10 border-top border-secondary">
-                        <h6 class="text-white mb-3"><i class="fas fa-plus-circle text-success"></i> Agregar Gasto Puntual</h6>
-                        <div class="row g-2">
-                            <div class="col-7"><label class="small text-info mb-1">Concepto</label><input type="text" id="nuevaObliTitulo" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Ej: Papeleta, Luz..."></div>
-                            <div class="col-5"><label class="small text-info mb-1">Monto (S/)</label><input type="number" id="nuevaObliMonto" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="0.00"></div>
-                            <div class="col-6"><label class="small text-info mb-1">Vencimiento</label><input type="date" id="nuevaObliFecha" class="form-control form-control-sm bg-dark text-white border-secondary"></div>
-                            <div class="col-6"><label class="small text-info mb-1">Prioridad</label><select id="nuevaObliPrioridad" class="form-select form-select-sm bg-dark text-white border-secondary"><option value="NORMAL">Normal</option><option value="ALTA">Alta</option><option value="URGENTE">🚨 URGENTE</option></select></div>
-                            <div class="col-12 d-grid mt-2"><button class="btn btn-sm btn-success fw-bold" onclick="crearObligacion()"><i class="fas fa-save me-1"></i> GUARDAR RECORDATORIO</button></div>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-black border-top border-secondary mt-2">
-                        <h6 class="text-warning mb-3 fw-bold border-bottom border-secondary pb-2">
-                            <i class="fas fa-file-signature me-2"></i>Nuevo Contrato / Servicio
+
+                    <div class="p-3 bg-dark border-top border-secondary">
+                        <h6 class="text-warning mb-3 fw-bold border-bottom border-secondary pb-2 small text-uppercase">
+                            <i class="fas fa-file-signature me-2"></i>Nuevo Contrato Recurrente
                         </h6>
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
                                 <input type="radio" class="btn-check" name="tipoCompromiso" id="tipoPrestamo" value="PRESTAMO" checked onchange="toggleTipoCompromiso()">
                                 <label class="btn btn-outline-warning w-100 py-2 shadow-inset" for="tipoPrestamo">
-                                    <i class="fas fa-university fa-lg d-block mb-1"></i>
-                                    Préstamo
+                                    <i class="fas fa-university me-2"></i>Préstamo
                                 </label>
                             </div>
                             <div class="col-6">
                                 <input type="radio" class="btn-check" name="tipoCompromiso" id="tipoServicio" value="SERVICIO_FIJO" onchange="toggleTipoCompromiso()">
                                 <label class="btn btn-outline-info w-100 py-2 shadow-inset" for="tipoServicio">
-                                    <i class="fas fa-wifi fa-lg d-block mb-1"></i>
-                                    Servicio
+                                    <i class="fas fa-wifi me-2"></i>Servicio
                                 </label>
                             </div>
                         </div>
 
                         <div class="row g-2">
                             <div class="col-12">
-                                <label class="text-white-50 small mb-1">Nombre del Contrato</label>
-                                <input type="text" id="presTitulo" class="form-control bg-dark text-white border-secondary" placeholder="Ej: Préstamo Banco / Internet Casa">
+                                <input type="text" id="presTitulo" class="form-control bg-black text-white border-secondary" placeholder="Nombre (Ej: Netflix / Banco)">
                             </div>
-                            
                             <div class="col-4">
-                                <label class="text-white-50 small mb-1">Cuota (S/)</label>
-                                <input type="number" id="presMonto" class="form-control bg-dark text-warning fw-bold border-warning" placeholder="0.00">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-secondary text-white border-secondary border-end-0">S/</span>
+                                    <input type="number" id="presMonto" class="form-control bg-black text-warning fw-bold border-secondary border-start-0" placeholder="Cuota">
+                                </div>
                             </div>
-
                             <div class="col-4">
-                                <label class="text-white-50 small mb-1">Día Pago</label>
-                                <input type="number" id="presDia" class="form-control bg-dark text-white border-secondary text-center" placeholder="1-31">
+                                <input type="number" id="presDia" class="form-control bg-black text-white border-secondary text-center" placeholder="Día Pago">
                             </div>
-
                             <div class="col-4">
-                                <label class="text-white-50 small mb-1">N° Cuotas</label>
-                                <input type="number" id="presCuotas" class="form-control bg-dark text-white border-secondary text-center" placeholder="Total">
+                                <input type="number" id="presCuotas" class="form-control bg-black text-white border-secondary text-center" placeholder="N° Cuotas">
                             </div>
                         </div>
 
                         <div class="d-grid mt-3">
-                            <button class="btn btn-warning fw-bold shadow-lg" onclick="crearPrestamo()">
-                                <i class="fas fa-cogs me-2"></i> GENERAR CRONOGRAMA
+                            <button class="btn btn-warning fw-bold shadow" onclick="crearPrestamo()">
+                                <i class="fas fa-cogs me-2"></i> CREAR CRONOGRAMA
                             </button>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>

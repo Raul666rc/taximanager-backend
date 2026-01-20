@@ -132,66 +132,98 @@ async function abrirObligaciones() {
     cargarObligaciones();
 }
 
-async function cargarObligaciones() {
+// ==========================================
+// 1. CREAR GASTO PUNTUAL (SECCIÓN VERDE)
+// ==========================================
+async function crearObligacion() {
+    const tit = document.getElementById('nuevaObliTitulo').value;
+    const mon = document.getElementById('nuevaObliMonto').value;
+    const fec = document.getElementById('nuevaObliFecha').value;
+    const pri = document.getElementById('nuevaObliPrioridad').value;
+
+    if(!tit || !mon || !fec) return notificar("Faltan datos", "error");
+
+    const btn = document.querySelector('button[onclick="crearObligacion()"]');
+    const txtOriginal = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+
     try {
-        const res = await fetch(`${API_URL}/obligaciones?t=${Date.now()}`);
-        const r = await res.json();
-        const badge = document.getElementById('badgeDeudasCount');
-        if (badge) {
-            const count = r.data ? r.data.length : 0;
-            badge.innerText = count;
-            badge.style.display = count > 0 ? 'inline-block' : 'none';
+        const res = await fetch(`${API_URL}/obligaciones`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ titulo: tit, monto: mon, fecha_vencimiento: fec, prioridad: pri })
+        });
+
+        if((await res.json()).success) {
+            notificar("✅ Recordatorio guardado", "success");
+            
+            // LIMPIEZA AUTOMÁTICA
+            document.getElementById('nuevaObliTitulo').value = '';
+            document.getElementById('nuevaObliMonto').value = '';
+            document.getElementById('nuevaObliFecha').value = '';
+            
+            cargarObligaciones(); // Recargar la lista de arriba
         }
-        const lista = document.getElementById('listaObligaciones');
-        if(lista && r.data) {
+    } catch(e) { 
+        notificar("Error conexión", "error"); 
+    } finally {
+        btn.disabled = false; btn.innerHTML = txtOriginal;
+    }
+}
+
+// ==========================================
+// 2. RENDERIZAR LISTA (SECCIÓN AZUL)
+// ==========================================
+async function cargarObligaciones() {
+    const verTodos = document.getElementById('chkVerTodos') ? document.getElementById('chkVerTodos').checked : false;
+    const lista = document.getElementById('listaObligaciones');
+    if(!lista) return;
+
+    try {
+        const res = await fetch(`${API_URL}/obligaciones?todos=${verTodos}`);
+        const r = await res.json();
+
+        if (r.success) {
+            if (r.data.length === 0) {
+                lista.innerHTML = '<div class="text-center p-4 text-muted"><i class="fas fa-check-circle fa-2x mb-2 text-success opacity-50"></i><br>¡Estás al día!</div>';
+                return;
+            }
+
             let html = '';
-            const verTodos = document.getElementById('chkVerTodos') ? document.getElementById('chkVerTodos').checked : false;
-            let mostrados = {};
-            r.data.sort((a,b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento)).forEach(i => {
-                const dias = parseInt(i.dias_restantes);
-                if (!verTodos && i.compromiso_id && dias >= 0) {
-                    if (mostrados[i.compromiso_id]) return;
-                    mostrados[i.compromiso_id] = true;
-                }
-                let border = 'border-success', txt = `${dias} días`;
-                if(dias < 3 || i.prioridad === 'URGENTE') { border = 'border-danger'; txt = `Vence en ${dias}`; }
-                else if(dias < 7) { border = 'border-warning'; }
-                if(dias < 0) { border = 'border-danger'; txt = 'VENCIDO'; }
-                const fecha = new Date(new Date(i.fecha_vencimiento).getTime() + (5*3600000)).toLocaleDateString('es-PE');
+            r.data.forEach(o => {
+                // Estilo según prioridad
+                let borderClass = 'border-secondary';
+                let icon = 'fa-circle';
+                let colorText = 'text-white';
+
+                if (o.prioridad === 'URGENTE') { borderClass = 'border-danger border-3'; icon = 'fa-exclamation-circle text-danger'; }
+                else if (o.prioridad === 'ALTA') { borderClass = 'border-warning'; icon = 'fa-arrow-up text-warning'; }
+                
+                // Formateo de fecha amigable
+                const fechaObj = new Date(o.fecha_vencimiento);
+                // Ajuste de zona horaria simple para visualización correcta
+                const fechaStr = fechaObj.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', timeZone: 'UTC' }); 
+
                 html += `
-                <div class="list-group-item bg-dark text-white p-3 mb-2 shadow-sm border-start border-4 ${border}">
-                    <div class="d-flex justify-content-between align-items-center">
+                <div class="list-group-item bg-black text-white d-flex justify-content-between align-items-center mb-2 rounded border ${borderClass}">
+                    <div class="d-flex align-items-center">
+                        <i class="fas ${icon} me-3"></i>
                         <div>
-                            <span class="badge bg-secondary mb-1">${txt}</span>
-                            <h6 class="mb-0 fw-bold">${i.titulo}</h6>
-                            <small class="text-info">${fecha}</small>
+                            <div class="fw-bold ${colorText}">${o.titulo}</div>
+                            <small class="text-muted"><i class="far fa-calendar-alt me-1"></i>Vence: ${fechaStr}</small>
                         </div>
-                        <div class="text-end">
-                            <div class="fs-5 fw-bold mb-1">S/ ${parseFloat(i.monto).toFixed(2)}</div>
-                            <button class="btn btn-sm btn-outline-light" onclick="pagarDeuda(${i.id}, ${i.monto}, '${i.titulo}')">PAGAR</button>
-                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-info">S/ ${parseFloat(o.monto).toFixed(2)}</div>
+                        <button class="btn btn-sm btn-outline-success mt-1" onclick="abrirModalPago(${o.id}, '${o.titulo}', ${o.monto})">
+                            Pagar <i class="fas fa-chevron-right ms-1"></i>
+                        </button>
                     </div>
                 </div>`;
             });
-            lista.innerHTML = html || '<div class="text-center p-4 text-muted">¡Todo pagado! 🎉</div>';
+            lista.innerHTML = html;
         }
-    } catch(e) { console.error(e); }
-}
-
-async function crearObligacion() {
-    const t = document.getElementById('nuevaObliTitulo').value;
-    const m = document.getElementById('nuevaObliMonto').value;
-    const f = document.getElementById('nuevaObliFecha').value;
-    const p = document.getElementById('nuevaObliPrioridad').value;
-    if(!t || !m || !f) return notificar("Datos incompletos", "error");
-    await fetch(`${API_URL}/obligaciones`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ titulo: t, monto: m, fecha: f, prioridad: p })
-    });
-    notificar("✅ Recordatorio guardado", "success");
-    cargarObligaciones();
-    document.getElementById('nuevaObliTitulo').value = '';
-    document.getElementById('nuevaObliMonto').value = '';
+    } catch (e) { console.error(e); }
 }
 
 async function pagarDeuda(id, monto, titulo) {
