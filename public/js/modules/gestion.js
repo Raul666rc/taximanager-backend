@@ -292,17 +292,84 @@ async function abrirModalContratos() {
         r.data.forEach(c => {
             html += `<div class="list-group-item bg-dark text-white d-flex justify-content-between">
                 <div><div class="fw-bold text-warning">${c.titulo}</div><small class="text-muted">S/ ${parseFloat(c.monto_cuota_aprox).toFixed(2)}</small></div>
-                <button class="btn btn-sm btn-outline-danger" onclick="darBajaContrato(${c.id})">Cancelar</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmarCancelacion(${c.id})">Cancelar</button>
             </div>`;
         });
         lista.innerHTML = html || '<div class="p-3 text-center">Sin contratos</div>';
     }
 }
 
-async function darBajaContrato(id) {
-    if(confirm("¿Cancelar contrato?")) {
-        await fetch(`${API_URL}/compromisos/cancelar`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
-        abrirModalContratos(); 
-        cargarObligaciones();
+// ==========================================
+// NUEVA LÓGICA DE ELIMINACIÓN (PREMIUM & ANTI-CONGELAMIENTO)
+// ==========================================
+
+// 1. PREGUNTAR (Abre el modal rojo bonito)
+function confirmarCancelacion(id) {
+    // Guardamos el ID en el input oculto
+    const inputId = document.getElementById('hdnIdEliminar');
+    if (inputId) inputId.value = id;
+
+    // A. Cerramos el modal de lista actual para evitar conflictos visuales
+    const modalLista = bootstrap.Modal.getInstance(document.getElementById('modalContratos'));
+    if (modalLista) modalLista.hide();
+
+    // B. Abrimos el modal de confirmación
+    const modalConfirm = new bootstrap.Modal(document.getElementById('modalConfirmarEliminar'));
+    modalConfirm.show();
+}
+
+// 2. EJECUTAR (Hace el borrado real)
+async function ejecutarEliminacion() {
+    const id = document.getElementById('hdnIdEliminar').value;
+    if (!id) return;
+
+    // Efecto de carga en el botón
+    const btn = document.querySelector('#modalConfirmarEliminar .btn-danger');
+    const txtOriginal = btn.innerHTML;
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Borrando...';
+
+    try {
+        const res = await fetch(`${API_URL}/compromisos/cancelar`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id })
+        });
+        
+        const data = await res.json();
+
+        if (data.success) {
+            // CERRAR EL MODAL DE CONFIRMACIÓN
+            const modalConfirm = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEliminar'));
+            modalConfirm.hide();
+
+            // ============================================================
+            // 🛑 LIMPIEZA NUCLEAR (SOLUCIÓN AL CONGELAMIENTO)
+            // ============================================================
+            // Forzamos la eliminación de cualquier fondo gris que haya quedado pegado
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = 'auto'; 
+                document.body.style.paddingRight = '0';
+            }, 300); // Pequeño retraso para asegurar que Bootstrap terminó su animación
+
+            notificar("🗑️ Contrato eliminado correctamente", "success");
+            
+            // Recargamos las obligaciones en la pantalla principal
+            if(typeof cargarObligaciones === 'function') cargarObligaciones();
+
+            // NOTA: No reabrimos la lista de contratos automáticamente para evitar 
+            // que se crucen las animaciones. Es más seguro volver al Dashboard.
+
+        } else {
+            notificar("Error: " + data.message, "error");
+        }
+    } catch (e) {
+        console.error(e);
+        notificar("Error de conexión", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = txtOriginal;
     }
 }

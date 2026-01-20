@@ -922,6 +922,32 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm"> <div class="modal-content bg-dark text-white border-danger shadow-lg">
+                <div class="modal-header border-0 pb-0 justify-content-center">
+                    <div class="text-danger display-4">
+                        <i class="fas fa-exclamation-triangle animate__animated animate__pulse animate__infinite"></i>
+                    </div>
+                </div>
+                <div class="modal-body text-center pt-2">
+                    <h5 class="fw-bold mb-2">¿Eliminar Contrato?</h5>
+                    <p class="text-muted small mb-3">Esta acción cancelará la deuda y no se podrá deshacer.</p>
+                    
+                    <input type="hidden" id="hdnIdEliminar">
+                    
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-danger fw-bold" onclick="ejecutarEliminacion()">
+                            <i class="fas fa-trash-alt me-2"></i> SÍ, ELIMINAR
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <button class="btn-fab-gasto animate__animated animate__bounceIn" onclick="abrirModalGastoRapido()">
         <i class="fas fa-gas-pump fa-lg"></i>
     </button>
