@@ -261,24 +261,97 @@ async function guardarCuenta(id, nombre) {
     }
 }
 
+// ==========================================
+// LÓGICA DE CONTRATOS (MEJORADA)
+// ==========================================
+
+// 1. CAMBIAR ENTRE PRÉSTAMO Y SERVICIO
 function toggleTipoCompromiso() {
-    const esServ = document.getElementById('tipoServicio').checked;
-    const inp = document.getElementById('presCuotas');
-    if (esServ) { inp.value = 12; inp.disabled = true; inp.placeholder = "12 Meses"; } 
-    else { inp.value = ''; inp.disabled = false; inp.placeholder = "N° Cuotas"; }
+    const esServicio = document.getElementById('tipoServicio').checked;
+    const inputCuotas = document.getElementById('presCuotas');
+    
+    if (esServicio) {
+        inputCuotas.value = '';        // Servicios son indefinidos (usualmente)
+        inputCuotas.disabled = true;   // Bloqueamos cuotas
+        inputCuotas.placeholder = "∞"; // Símbolo de infinito
+        inputCuotas.classList.add('opacity-50');
+    } else {
+        inputCuotas.value = '';
+        inputCuotas.disabled = false;  // Habilitamos cuotas
+        inputCuotas.placeholder = "Total";
+        inputCuotas.classList.remove('opacity-50');
+    }
 }
 
+// 2. CREAR Y LIMPIAR
 async function crearPrestamo() {
-    const tit = document.getElementById('presTitulo').value, m = document.getElementById('presMonto').value, c = document.getElementById('presCuotas').value, d = document.getElementById('presDia').value;
-    const tipo = document.getElementById('tipoServicio').checked ? 'SERVICIO_FIJO' : 'PRESTAMO';
-    if(!tit || !m) return notificar("Datos incompletos", "error");
-    await fetch(`${API_URL}/compromisos`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ titulo: tit, tipo, monto_total: m*c, monto_cuota: m, cuotas_totales: c, dia_pago: d, warda_origen_id: null })
-    });
-    notificar("✅ Contrato generado", "success");
-    cargarObligaciones();
-    document.getElementById('presTitulo').value = '';
+    // Captura de datos
+    const tit = document.getElementById('presTitulo').value;
+    const m = document.getElementById('presMonto').value;
+    const c = document.getElementById('presCuotas').value;
+    const d = document.getElementById('presDia').value;
+    
+    // Validaciones
+    if(!tit || !m || !d) {
+        return notificar("Falta Nombre, Monto o Día", "error");
+    }
+
+    const esServicio = document.getElementById('tipoServicio').checked;
+    
+    // Si es Préstamo, exigimos cuotas. Si es Servicio, no.
+    if (!esServicio && !c) {
+        return notificar("Indica el número de cuotas del préstamo", "error");
+    }
+
+    // Bloqueo botón
+    const btn = document.querySelector('button[onclick="crearPrestamo()"]');
+    const txtOriginal = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+
+    try {
+        const payload = { 
+            titulo: tit, 
+            tipo: esServicio ? 'SERVICIO_FIJO' : 'PRESTAMO', 
+            monto_total: esServicio ? null : (parseFloat(m) * parseInt(c)), // Solo calculamos total si es préstamo
+            monto_cuota: parseFloat(m), 
+            cuotas_totales: esServicio ? null : parseInt(c), 
+            dia_pago: parseInt(d), 
+            warda_origen_id: null 
+        };
+
+        const res = await fetch(`${API_URL}/compromisos`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            notificar("✅ Contrato generado exitosamente", "success");
+            
+            // 🧹 LIMPIEZA AUTOMÁTICA DE CAMPOS
+            document.getElementById('presTitulo').value = '';
+            document.getElementById('presMonto').value = '';
+            document.getElementById('presCuotas').value = '';
+            document.getElementById('presDia').value = '';
+            
+            // Resetear a Préstamo por defecto
+            document.getElementById('tipoPrestamo').checked = true;
+            toggleTipoCompromiso(); // Para rehabilitar el input de cuotas visualmente
+
+            // Recargar lista
+            cargarObligaciones();
+        } else {
+            notificar("Error: " + data.message, "error");
+        }
+    } catch (e) {
+        console.error(e);
+        notificar("Error de conexión", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = txtOriginal;
+    }
 }
 
 async function abrirModalContratos() {
