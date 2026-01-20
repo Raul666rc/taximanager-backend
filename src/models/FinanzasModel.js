@@ -98,13 +98,22 @@ class FinanzasModel {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
-            const cuentaId = 1; // Efectivo
+            
+            const cuentaId = 1; // Efectivo (Bolsillo)
 
+            // 1. Restar dinero
             await connection.query("UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?", [monto, cuentaId]);
+
+            // 2. Insertar movimiento
+            // IMPORTANTE:
+            // - Tabla: 'transacciones' (No movimientos)
+            // - Tipo: 'GASTO' (No EGRESO, según tu base de datos)
+            // - Columna Descripción: Recibe la variable 'nota'
+            // - Ambito: 'TAXI'
             await connection.query(`
-                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, categoria) 
-                VALUES ('GASTO', ?, ?, ?, NOW(), ?)
-            `, [monto, nota || categoria, cuentaId, categoria]);
+                INSERT INTO transacciones (cuenta_id, tipo, monto, categoria, descripcion, fecha, ambito) 
+                VALUES (?, 'GASTO', ?, ?, ?, NOW(), 'TAXI')
+            `, [cuentaId, monto, categoria, nota || categoria]);
 
             await connection.commit();
             return true;

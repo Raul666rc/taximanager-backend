@@ -101,24 +101,39 @@ async function guardarNuevaMeta() {
     }
 }
 
+// ==========================================
 // 3. GASTOS (REGULAR Y RÁPIDO)
+// ==========================================
+
+// A. GASTO DETALLADO (MODAL GRANDE)
 async function guardarGasto() {
     const monto = document.getElementById('montoGasto').value;
     let descripcion = document.getElementById('descGasto').value;
     const cuentaId = document.getElementById('cuentaGasto').value;
+    
+    // Obtenemos la categoría marcada
     const categoria = document.querySelector('input[name="catGasto"]:checked').value;
 
     if (!monto) return notificar("Ingresa el monto", "info");
     if (!descripcion) descripcion = categoria; 
 
     try {
-        const res = await fetch(`${API_URL}/gastos`, { 
+        // Usamos la ruta genérica de transacciones que ya tienes
+        const res = await fetch(`${API_URL}/transaccion`, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ monto, descripcion, cuenta_id: cuentaId, categoria }) 
+            body: JSON.stringify({ 
+                monto: parseFloat(monto), 
+                descripcion, 
+                cuenta_id: parseInt(cuentaId), 
+                categoria: categoria.toUpperCase(),
+                tipo: 'EGRESO' // Importante para que el backend sepa que resta
+            }) 
         });
         
-        if ((await res.json()).success) {
+        const data = await res.json();
+        
+        if (data.success) {
             document.getElementById('montoGasto').value = ''; 
             document.getElementById('descGasto').value = '';
             
@@ -126,49 +141,88 @@ async function guardarGasto() {
             const modal = bootstrap.Modal.getInstance(modalEl);
             modal.hide();
             
-            cargarMetaDiaria(); 
-            if(typeof cargarHistorial === 'function') cargarHistorial();
-            notificar(`✅ Gasto de ${categoria} registrado.`, "exito");
+            // Actualizar pantallas
+            if(typeof cargarBilletera === 'function') cargarBilletera();
+            if(typeof cargarMovimientos === 'function') cargarMovimientos();
+            if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
+            
+            notificar(`✅ Gasto de ${categoria} registrado.`, "success");
+        } else {
+            notificar("Error: " + data.message, "error");
         }
-    } catch (e) { notificar("Error conexión", "error"); }
+    } catch (e) { 
+        console.error(e);
+        notificar("Error conexión", "error"); 
+    }
 }
 
+
+// B. GASTO RÁPIDO (BOTÓN FLOTANTE - MODO CONDUCCIÓN)
+
+// 1. ABRIR EL MODAL
+function abrirModalGastoRapido() {
+    // Limpiamos los campos
+    document.getElementById('montoGastoRapido').value = '';
+    document.getElementById('notaGastoRapido').value = '';
+    document.getElementById('catGasolina').checked = true; // Default
+    
+    // Mostramos el modal
+    const modalEl = document.getElementById('modalGastoRapido');
+    new bootstrap.Modal(modalEl).show();
+    
+    // Foco automático
+    setTimeout(() => document.getElementById('montoGastoRapido').focus(), 500);
+}
+
+// 2. ENVIAR AL SERVIDOR
 async function enviarGastoRapido() {
     const monto = parseFloat(document.getElementById('montoGastoRapido').value);
     const notaInput = document.getElementById('notaGastoRapido').value;
-    const categoria = document.querySelector('input[name="catGasto"]:checked').value;
-    const notaFinal = notaInput || categoria;
-
+    const categoria = document.querySelector('#modalGastoRapido input[name="catGasto"]:checked').value;
+    
     if (!monto || monto <= 0) return notificar("Ingresa un monto válido", "error");
 
-    const btn = document.querySelector('button[onclick="enviarGastoRapido()"]');
-    const txt = btn.innerHTML; 
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
-    btn.disabled = true;
+    const btn = document.querySelector('#modalGastoRapido button.btn-danger');
+    const txtOriginal = btn.innerHTML;
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
     try {
+        // Payload corregido para tu Controlador
+        const payload = {
+            monto: monto,
+            categoria: categoria.toUpperCase(),
+            nota: notaInput || `Gasto Rápido: ${categoria}`, // Usamos 'nota' porque tu Controller lo espera así
+            cuenta_id: 1 // SIEMPRE EFECTIVO (ID 1)
+        };
+
         const res = await fetch(`${API_URL}/finanzas/gasto-rapido`, { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ monto, categoria, nota: notaFinal }) 
+            body: JSON.stringify(payload) 
         });
         
-        if ((await res.json()).success) {
+        const data = await res.json();
+
+        if (data.success) {
             notificar(`✅ Gasto de S/ ${monto} registrado`, "success");
             
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalGastoRapido'));
-            modal.hide();
+            bootstrap.Modal.getInstance(document.getElementById('modalGastoRapido')).hide();
             
-            document.getElementById('montoGastoRapido').value = ''; 
-            document.getElementById('notaGastoRapido').value = '';
-            document.getElementById('catGasolina').checked = true; // Reset a Gasolina
-            
-            // Recargar Dashboard si existen las funciones
+            // Recargar datos
+            if(typeof cargarBilletera === 'function') cargarBilletera();
             if(typeof cargarMovimientos === 'function') cargarMovimientos();
-            cargarMetaDiaria();
+            if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
+        } else {
+            notificar("Error: " + data.message, "error");
         }
-    } catch (e) { notificar("Error conexión", "error"); } 
-    finally { btn.innerHTML = txt; btn.disabled = false; }
+    } catch (e) { 
+        console.error(e);
+        notificar("Error conexión", "error"); 
+    } finally { 
+        btn.innerHTML = txtOriginal; 
+        btn.disabled = false; 
+    }
 }
 
 // 4. BILLETERA (DASHBOARD COMPLETO)
