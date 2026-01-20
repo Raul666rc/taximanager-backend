@@ -145,7 +145,7 @@ async function guardarGasto() {
                 descripcion, 
                 cuenta_id: parseInt(cuentaId), 
                 categoria: categoria.toUpperCase(),
-                tipo: 'EGRESO' // Importante para que el backend sepa que resta
+                tipo: 'GASTO' // Importante para que el backend sepa que resta
             }) 
         });
         
