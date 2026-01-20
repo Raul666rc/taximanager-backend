@@ -339,9 +339,14 @@
                 <h6 class="mb-0 fw-bold text-uppercase small text-muted">
                     <i class="fas fa-history me-2"></i>Últimos Movimientos
                 </h6>
-                <button class="btn btn-sm btn-outline-secondary py-0" onclick="cargarMovimientos()">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-danger" onclick="abrirModalGasto()">
+                        <i class="fas fa-minus-circle me-1"></i> Gasto
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary py-0" onclick="cargarMovimientos()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
@@ -580,6 +585,9 @@
                     <div class="d-grid mb-4"><button class="btn btn-outline-primary" onclick="abrirModalTransferencia()"><i class="fas fa-exchange-alt me-2"></i> Mover Dinero / Repartir</button></div>
                     <hr class="border-secondary">
                     <h6 class="text-muted border-bottom border-secondary pb-2 mb-2"><i class="fas fa-list-ul"></i> Últimos Movimientos</h6>
+                    <button class="btn btn-outline-danger w-100 mt-2" onclick="abrirModalGasto()" data-bs-dismiss="modal">
+                        <i class="fas fa-minus-circle me-2"></i> Registrar Otro Gasto
+                    </button>
                     <div id="listaMovimientos" class="mb-4 pe-2" style="max-height: 200px; overflow-y: auto;"><div class="text-center text-muted small py-3">Cargando...</div></div>
                     <div class="text-center text-danger mb-4"><small>Gastos de este mes: <span id="txtGastos">S/ 0.00</span></small></div>
                     <h6 class="text-muted border-bottom border-secondary pb-2 mb-3 mt-4"><i class="fas fa-chart-pie"></i> Rendimiento</h6>

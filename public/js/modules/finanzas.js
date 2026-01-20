@@ -106,6 +106,24 @@ async function guardarNuevaMeta() {
 // ==========================================
 
 // A. GASTO DETALLADO (MODAL GRANDE)
+// ABRIR MODAL DETALLADO (Pégalo junto a guardarGasto)
+function abrirModalGasto() {
+    // 1. Limpiar campos
+    document.getElementById('montoGasto').value = '';
+    document.getElementById('descGasto').value = '';
+    
+    // 2. Resetear selección (Combustible por defecto)
+    if(document.getElementById('catCombustible')) {
+        document.getElementById('catCombustible').checked = true;
+    }
+
+    // 3. Abrir modal
+    const modalEl = document.getElementById('modalGasto');
+    new bootstrap.Modal(modalEl).show();
+    
+    // 4. Foco
+    setTimeout(() => document.getElementById('montoGasto').focus(), 500);
+}
 async function guardarGasto() {
     const monto = document.getElementById('montoGasto').value;
     let descripcion = document.getElementById('descGasto').value;
