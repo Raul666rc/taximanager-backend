@@ -91,12 +91,50 @@ function dibujarBarras(semana) {
     });
 }
 
-// 3. ESTADÍSTICAS GASTOS (DONA GRANDE)
+// 3. ESTADÍSTICAS GASTOS (DONA NEON)
 function renderizarGraficoGastos(labels, values) {
     const canvas = document.getElementById('graficoGastos');
     if (!canvas) return;
+    
     const ctx = canvas.getContext('2d');
     if (miGraficoEstadisticas) miGraficoEstadisticas.destroy();
+
+    // Calcular total para el centro
+    const total = values.reduce((a, b) => a + parseFloat(b), 0);
+
+    // Paleta de Colores Neon
+    const colores = [
+        '#0dcaf0', // Cian (Info)
+        '#ffc107', // Amarillo (Warning)
+        '#dc3545', // Rojo (Danger)
+        '#d63384', // Magenta
+        '#198754', // Verde (Success)
+        '#6f42c1', // Purpura
+        '#fd7e14'  // Naranja
+    ];
+
+    // Plugin Texto Central (Reutilizado y estilizado)
+    const centerTextGastos = {
+        id: 'centerTextGastos',
+        beforeDraw: function(chart) {
+            const { ctx, chartArea: { top, bottom, left, right } } = chart;
+            ctx.restore();
+            const cx = (left + right) / 2;
+            const cy = (top + bottom) / 2;
+            
+            ctx.font = `bold 0.8em sans-serif`;
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#adb5bd"; 
+            const txt1 = "TOTAL";
+            ctx.fillText(txt1, cx - (ctx.measureText(txt1).width/2), cy - 10);
+
+            ctx.font = `bold 1.1em monospace`;
+            ctx.fillStyle = "#ffffff"; 
+            const txt2 = `S/ ${total.toFixed(0)}`; // Sin decimales para que entre bien
+            ctx.fillText(txt2, cx - (ctx.measureText(txt2).width/2), cy + 10);
+            ctx.save();
+        }
+    };
 
     miGraficoEstadisticas = new Chart(ctx, {
         type: 'doughnut',
@@ -104,13 +142,33 @@ function renderizarGraficoGastos(labels, values) {
             labels, 
             datasets: [{ 
                 data: values.map(v => parseFloat(v)), 
-                backgroundColor: ['#dc3545', '#ffc107', '#0dcaf0', '#0d6efd', '#6f42c1', '#adb5bd'], 
-                borderWidth: 1, borderColor: '#000' 
+                backgroundColor: colores, 
+                borderWidth: 0, // Sin bordes para look moderno
+                hoverOffset: 4,
+                cutout: '75%' // Dona más fina
             }]
         },
         options: { 
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: 'white' } } }
-        }
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    display: false // Ocultamos leyenda por defecto para usar la lista personalizada
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    titleColor: '#0dcaf0',
+                    bodyFont: { family: 'monospace' },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            return ` ${label}: S/ ${parseFloat(value).toFixed(2)}`;
+                        }
+                    }
+                }
+            }
+        },
+        plugins: [centerTextGastos]
     });
 }

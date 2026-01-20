@@ -650,16 +650,26 @@ function abrirEstadisticas() {
     filtrarEstadisticas('mes'); 
 }
 
+// Actualización visual de botones filtro
 function filtrarEstadisticas(rango) {
     const hoy = new Date(); 
     let inicio = new Date(), fin = new Date();
     
-    // Limpieza botones
-    document.querySelectorAll('#modalEstadisticas .btn').forEach(b => { 
-        b.classList.remove('active', 'btn-outline-info'); 
-        if(!b.classList.contains('btn-info')) b.classList.add('btn-outline-light'); 
+    // 1. Estilo de Botones (Cápsulas)
+    document.querySelectorAll('#modalEstadisticas .rounded-pill').forEach(b => { 
+        b.classList.remove('btn-info', 'fw-bold', 'shadow', 'text-white'); 
+        b.classList.add('text-white-50'); 
+        
+        // Si es el botón clickeado (buscamos por el texto o onclick, 
+        // pero para simplificar, asumimos que 'this' se pasa o buscamos por texto)
+        // Truco: Al hacer click, el botón pasa a tener estilo activo
+        if(b.getAttribute('onclick').includes(`'${rango}'`)) {
+            b.classList.remove('text-white-50');
+            b.classList.add('btn-info', 'fw-bold', 'shadow', 'text-white');
+        }
     });
-    
+
+    // ... (El resto de tu lógica de fechas se mantiene igual) ...
     if(rango === 'ayer') { inicio.setDate(hoy.getDate()-1); fin.setDate(hoy.getDate()-1); }
     else if(rango === 'semana') inicio.setDate(hoy.getDate()-7);
     else if(rango === 'mes') inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -672,6 +682,7 @@ function filtrarEstadisticas(rango) {
     
     document.getElementById('filtroDesde').value = dStr; 
     document.getElementById('filtroHasta').value = hStr;
+    document.getElementById('lblRangoInfo').innerText = `Analizando del ${dStr} al ${hStr}`;
     
     cargarDatosGrafico(dStr, hStr);
 }
@@ -682,15 +693,89 @@ function aplicarFiltroManual() {
     cargarDatosGrafico(d, h);
 }
 
+// Carga de datos y renderizado de KPIs + Lista
 async function cargarDatosGrafico(desde, hasta) {
+    const loader = document.getElementById('loadingGrafico');
+    if(loader) loader.classList.remove('d-none');
+
     try {
         const res = await fetch(`${API_URL}/finanzas/grafico-gastos?desde=${desde}&hasta=${hasta}`);
         if (!res.ok) throw new Error("Error HTTP");
         const r = await res.json();
         
         if (r.success) {
-            if (r.data.length === 0) notificar("Sin datos en este rango", "info");
-            if (typeof renderizarGraficoGastos === 'function') renderizarGraficoGastos(r.labels, r.data);
+            
+            // 1. Calcular KPIs (Total y Mayor)
+            let total = 0;
+            let mayorVal = 0;
+            let mayorCat = "N/A";
+            const listaItems = [];
+
+            if (r.data.length > 0) {
+                // Procesar datos
+                r.data.forEach((val, index) => {
+                    const monto = parseFloat(val);
+                    const label = r.labels[index];
+                    total += monto;
+
+                    if(monto > mayorVal) {
+                        mayorVal = monto;
+                        mayorCat = label;
+                    }
+
+                    // Guardar para la lista
+                    listaItems.push({ label, monto, color: obtenerColorIndice(index) });
+                });
+            }
+
+            // 2. Actualizar UI de KPIs
+            document.getElementById('kpiTotalGastos').innerText = `S/ ${total.toFixed(2)}`;
+            document.getElementById('kpiMayorCategoria').innerText = mayorCat;
+
+            // 3. Renderizar Gráfico
+            if (typeof renderizarGraficoGastos === 'function') {
+                renderizarGraficoGastos(r.labels, r.data);
+            }
+
+            // 4. Llenar Lista de Desglose (Más detallada que la leyenda)
+            const listaEl = document.getElementById('listaDesgloseGastos');
+            if(listaEl) {
+                if (listaItems.length === 0) {
+                    listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos en este periodo</li>';
+                } else {
+                    // Ordenar de mayor a menor
+                    listaItems.sort((a,b) => b.monto - a.monto);
+                    
+                    let htmlLista = '';
+                    listaItems.forEach(item => {
+                        const porcentaje = total > 0 ? ((item.monto / total) * 100).toFixed(0) : 0;
+                        htmlLista += `
+                        <li class="list-group-item bg-transparent text-white d-flex justify-content-between align-items-center py-2 border-secondary border-opacity-25">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle me-2" style="width: 10px; height: 10px; background-color: ${item.color};"></div>
+                                <span class="small">${item.label}</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold font-monospace small">S/ ${item.monto.toFixed(2)}</div>
+                                <small class="text-muted" style="font-size: 0.65rem;">${porcentaje}% del total</small>
+                            </div>
+                        </li>`;
+                    });
+                    listaEl.innerHTML = htmlLista;
+                }
+            }
+
         }
-    } catch (e) { notificar("Error estadisticas", "error"); }
+    } catch (e) { 
+        console.error(e);
+        notificar("Error cargando estadísticas", "error"); 
+    } finally {
+        if(loader) loader.classList.add('d-none');
+    }
+}
+
+// Auxiliar para mantener coherencia de colores entre gráfica y lista
+function obtenerColorIndice(index) {
+    const colores = ['#0dcaf0', '#ffc107', '#dc3545', '#d63384', '#198754', '#6f42c1', '#fd7e14'];
+    return colores[index % colores.length];
 }
