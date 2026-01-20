@@ -113,25 +113,87 @@ function actualizarOdometro() {
 }
 
 // 2. GUARDAR CORRECCIÓN (Acción del botón modal)
-async function guardarCorreccionKm() {
-    const nuevo = document.getElementById('inputNuevoKm').value;
+// ==========================================
+// CORRECCIÓN DE KILOMETRAJE (LÓGICA PREMIUM)
+// ==========================================
+
+async function guardarCorreccionKm(confirmado = false) {
+    const inputNuevo = document.getElementById('inputNuevoKm');
+    const nuevo = parseInt(inputNuevo.value);
+    
+    // Obtenemos el actual limpiando comas si las hubiera
     const actual = parseInt(document.getElementById('lblOdometro').innerText.replace(/,/g,'')) || 0;
 
-    if(!nuevo || parseInt(nuevo) <= 0) return notificar("Ingresa un valor válido", "error");
-    if(parseInt(nuevo) < actual) {
-        if(!confirm("¿El nuevo kilometraje es MENOR al actual? Confirmar retroceso.")) return;
+    if (!nuevo || nuevo <= 0) return notificar("Ingresa un valor válido", "error");
+
+    // --- VALIDACIÓN DE RETROCESO ---
+    // Si el nuevo es menor Y NO hemos confirmado todavía...
+    if (nuevo < actual && !confirmado) {
+        
+        // 1. Cerramos el modal de input para evitar superposición
+        const modalInput = bootstrap.Modal.getInstance(document.getElementById('modalCorregirKm'));
+        if (modalInput) modalInput.hide();
+
+        // 2. Abrimos el modal de advertencia roja
+        // Le damos un pequeño delay para que la transición sea suave
+        setTimeout(() => {
+            new bootstrap.Modal(document.getElementById('modalConfirmarRetroceso')).show();
+        }, 200);
+        
+        return; // Detenemos aquí esperando la confirmación
+    }
+
+    // --- GUARDADO DEFINITIVO ---
+    // Si llegamos aquí, es porque o el km es mayor, o ya confirmamos el retroceso.
+    
+    // Efecto visual en el botón que haya disparado la acción
+    let btn;
+    if (confirmado) {
+        btn = document.querySelector('#modalConfirmarRetroceso .btn-danger');
+    } else {
+        btn = document.querySelector('#modalCorregirKm .btn-primary'); // O la clase que tenga tu botón de guardar normal
+    }
+    
+    if(btn) {
+        var txtOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
     }
 
     try {
         await fetch(`${API_URL}/vehiculo/actualizar`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nuevo_km: parseInt(nuevo) })
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nuevo_km: nuevo })
         });
         
         notificar("✅ Kilometraje actualizado", "success");
-        bootstrap.Modal.getInstance(document.getElementById('modalCorregirKm')).hide();
+        
+        // CERRAR MODALES (Cualquiera que esté abierto)
+        const modalRetroceso = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarRetroceso'));
+        if (modalRetroceso) modalRetroceso.hide();
+
+        const modalInput = bootstrap.Modal.getInstance(document.getElementById('modalCorregirKm'));
+        if (modalInput) modalInput.hide();
+        
+        // Limpieza Nuclear Anti-Congelamiento (Por si acaso)
+        setTimeout(() => {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = 'auto';
+        }, 300);
+
         cargarEstadoVehiculo(); // Refrescar pantalla
-    } catch (e) { notificar("Error de conexión", "error"); }
+        
+    } catch (e) { 
+        console.error(e);
+        notificar("Error de conexión", "error"); 
+    } finally {
+        if(btn) {
+            btn.disabled = false;
+            btn.innerHTML = txtOriginal;
+        }
+    }
 }
 
 // 3. ABRIR MODAL MANTENIMIENTO
