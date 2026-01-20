@@ -269,76 +269,93 @@ function renderizarMantenimientoDetallado() {
     const container = document.getElementById('listaMantenimientosContainer');
     if (!container) return;
 
-    container.innerHTML = '<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Calculando desgaste...</div>';
+    // Loader más técnico
+    container.innerHTML = '<div class="text-center py-4 text-info opacity-75 font-monospace"><i class="fas fa-circle-notch fa-spin me-2"></i>ANALIZANDO COMPONENTES...</div>';
 
-    // 1. Obtener Km Actual
+    // 1. Obtener Km Actual (Limpiando comas)
     const kmStr = document.getElementById('lblOdometro').innerText.replace(/,/g, '');
     const kmActual = parseInt(kmStr) || 0;
 
-    // 2. Definir Reglas de Mantenimiento (TUCSON / AUTO GENERAL)
+    // 2. Definir Reglas (TUCSON)
     const items = [
-        { nombre: 'Aceite Motor',       intervalo: 5000,   icon: 'fa-oil-can',      color: 'text-warning' },
-        { nombre: 'Filtro de Aire',     intervalo: 10000,  icon: 'fa-wind',         color: 'text-info' },
-        { nombre: 'Filtro de Cabina',   intervalo: 15000,  icon: 'fa-fan',          color: 'text-light' },
-        { nombre: 'Bujías',             intervalo: 40000,  icon: 'fa-fire',         color: 'text-danger' },
-        { nombre: 'Refrigerante',       intervalo: 40000,  icon: 'fa-snowflake',    color: 'text-primary' },
-        { nombre: 'Líquido de Frenos',  intervalo: 30000,  icon: 'fa-tint',         color: 'text-danger' },
-        { nombre: 'Aceite de Caja',     intervalo: 60000,  icon: 'fa-cogs',         color: 'text-secondary' }
+        { nombre: 'Aceite Motor',       intervalo: 5000,   icon: 'fa-oil-can',      color: 'warning' }, // Color nombre bootstrap (sin text-)
+        { nombre: 'Filtro de Aire',     intervalo: 10000,  icon: 'fa-wind',         color: 'info' },
+        { nombre: 'Filtro de Cabina',   intervalo: 15000,  icon: 'fa-fan',          color: 'light' },
+        { nombre: 'Bujías',             intervalo: 40000,  icon: 'fa-fire',         color: 'danger' },
+        { nombre: 'Refrigerante',       intervalo: 40000,  icon: 'fa-snowflake',    color: 'primary' },
+        { nombre: 'Líquido de Frenos',  intervalo: 30000,  icon: 'fa-tint',         color: 'danger' },
+        { nombre: 'Aceite de Caja',     intervalo: 60000,  icon: 'fa-cogs',         color: 'secondary' }
     ];
 
     let html = '';
 
     items.forEach(item => {
-        // Cálculo matemático simple: ¿Dónde estoy en el ciclo actual?
-        // Ejemplo: Si tengo 12,000km y el intervalo es 10,000. 
-        // 12000 % 10000 = 2000km recorridos del nuevo ciclo.
+        // Cálculo matemático
         const kmRecorridosCiclo = kmActual % item.intervalo;
         const kmRestantes = item.intervalo - kmRecorridosCiclo;
         const porcentajeUso = (kmRecorridosCiclo / item.intervalo) * 100;
 
-        // Determinar estado visual
-        let estadoColor = 'bg-success';
-        let textoEstado = 'OK';
-        let borde = 'border-secondary';
+        // Determinar estado visual (Semáforo)
+        let colorEstado = 'success'; // Verde
+        let textoEstado = 'ESTABLE';
+        let iconoEstado = 'fa-check';
+        let brillo = '0 0 5px rgba(25, 135, 84, 0.5)'; // Brillo verde
 
         if (porcentajeUso > 75) { 
-            estadoColor = 'bg-warning'; 
-            textoEstado = 'Atención'; 
-            borde = 'border-warning';
+            colorEstado = 'warning'; 
+            textoEstado = 'REVISAR'; 
+            iconoEstado = 'fa-exclamation';
+            brillo = '0 0 5px rgba(255, 193, 7, 0.5)';
         }
         if (porcentajeUso > 90) { 
-            estadoColor = 'bg-danger'; 
-            textoEstado = 'Cambiar'; 
-            borde = 'border-danger';
+            colorEstado = 'danger'; 
+            textoEstado = 'CRÍTICO'; 
+            iconoEstado = 'fa-times';
+            brillo = '0 0 8px rgba(220, 53, 69, 0.6)';
         }
 
+        // Diseño de Tarjeta "System Component"
         html += `
-        <div class="card bg-dark ${borde} mb-2 shadow-sm">
-            <div class="card-body p-2">
-                <div class="d-flex justify-content-between align-items-center mb-1">
+        <div class="card bg-black border border-secondary border-opacity-25 mb-0 shadow-sm position-relative overflow-hidden">
+            
+            <div class="position-absolute start-0 top-0 bottom-0 bg-${colorEstado}" style="width: 3px; box-shadow: ${brillo};"></div>
+
+            <div class="card-body py-2 px-3">
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
                     <div class="d-flex align-items-center">
-                        <i class="fas ${item.icon} ${item.color} me-2" style="width: 20px; text-align: center;"></i>
-                        <span class="fw-bold text-white small">${item.nombre}</span>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3" 
+                             style="width: 32px; height: 32px; background: rgba(255,255,255,0.05);">
+                            <i class="fas ${item.icon} text-${item.color}"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white small text-uppercase" style="letter-spacing: 0.5px;">${item.nombre}</div>
+                            <div class="text-${colorEstado} fw-bold" style="font-size: 0.65rem;">
+                                <i class="fas ${iconoEstado} me-1"></i> ${textoEstado}
+                            </div>
+                        </div>
                     </div>
-                    <span class="badge ${estadoColor} text-dark" style="font-size: 0.7rem;">${textoEstado}</span>
+                    
+                    <div class="text-end">
+                        <div class="font-monospace fw-bold text-white fs-5 lh-1">${kmRestantes.toLocaleString()}</div>
+                        <small class="text-muted" style="font-size: 0.6rem;">KM RESTANTES</small>
+                    </div>
                 </div>
                 
-                <div class="progress bg-secondary bg-opacity-25" style="height: 6px;">
-                    <div class="progress-bar ${estadoColor}" style="width: ${porcentajeUso}%"></div>
+                <div class="progress bg-dark" style="height: 4px; border-radius: 2px;">
+                    <div class="progress-bar bg-${colorEstado}" role="progressbar" 
+                         style="width: ${porcentajeUso}%; box-shadow: ${brillo};">
+                    </div>
                 </div>
-                
-                <div class="d-flex justify-content-between mt-1">
-                    <small class="text-muted" style="font-size: 0.65rem;">Intervalo: ${item.intervalo / 1000}k</small>
-                    <small class="text-white fw-bold" style="font-size: 0.65rem;">Faltan: ${kmRestantes.toLocaleString()} km</small>
-                </div>
+
             </div>
         </div>`;
     });
 
-    // 3. Renderizar
+    // Renderizar con pequeño delay
     setTimeout(() => {
         container.innerHTML = html;
-    }, 500); // Pequeño delay para efecto visual
+    }, 300);
 }
 
 

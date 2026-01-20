@@ -1119,17 +1119,50 @@
 
     <div class="modal fade" id="modalDetalleMantenimiento" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title"><i class="fas fa-tools text-warning me-2"></i>Mantenimiento Tucson</h5>
+            <div class="modal-content bg-black text-white border-info shadow-lg"
+                style="background: radial-gradient(circle at 50% 10%, rgba(13, 202, 240, 0.15) 0%, #000000 90%);">
+                
+                <div class="modal-header border-secondary border-opacity-25 pb-2">
+                    <h5 class="modal-title text-info fw-bold text-uppercase" style="letter-spacing: 1px; text-shadow: 0 0 10px rgba(13, 202, 240, 0.5);">
+                        <i class="fas fa-microchip me-2 animate__animated animate__pulse animate__infinite"></i>
+                        Diagnóstico de Sistemas
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="alert alert-dark d-flex align-items-center p-2 mb-3">
-                        <i class="fas fa-info-circle text-info me-3 fs-4"></i>
-                        <div class="small lh-1">Tu auto usa <strong>cadena de distribución</strong>. Revisa ruidos a los 200k km.</div>
+
+                <div class="modal-body pt-3">
+                    
+                    <div class="d-flex align-items-center bg-dark border border-secondary rounded p-3 mb-4 shadow-inset position-relative overflow-hidden">
+                        <div class="position-absolute top-0 start-0 bottom-0 bg-info" style="width: 4px;"></div>
+                        
+                        <div class="me-3 text-center">
+                            <i class="fas fa-cogs text-info fs-3 opacity-75"></i>
+                        </div>
+                        <div>
+                            <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Información de Motor</small>
+                            <div class="small text-white lh-sm mt-1">
+                                Vehículo con <strong class="text-info">Cadena de Distribución</strong>.
+                                <br><span class="text-white-50" style="font-size: 0.7rem;">Inspección auditiva sugerida: 200,000 km.</span>
+                            </div>
+                        </div>
                     </div>
-                    <div id="listaMantenimientosContainer" class="d-flex flex-column gap-3"><div class="text-center text-muted">Cargando...</div></div>
+
+                    <div id="listaMantenimientosContainer" class="d-flex flex-column gap-3">
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Cargando módulos...
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div class="modal-footer border-secondary border-opacity-25 bg-black py-2 justify-content-center">
+                    <small class="text-white-50" style="font-size: 0.7rem;">
+                        <i class="fas fa-check-circle text-success me-1"></i> OK
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-exclamation-circle text-warning me-1"></i> Atención
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-times-circle text-danger me-1"></i> Cambio
+                    </small>
                 </div>
             </div>
         </div>
