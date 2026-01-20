@@ -409,6 +409,9 @@ function actualizarSaldoOrigen() {
     } else lbl.innerText = "--";
 }
 
+// ==========================================
+// REALIZAR TRANSFERENCIA (MODO CONTINUO)
+// ==========================================
 async function realizarTransferencia() {
     const oId = document.getElementById('selectOrigen').value;
     const dId = document.getElementById('selectDestino').value;
@@ -417,7 +420,11 @@ async function realizarTransferencia() {
 
     if (!monto || monto <= 0) return notificar("Ingresa un monto válido", "error");
     if (oId === dId) return notificar("Origen y destino iguales", "error");
-    if (saldosCache[oId] !== undefined && monto > saldosCache[oId]) return notificar("Saldo insuficiente", "error");
+    
+    // Validación de saldo (usando caché actualizado)
+    if (saldosCache[oId] !== undefined && monto > saldosCache[oId]) {
+        return notificar("Saldo insuficiente", "error");
+    }
 
     const btn = document.querySelector('button[onclick="realizarTransferencia()"]');
     const txt = btn.innerHTML; 
@@ -434,14 +441,47 @@ async function realizarTransferencia() {
         
         if (data.success) {
             notificar("✅ Transferencia exitosa", "success");
-            bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
-            document.getElementById('montoTransferencia').value = ''; 
-            document.getElementById('notaTransferencia').value = '';
             
-            cargarMetaDiaria();
-        } else notificar(data.message, "error");
-    } catch (e) { notificar("Error conexión", "error"); } 
-    finally { btn.innerHTML = txt; btn.disabled = false; }
+            // ACTUALIZAR SALDOS EN MEMORIA (IMPORTANTE PARA LA SIGUIENTE TRANSFERENCIA)
+            // Restamos del origen y sumamos al destino en el caché local
+            if(saldosCache[oId]) saldosCache[oId] -= monto;
+            if(saldosCache[dId]) saldosCache[dId] += monto;
+            
+            // Actualizamos visualmente el saldo disponible del origen
+            actualizarSaldoOrigen();
+
+            // LIMPIEZA PARCIAL
+            document.getElementById('montoTransferencia').value = ''; 
+            
+            // LÓGICA DE CIERRE INTELIGENTE 🧠
+            // Verificamos si el panel de recordatorio está visible
+            const panelRec = document.getElementById('divRecordatorioReparto');
+            const esModoReparto = !panelRec.classList.contains('d-none');
+
+            if (esModoReparto) {
+                // MODO REPARTO: NO cerramos el modal.
+                // Ponemos foco en monto para seguir transfiriendo rápido
+                notificar("💰 Puedes seguir repartiendo...", "info");
+                setTimeout(() => document.getElementById('montoTransferencia').focus(), 500);
+            } else {
+                // MODO NORMAL: Cerramos el modal
+                bootstrap.Modal.getInstance(document.getElementById('modalTransferencia')).hide();
+                document.getElementById('notaTransferencia').value = ''; // Limpiamos nota solo al cerrar
+            }
+            
+            // Actualizamos fondo (Metas, etc.)
+            if(typeof cargarMetaDiaria === 'function') cargarMetaDiaria();
+
+        } else {
+            notificar(data.message, "error");
+        }
+    } catch (e) { 
+        console.error(e);
+        notificar("Error conexión", "error"); 
+    } finally { 
+        btn.innerHTML = txt; 
+        btn.disabled = false; 
+    }
 }
 
 function irATransferirConDatos() {
