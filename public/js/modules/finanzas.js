@@ -650,40 +650,70 @@ function abrirEstadisticas() {
     filtrarEstadisticas('mes'); 
 }
 
-// Actualización visual de botones filtro
-function filtrarEstadisticas(rango) {
+// FUNCIÓN CORREGIDA: FILTROS Y ESTILOS
+function filtrarEstadisticas(rango, elemento) {
     const hoy = new Date(); 
-    let inicio = new Date(), fin = new Date();
+    let inicio = new Date();
+    let fin = new Date();
     
-    // 1. Estilo de Botones (Cápsulas)
-    document.querySelectorAll('#modalEstadisticas .rounded-pill').forEach(b => { 
-        b.classList.remove('btn-info', 'fw-bold', 'shadow', 'text-white'); 
-        b.classList.add('text-white-50'); 
+    // --- A. LÓGICA VISUAL (PINTAR EL BOTÓN) ---
+    // 1. Si nos enviaron el elemento (click manual), limpiamos todos y pintamos ese.
+    if (elemento) {
+        // Buscar el contenedor padre para limpiar solo estos botones
+        const contenedor = elemento.parentNode;
+        const botones = contenedor.querySelectorAll('button');
         
-        // Si es el botón clickeado (buscamos por el texto o onclick, 
-        // pero para simplificar, asumimos que 'this' se pasa o buscamos por texto)
-        // Truco: Al hacer click, el botón pasa a tener estilo activo
-        if(b.getAttribute('onclick').includes(`'${rango}'`)) {
-            b.classList.remove('text-white-50');
-            b.classList.add('btn-info', 'fw-bold', 'shadow', 'text-white');
-        }
-    });
+        // Resetear todos a estilo "apagado"
+        botones.forEach(b => { 
+            b.className = 'btn btn-sm rounded-pill text-white-50 flex-grow-1'; 
+        });
 
-    // ... (El resto de tu lógica de fechas se mantiene igual) ...
-    if(rango === 'ayer') { inicio.setDate(hoy.getDate()-1); fin.setDate(hoy.getDate()-1); }
-    else if(rango === 'semana') inicio.setDate(hoy.getDate()-7);
-    else if(rango === 'mes') inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    else if(rango === '3meses') inicio.setMonth(hoy.getMonth()-3);
-    else if(rango === 'anio') inicio = new Date(hoy.getFullYear(), 0, 1);
+        // Encender el clickeado
+        elemento.className = 'btn btn-sm btn-info fw-bold rounded-pill flex-grow-1 shadow text-white';
+    }
 
-    const off = 5 * 3600 * 1000; 
-    const dStr = new Date(inicio.getTime()-off).toISOString().split('T')[0];
-    const hStr = new Date(fin.getTime()-off).toISOString().split('T')[0];
+    // --- B. LÓGICA DE FECHAS ---
+    // Configurar fechas según el rango
+    if(rango === 'hoy') {
+        // Inicio y fin son hoy
+        inicio = new Date();
+        fin = new Date();
+    }
+    else if(rango === 'ayer') { 
+        inicio.setDate(hoy.getDate() - 1); 
+        fin.setDate(hoy.getDate() - 1); 
+    }
+    else if(rango === 'semana') { 
+        inicio.setDate(hoy.getDate() - 6); // Últimos 7 días
+    }
+    else if(rango === 'mes') { 
+        inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); // 1ro del mes
+        // Fin es hoy
+    }
+    else if(rango === 'anio') { 
+        inicio = new Date(hoy.getFullYear(), 0, 1); // 1ro de Enero
+    }
+
+    // Formatear a YYYY-MM-DD localmente (sin errores de zona horaria)
+    const formatearFecha = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const dStr = formatearFecha(inicio);
+    const hStr = formatearFecha(fin);
     
+    // Actualizar inputs
     document.getElementById('filtroDesde').value = dStr; 
     document.getElementById('filtroHasta').value = hStr;
-    document.getElementById('lblRangoInfo').innerText = `Analizando del ${dStr} al ${hStr}`;
     
+    // Texto informativo pequeño
+    const lblInfo = document.getElementById('lblRangoInfo');
+    if(lblInfo) lblInfo.innerText = `Mostrando: ${dStr} al ${hStr}`;
+    
+    // Cargar datos
     cargarDatosGrafico(dStr, hStr);
 }
 
