@@ -453,3 +453,19 @@ small, .small {
 .border-info-neon { border-left-color: #0dcaf0 !important; }
 .border-purple-neon { border-left-color: #d63384 !important; }
 .border-secondary-neon { border-left-color: #6c757d !important; }
+
+/* SCROLLBAR OSCURO Y ELEGANTE */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #000; 
+}
+::-webkit-scrollbar-thumb {
+    background: #333; 
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #555; 
+}

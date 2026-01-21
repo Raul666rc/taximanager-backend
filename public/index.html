@@ -375,27 +375,33 @@
             </div>
         </div>
 
-        <div class="card bg-dark text-white border-secondary shadow mb-4">
-            <div class="card-header border-secondary d-flex justify-content-between align-items-center py-2">
-                <h6 class="mb-0 fw-bold text-uppercase small text-muted">
-                    <i class="fas fa-history me-2"></i>Últimos Movimientos
+        <div class="card bg-black text-white border-secondary border-opacity-25 shadow-lg mb-4" style="overflow: hidden;">
+    
+            <div class="card-header border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center py-3" 
+                style="background: linear-gradient(to right, rgba(255,255,255,0.05), transparent);">
+                
+                <h6 class="mb-0 fw-bold text-uppercase text-white-50" style="letter-spacing: 1px; font-size: 0.75rem;">
+                    <i class="fas fa-history me-2 text-info"></i>Últimos Movimientos
                 </h6>
+                
                 <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-danger" onclick="abrirModalGasto()">
-                        <i class="fas fa-minus-circle me-1"></i> Gasto
+                    <button class="btn btn-sm btn-outline-danger border-opacity-50" onclick="abrirModalGasto()">
+                        <i class="fas fa-minus me-1"></i> Gasto
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary py-0" onclick="cargarMovimientos()">
+                    <button class="btn btn-sm btn-outline-secondary border-opacity-50 py-0" onclick="cargarMovimientos()">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
             </div>
             
-            <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+            <div class="card-body p-0" style="max-height: 450px; overflow-y: auto;">
                 <div id="listaMovimientosHome" class="list-group list-group-flush">
-                    <div class="text-center py-4 text-muted">
-                        <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p class="small mt-2">Cargando historial...</p>
+                    
+                    <div class="text-center py-5 text-muted opacity-50 animate__animated animate__pulse animate__infinite">
+                        <i class="fas fa-circle-notch fa-spin fa-2x mb-2"></i>
+                        <p class="small fst-italic m-0" style="letter-spacing: 1px;">Sincronizando finanzas...</p>
                     </div>
+
                 </div>
             </div>
         </div>
