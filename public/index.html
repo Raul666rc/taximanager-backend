@@ -1117,16 +1117,22 @@
                     <div class="row g-2 mb-4">
                         <div class="col-6">
                             <div class="p-2 bg-dark border border-secondary rounded text-center h-100 position-relative overflow-hidden">
-                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-danger opacity-10"></div>
-                                <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Total Gastado</small>
-                                <div class="fw-bold text-white fs-4 font-monospace mt-1" id="kpiTotalGastos">Cargando...</div>
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-danger opacity-10" style="z-index: 0;"></div>
+                                
+                                <div class="position-relative" style="z-index: 10;">
+                                    <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Total Gastado</small>
+                                    <div class="fw-bold text-white fs-4 font-monospace mt-1" id="txtTotalGastos">--</div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="p-2 bg-dark border border-secondary rounded text-center h-100 position-relative overflow-hidden">
-                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-info opacity-10"></div>
-                                <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Mayor Gasto</small>
-                                <div class="fw-bold text-info fs-6 mt-2 text-truncate" id="kpiMayorCategoria">Cargando...</div>
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-info opacity-10" style="z-index: 0;"></div>
+                                
+                                <div class="position-relative" style="z-index: 10;">
+                                    <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Mayor Gasto</small>
+                                    <div class="fw-bold text-info fs-6 mt-2 text-truncate" id="txtMayorGasto">--</div>
+                                </div>
                             </div>
                         </div>
                     </div>

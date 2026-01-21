@@ -724,84 +724,70 @@ function aplicarFiltroManual() {
 }
 
 // ==========================================
-// VERSIÓN DE DIAGNÓSTICO: CARGA DE ESTADÍSTICAS
+// FUNCIÓN CORREGIDA CON IDs NUEVOS
 // ==========================================
 async function cargarDatosGrafico(desde, hasta) {
-    // 1. Verificar si existen los elementos en el HTML antes de llamar a la API
-    const elTotal = document.getElementById('kpiTotalGastos');
-    const elMayor = document.getElementById('kpiMayorCategoria');
     
-    if (!elTotal || !elMayor) {
-        console.error("❌ ERROR CRÍTICO: No encuentro los IDs 'kpiTotalGastos' o 'kpiMayorCategoria' en el HTML. Verifica tu archivo index.html");
-        // Si no existen, no podemos seguir pintando los cuadros.
-    }
-
+    // USAMOS LOS NUEVOS IDs
+    const elTotal = document.getElementById('txtTotalGastos');
+    const elMayor = document.getElementById('txtMayorGasto');
+    
+    // Loader
     const loader = document.getElementById('loadingGrafico');
     if(loader) loader.classList.remove('d-none');
 
     try {
-        console.log(`📡 Solicitando datos desde ${desde} hasta ${hasta}...`);
-        
         const res = await fetch(`${API_URL}/finanzas/grafico-gastos?desde=${desde}&hasta=${hasta}`);
         if (!res.ok) throw new Error("Error HTTP " + res.status);
-        
         const r = await res.json();
-        console.log("📦 Datos recibidos:", r);
         
         if (r.success) {
             
-            // --- CÁLCULOS ---
             let total = 0;
             let mayorVal = 0;
             let mayorCat = "Ninguno";
             const listaItems = [];
 
-            // Asegurarnos de que r.data sea un array válido
             if (Array.isArray(r.data) && r.data.length > 0) {
                 r.data.forEach((val, index) => {
-                    // Forzamos conversión a número para evitar errores
                     const monto = parseFloat(val) || 0; 
                     const label = r.labels[index] || "Sin nombre";
-                    
                     total += monto;
 
                     if(monto > mayorVal) {
                         mayorVal = monto;
                         mayorCat = label;
                     }
-
                     listaItems.push({ label, monto, color: obtenerColorIndice(index) });
                 });
-            } else {
-                console.warn("⚠️ El array de datos está vacío o no es válido.");
             }
 
-            console.log(`💰 Total Calculado: ${total}, Mayor: ${mayorCat}`);
-
-            // --- ACTUALIZACIÓN VISUAL (CON SEGURIDAD) ---
+            // --- ACTUALIZACIÓN VISUAL (IDs NUEVOS) ---
             
-            // 1. Cuadro ROJO (Total)
             if(elTotal) {
                 elTotal.innerText = `S/ ${total.toFixed(2)}`;
-                elTotal.classList.remove('d-none'); // Asegurar que sea visible
+                // Forzamos repintado por si acaso
+                elTotal.style.display = 'none';
+                elTotal.offsetHeight; 
+                elTotal.style.display = 'block';
+            } else {
+                console.error("No encuentro el ID: txtTotalGastos");
             }
 
-            // 2. Cuadro CIAN (Mayor Categoría)
             if(elMayor) {
                 elMayor.innerText = mayorCat;
-                elMayor.classList.remove('d-none');
             }
 
-            // 3. Gráfico
+            // Gráfico
             if (typeof renderizarGraficoGastos === 'function') {
                 renderizarGraficoGastos(r.labels || [], r.data || []);
             }
 
-            // 4. Lista
+            // Lista
             const listaEl = document.getElementById('listaDesgloseGastos');
             if(listaEl) {
                 if (listaItems.length === 0) {
-                    listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos registrados</li>';
+                    listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos</li>';
                 } else {
                     listaItems.sort((a,b) => b.monto - a.monto);
                     let htmlLista = '';
@@ -824,8 +810,7 @@ async function cargarDatosGrafico(desde, hasta) {
             }
         }
     } catch (e) { 
-        console.error("💥 Error en el proceso:", e);
-        if(document.getElementById('kpiTotalGastos')) document.getElementById('kpiTotalGastos').innerText = "Error";
+        console.error("Error:", e);
     } finally {
         if(loader) loader.classList.add('d-none');
     }
