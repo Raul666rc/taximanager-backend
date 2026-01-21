@@ -1114,27 +1114,46 @@
                         <div class="col-2"><button class="btn btn-sm btn-outline-info w-100" onclick="aplicarFiltroManual()"><i class="fas fa-search"></i></button></div>
                     </div>
 
-                    <div class="row g-2 mb-4">
+                    <div class="row g-3 mb-4">
+    
                         <div class="col-6">
-                            <div class="p-2 bg-dark border border-secondary rounded text-center h-100 position-relative overflow-hidden">
-                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-danger opacity-10" style="z-index: 0;"></div>
+                            <div class="h-100 p-3 bg-black border border-danger rounded-3 position-relative overflow-hidden shadow-lg" 
+                                style="box-shadow: 0 0 15px rgba(220, 53, 69, 0.15);">
                                 
-                                <div class="position-relative" style="z-index: 10;">
-                                    <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Total Gastado</small>
-                                    <div class="fw-bold text-white fs-4 font-monospace mt-1" id="txtTotalGastos">--</div>
+                                <div class="position-absolute bottom-0 end-0 opacity-25 pe-2 pb-1">
+                                    <i class="fas fa-coins fa-3x text-danger" style="transform: rotate(-15deg);"></i>
+                                </div>
+
+                                <div class="position-relative z-1">
+                                    <div class="text-danger text-uppercase fw-bold small mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">
+                                        <i class="fas fa-caret-down me-1"></i>Total Gastado
+                                    </div>
+                                    <div id="txtTotalGastos" class="display-6 fw-bold text-white font-monospace lh-1 mt-2">
+                                        <span class="fs-6 text-secondary align-middle">S/</span> 0.00
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
                         <div class="col-6">
-                            <div class="p-2 bg-dark border border-secondary rounded text-center h-100 position-relative overflow-hidden">
-                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-info opacity-10" style="z-index: 0;"></div>
+                            <div class="h-100 p-3 bg-black border border-info rounded-3 position-relative overflow-hidden shadow-lg"
+                                style="box-shadow: 0 0 15px rgba(13, 202, 240, 0.15);">
                                 
-                                <div class="position-relative" style="z-index: 10;">
-                                    <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Mayor Gasto</small>
-                                    <div class="fw-bold text-info fs-6 mt-2 text-truncate" id="txtMayorGasto">--</div>
+                                <div class="position-absolute bottom-0 end-0 opacity-25 pe-2 pb-1">
+                                    <i class="fas fa-trophy fa-3x text-info" style="transform: rotate(-15deg);"></i>
+                                </div>
+
+                                <div class="position-relative z-1">
+                                    <div class="text-info text-uppercase fw-bold small mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">
+                                        <i class="fas fa-exclamation-circle me-1"></i>Mayor Fuga
+                                    </div>
+                                    <div id="txtMayorGasto" class="mt-2">
+                                        <div class="text-white-50 fst-italic small">Calculando...</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
                     <div class="position-relative mb-4" style="height: 250px; width: 100%;">

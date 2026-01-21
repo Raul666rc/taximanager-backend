@@ -644,10 +644,21 @@ function descargarReporteFinanciero() {
     if(confirm("¿Descargar Reporte de Gastos e Ingresos?")) window.location.href = `${API_URL}/reporte/finanzas`; 
 }
 
-// 8. ESTADÍSTICAS AVANZADAS
+// ==========================================
+// 8. ESTADÍSTICAS AVANZADAS (PREMIUM)
+// ==========================================
+
 function abrirEstadisticas() { 
-    new bootstrap.Modal(document.getElementById('modalEstadisticas')).show(); 
-    filtrarEstadisticas('mes'); 
+    // Usamos el ID del modal nuevo (asegúrate que en tu HTML sea modalEstadisticas o modalAnalisis)
+    // Si tu HTML Premium usa 'modalAnalisis', cambia el ID aquí abajo 👇
+    const modalEl = document.getElementById('modalEstadisticas') || document.getElementById('modalAnalisis');
+    
+    if(modalEl) {
+        new bootstrap.Modal(modalEl).show(); 
+        filtrarEstadisticas('mes'); 
+    } else {
+        console.error("No se encuentra el modal de estadísticas");
+    }
 }
 
 // FUNCIÓN CORREGIDA: FILTROS Y ESTILOS
@@ -657,25 +668,17 @@ function filtrarEstadisticas(rango, elemento) {
     let fin = new Date();
     
     // --- A. LÓGICA VISUAL (PINTAR EL BOTÓN) ---
-    // 1. Si nos enviaron el elemento (click manual), limpiamos todos y pintamos ese.
     if (elemento) {
-        // Buscar el contenedor padre para limpiar solo estos botones
         const contenedor = elemento.parentNode;
         const botones = contenedor.querySelectorAll('button');
-        
-        // Resetear todos a estilo "apagado"
         botones.forEach(b => { 
             b.className = 'btn btn-sm rounded-pill text-white-50 flex-grow-1'; 
         });
-
-        // Encender el clickeado
         elemento.className = 'btn btn-sm btn-info fw-bold rounded-pill flex-grow-1 shadow text-white';
     }
 
     // --- B. LÓGICA DE FECHAS ---
-    // Configurar fechas según el rango
     if(rango === 'hoy') {
-        // Inicio y fin son hoy
         inicio = new Date();
         fin = new Date();
     }
@@ -684,17 +687,15 @@ function filtrarEstadisticas(rango, elemento) {
         fin.setDate(hoy.getDate() - 1); 
     }
     else if(rango === 'semana') { 
-        inicio.setDate(hoy.getDate() - 6); // Últimos 7 días
+        inicio.setDate(hoy.getDate() - 6); 
     }
     else if(rango === 'mes') { 
-        inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); // 1ro del mes
-        // Fin es hoy
+        inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); 
     }
     else if(rango === 'anio') { 
-        inicio = new Date(hoy.getFullYear(), 0, 1); // 1ro de Enero
+        inicio = new Date(hoy.getFullYear(), 0, 1); 
     }
 
-    // Formatear a YYYY-MM-DD localmente (sin errores de zona horaria)
     const formatearFecha = (d) => {
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -705,33 +706,34 @@ function filtrarEstadisticas(rango, elemento) {
     const dStr = formatearFecha(inicio);
     const hStr = formatearFecha(fin);
     
-    // Actualizar inputs
-    document.getElementById('filtroDesde').value = dStr; 
-    document.getElementById('filtroHasta').value = hStr;
+    // Actualizar inputs visibles
+    const inpDesde = document.getElementById('filtroDesde');
+    const inpHasta = document.getElementById('filtroHasta');
+    if(inpDesde) inpDesde.value = dStr; 
+    if(inpHasta) inpHasta.value = hStr;
     
-    // Texto informativo pequeño
     const lblInfo = document.getElementById('lblRangoInfo');
     if(lblInfo) lblInfo.innerText = `Mostrando: ${dStr} al ${hStr}`;
     
-    // Cargar datos
     cargarDatosGrafico(dStr, hStr);
 }
 
 function aplicarFiltroManual() {
-    const d = document.getElementById('filtroDesde').value, h = document.getElementById('filtroHasta').value;
+    const d = document.getElementById('filtroDesde').value;
+    const h = document.getElementById('filtroHasta').value;
     if(!d || !h) return notificar("Fechas incompletas", "error");
     cargarDatosGrafico(d, h);
 }
 
 // ==========================================
-// FUNCIÓN CORREGIDA CON IDs NUEVOS
+// CARGA DE DATOS Y RENDERIZADO (DISEÑO PREMIUM)
 // ==========================================
 async function cargarDatosGrafico(desde, hasta) {
     
     const elTotal = document.getElementById('txtTotalGastos');
     const elMayor = document.getElementById('txtMayorGasto');
-    
     const loader = document.getElementById('loadingGrafico');
+    
     if(loader) loader.classList.remove('d-none');
 
     try {
@@ -740,7 +742,6 @@ async function cargarDatosGrafico(desde, hasta) {
         const r = await res.json();
         
         if (r.success) {
-            
             let total = 0;
             let mayorVal = 0;
             let mayorCat = "Ninguno";
@@ -760,35 +761,36 @@ async function cargarDatosGrafico(desde, hasta) {
                 });
             }
 
-            // --- ACTUALIZACIÓN VISUAL ---
+            // --- ACTUALIZACIÓN VISUAL PREMIUM ---
             
-            // 1. Cuadro ROJO (Total)
+            // 1. Cuadro ROJO (Total Gastado)
             if(elTotal) {
-                elTotal.innerText = `S/ ${total.toFixed(2)}`;
-            } else {
-                console.error("Falta ID: txtTotalGastos");
+                // Mantiene el estilo blanco y rojo
+                elTotal.innerHTML = `<span class="fs-6 text-secondary align-middle">S/</span> ${total.toFixed(2)}`;
             }
 
-            // 2. Cuadro CIAN (Nombre + Monto) - ¡CORREGIDO!
+            // 2. Cuadro CIAN (Mayor Fuga)
             if(elMayor) {
-                elMayor.innerHTML = `
-                    <div class="text-truncate fw-bold text-info">${mayorCat}</div>
-                    <div class="text-white small font-monospace" style="font-size: 0.9rem;">S/ ${mayorVal.toFixed(2)}</div>
-                `;
-            } else {
-                 console.error("Falta ID: txtMayorGasto");
+                if(total > 0){
+                    elMayor.innerHTML = `
+                        <div class="fs-5 fw-bold text-white text-truncate mb-0" style="text-shadow: 0 0 5px rgba(0,0,0,0.8);">${mayorCat.toUpperCase()}</div>
+                        <div class="fs-6 text-info font-monospace fw-bold">S/ ${mayorVal.toFixed(2)}</div>
+                    `;
+                } else {
+                     elMayor.innerHTML = `<div class="text-white-50 fst-italic small">Sin gastos</div>`;
+                }
             }
 
-            // 3. Gráfico
+            // 3. Gráfico (Llama a tu función de ChartJS)
             if (typeof renderizarGraficoGastos === 'function') {
                 renderizarGraficoGastos(r.labels || [], r.data || []);
             }
 
-            // 4. Lista
+            // 4. Lista Desglose
             const listaEl = document.getElementById('listaDesgloseGastos');
             if(listaEl) {
                 if (listaItems.length === 0) {
-                    listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos</li>';
+                    listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos en este periodo</li>';
                 } else {
                     listaItems.sort((a,b) => b.monto - a.monto);
                     let htmlLista = '';
@@ -798,7 +800,7 @@ async function cargarDatosGrafico(desde, hasta) {
                         <li class="list-group-item bg-transparent text-white d-flex justify-content-between align-items-center py-2 border-secondary border-opacity-25">
                             <div class="d-flex align-items-center">
                                 <div class="rounded-circle me-2" style="width: 10px; height: 10px; background-color: ${item.color};"></div>
-                                <span class="small">${item.label}</span>
+                                <span class="small text-uppercase">${item.label}</span>
                             </div>
                             <div class="text-end">
                                 <div class="fw-bold font-monospace small">S/ ${item.monto.toFixed(2)}</div>
@@ -811,14 +813,18 @@ async function cargarDatosGrafico(desde, hasta) {
             }
         }
     } catch (e) { 
-        console.error("Error:", e);
+        console.error("Error cargando estadisticas:", e);
+        if(elTotal) elTotal.innerText = "---";
     } finally {
         if(loader) loader.classList.add('d-none');
     }
 }
 
-// Función auxiliar para colores (si no la tienes, agrégala también)
+// Función auxiliar para colores
 function obtenerColorIndice(index) {
     const colores = ['#0dcaf0', '#ffc107', '#dc3545', '#d63384', '#198754', '#6f42c1', '#fd7e14'];
     return colores[index % colores.length];
 }
+
+
+
