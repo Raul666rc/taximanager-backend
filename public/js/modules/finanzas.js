@@ -725,6 +725,7 @@ function aplicarFiltroManual() {
 
 // Carga de datos y renderizado de KPIs + Lista
 async function cargarDatosGrafico(desde, hasta) {
+    // Mostramos un loader si existe (opcional)
     const loader = document.getElementById('loadingGrafico');
     if(loader) loader.classList.remove('d-none');
 
@@ -735,45 +736,63 @@ async function cargarDatosGrafico(desde, hasta) {
         
         if (r.success) {
             
-            // 1. Calcular KPIs (Total y Mayor)
+            // ======================================================
+            // 1. CÁLCULOS PARA LOS CUADROS ROJO Y CIAN
+            // ======================================================
             let total = 0;
             let mayorVal = 0;
-            let mayorCat = "N/A";
+            let mayorCat = "Ninguno";
             const listaItems = [];
 
             if (r.data.length > 0) {
-                // Procesar datos
+                // Recorremos los datos para sumar y encontrar el mayor
                 r.data.forEach((val, index) => {
                     const monto = parseFloat(val);
                     const label = r.labels[index];
+                    
+                    // Sumamos al total (Cuadro Rojo)
                     total += monto;
 
+                    // Revisamos si este es el gasto mayor (Cuadro Cian)
                     if(monto > mayorVal) {
                         mayorVal = monto;
                         mayorCat = label;
                     }
 
-                    // Guardar para la lista
+                    // Guardamos para la lista de abajo
                     listaItems.push({ label, monto, color: obtenerColorIndice(index) });
                 });
             }
 
-            // 2. Actualizar UI de KPIs
-            document.getElementById('kpiTotalGastos').innerText = `S/ ${total.toFixed(2)}`;
-            document.getElementById('kpiMayorCategoria').innerText = mayorCat;
+            // ======================================================
+            // 2. INYECTAR DATOS EN LOS CUADROS (DOM)
+            // ======================================================
+            
+            // Llenar Cuadro ROJO (Total)
+            const elTotal = document.getElementById('kpiTotalGastos');
+            if(elTotal) elTotal.innerText = `S/ ${total.toFixed(2)}`;
 
-            // 3. Renderizar Gráfico
+            // Llenar Cuadro CIAN (Mayor Categoría)
+            const elMayor = document.getElementById('kpiMayorCategoria');
+            if(elMayor) elMayor.innerText = mayorCat;
+
+
+            // ======================================================
+            // 3. DIBUJAR GRÁFICO Y LISTA
+            // ======================================================
+            
+            // Llamar a la función que dibuja la dona
             if (typeof renderizarGraficoGastos === 'function') {
                 renderizarGraficoGastos(r.labels, r.data);
             }
 
-            // 4. Llenar Lista de Desglose (Más detallada que la leyenda)
+            // Llenar la Lista de Desglose (Debajo del gráfico)
             const listaEl = document.getElementById('listaDesgloseGastos');
             if(listaEl) {
                 if (listaItems.length === 0) {
                     listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos en este periodo</li>';
                 } else {
-                    // Ordenar de mayor a menor
+                    // Ordenar lista de mayor a menor precio
                     listaItems.sort((a,b) => b.monto - a.monto);
                     
                     let htmlLista = '';
@@ -798,13 +817,13 @@ async function cargarDatosGrafico(desde, hasta) {
         }
     } catch (e) { 
         console.error(e);
-        notificar("Error cargando estadísticas", "error"); 
+        // notificar("Error cargando estadísticas", "error"); 
     } finally {
         if(loader) loader.classList.add('d-none');
     }
 }
 
-// Auxiliar para mantener coherencia de colores entre gráfica y lista
+// Función auxiliar para colores (si no la tienes, agrégala también)
 function obtenerColorIndice(index) {
     const colores = ['#0dcaf0', '#ffc107', '#dc3545', '#d63384', '#198754', '#6f42c1', '#fd7e14'];
     return colores[index % colores.length];
