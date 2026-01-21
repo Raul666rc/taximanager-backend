@@ -728,11 +728,9 @@ function aplicarFiltroManual() {
 // ==========================================
 async function cargarDatosGrafico(desde, hasta) {
     
-    // USAMOS LOS NUEVOS IDs
     const elTotal = document.getElementById('txtTotalGastos');
     const elMayor = document.getElementById('txtMayorGasto');
     
-    // Loader
     const loader = document.getElementById('loadingGrafico');
     if(loader) loader.classList.remove('d-none');
 
@@ -762,28 +760,31 @@ async function cargarDatosGrafico(desde, hasta) {
                 });
             }
 
-            // --- ACTUALIZACIÓN VISUAL (IDs NUEVOS) ---
+            // --- ACTUALIZACIÓN VISUAL ---
             
+            // 1. Cuadro ROJO (Total)
             if(elTotal) {
                 elTotal.innerText = `S/ ${total.toFixed(2)}`;
-                // Forzamos repintado por si acaso
-                elTotal.style.display = 'none';
-                elTotal.offsetHeight; 
-                elTotal.style.display = 'block';
             } else {
-                console.error("No encuentro el ID: txtTotalGastos");
+                console.error("Falta ID: txtTotalGastos");
             }
 
+            // 2. Cuadro CIAN (Nombre + Monto) - ¡CORREGIDO!
             if(elMayor) {
-                elMayor.innerText = mayorCat;
+                elMayor.innerHTML = `
+                    <div class="text-truncate fw-bold text-info">${mayorCat}</div>
+                    <div class="text-white small font-monospace" style="font-size: 0.9rem;">S/ ${mayorVal.toFixed(2)}</div>
+                `;
+            } else {
+                 console.error("Falta ID: txtMayorGasto");
             }
 
-            // Gráfico
+            // 3. Gráfico
             if (typeof renderizarGraficoGastos === 'function') {
                 renderizarGraficoGastos(r.labels || [], r.data || []);
             }
 
-            // Lista
+            // 4. Lista
             const listaEl = document.getElementById('listaDesgloseGastos');
             if(listaEl) {
                 if (listaItems.length === 0) {
