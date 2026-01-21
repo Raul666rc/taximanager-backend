@@ -63,25 +63,36 @@ class FinanzasModel {
         try {
             await connection.beginTransaction();
 
-            // 1. Ajustar Saldos
+            // 1. AJUSTAR SALDOS (Matemática pura - Esto se mantiene igual)
+            // Restamos a la cuenta origen
             await connection.query("UPDATE cuentas SET saldo_actual = saldo_actual - ? WHERE id = ?", [monto, origenId]);
+            // Sumamos a la cuenta destino
             await connection.query("UPDATE cuentas SET saldo_actual = saldo_actual + ? WHERE id = ?", [monto, destinoId]);
 
-            // 2. Obtener Nombres
+            // 2. OBTENER NOMBRES (Para describir mejor la operación)
             const [destRows] = await connection.query("SELECT nombre FROM cuentas WHERE id = ?", [destinoId]);
             const [origRows] = await connection.query("SELECT nombre FROM cuentas WHERE id = ?", [origenId]);
             const nomDest = destRows[0]?.nombre || 'Destino';
             const nomOrig = origRows[0]?.nombre || 'Origen';
 
-            // 3. Registrar Doble Asiento
+            // =================================================================================
+            // 3. REGISTRO CONTABLE (AQUÍ ESTÁ LA CORRECCIÓN) ✅
+            // Usamos 'TRANSFERENCIA' en tipo y 'PERSONAL' en ambito para ambos movimientos.
+            // Diferenciamos entrada/salida usando la CATEGORÍA.
+            // =================================================================================
+
+            // A) REGISTRO DE SALIDA (Para la cuenta Origen) -> RESTA
             await connection.query(`
-                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, categoria) 
-                VALUES ('GASTO', ?, ?, ?, NOW(), 'Transferencia Salida')
+                INSERT INTO transacciones 
+                (tipo, monto, descripcion, cuenta_id, fecha, categoria, ambito) 
+                VALUES ('TRANSFERENCIA', ?, ?, ?, NOW(), 'Transferencia Salida', 'PERSONAL')
             `, [monto, `Transferencia a ${nomDest}: ${nota}`, origenId]);
 
+            // B) REGISTRO DE ENTRADA (Para la cuenta Destino) -> SUMA
             await connection.query(`
-                INSERT INTO transacciones (tipo, monto, descripcion, cuenta_id, fecha, categoria) 
-                VALUES ('INGRESO', ?, ?, ?, NOW(), 'Transferencia Entrada')
+                INSERT INTO transacciones 
+                (tipo, monto, descripcion, cuenta_id, fecha, categoria, ambito) 
+                VALUES ('TRANSFERENCIA', ?, ?, ?, NOW(), 'Transferencia Entrada', 'PERSONAL')
             `, [monto, `Recibido de ${nomOrig}: ${nota}`, destinoId]);
 
             await connection.commit();
@@ -94,9 +105,7 @@ class FinanzasModel {
         }
     }
 
-    // ==========================================
-    // 4. GASTO RAPIDO
-    // ==========================================
+    
     static async registrarGastoRapido(monto, categoria, nota) {
         const connection = await db.getConnection();
         try {

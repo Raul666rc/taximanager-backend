@@ -305,45 +305,87 @@ async function abrirBilletera(periodo = 'mes') {
 async function cargarMovimientos() {
     const contenedor = document.getElementById('listaMovimientosHome');
     if (!contenedor) return;
+
     try {
         const res = await fetch(`${API_URL}/finanzas/movimientos`);
         const result = await res.json();
         
         if (result.success) {
             if (result.data.length === 0) { 
-                contenedor.innerHTML = '<div class="text-center py-3 text-muted">No hay movimientos aún.</div>'; 
+                contenedor.innerHTML = '<div class="text-center py-4 text-muted small">Sin movimientos recientes</div>'; 
                 return; 
             }
             
             let html = '';
+            
             result.data.forEach(m => {
-                let i = 'fa-arrow-down', cI = 'bg-danger', cT = 'text-danger', s = '-';
+                // --- LÓGICA DE COLORES E ICONOS ---
+                let color = 'danger';      // Rojo por defecto (Gasto)
+                let signo = '-';
+                let icono = 'fa-arrow-up'; // Flecha salida
+                let textoMonto = 'text-danger';
+
+                // 1. SI ES UN INGRESO PURO (Taxi, Freelance)
+                if (m.tipo === 'INGRESO') { 
+                    color = 'success'; signo = '+'; icono = 'fa-arrow-down'; textoMonto = 'text-success';
+                } 
                 
-                if (m.tipo === 'INGRESO') { i = 'fa-arrow-up'; cI = 'bg-success'; cT = 'text-success'; s = '+'; }
-                if (m.categoria && m.categoria.includes('Transferencia')) { i = 'fa-right-left'; cI = 'bg-info'; cT = 'text-info'; s = ''; }
-                
-                const fecha = new Date(m.fecha).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+                // 2. SI ES PAGO DE DEUDA
+                else if (m.tipo === 'PAGO_DEUDA') {
+                    color = 'purple'; signo = '-'; icono = 'fa-hand-holding-usd'; textoMonto = 'text-white'; 
+                    // Nota: Asegúrate de tener una clase .text-purple o usa inline style
+                }
+
+                // 3. SI ES TRANSFERENCIA (La nueva lógica)
+                else if (m.tipo === 'TRANSFERENCIA') {
+                    // Verificamos el "Apellido" (Categoría)
+                    if (m.categoria === 'Transferencia Entrada') {
+                        color = 'info';      // Cian
+                        signo = '+';         // Suma a esta cuenta
+                        icono = 'fa-right-to-bracket'; // Icono de entrada
+                        textoMonto = 'text-info';
+                    } else {
+                        // Transferencia Salida
+                        color = 'secondary'; // Gris/Azulado para salida interna (neutro)
+                        signo = '-';
+                        icono = 'fa-paper-plane'; // Icono de envío
+                        textoMonto = 'text-white-50'; // Que no asuste como rojo, es movimiento propio
+                    }
+                }
+
+                // Formato de Fecha
+                const fecha = new Date(m.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
                 const hora = new Date(m.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-                
+
                 html += `
-                <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center px-3 py-2">
+                <div class="list-group-item bg-black border-secondary border-opacity-25 d-flex justify-content-between align-items-center px-3 py-2">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle ${cI} d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 35px; height: 35px;">
-                            <i class="fa-solid ${i} text-white small"></i>
+                        <div class="rounded-circle bg-${color} bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                            <i class="fa-solid ${icono} text-${color} small"></i>
                         </div>
                         <div style="line-height: 1.2;">
-                            <div class="text-white fw-bold small text-uppercase mb-0 text-truncate" style="max-width: 180px;">${m.descripcion}</div>
-                            <small class="text-muted" style="font-size: 0.7rem;">${fecha} • ${hora} | <span class="text-secondary">${m.nombre_cuenta || 'General'}</span></small>
+                            <div class="text-white fw-bold small text-uppercase mb-0 text-truncate" style="max-width: 180px;">
+                                ${m.descripcion}
+                            </div>
+                            <small class="text-muted" style="font-size: 0.65rem;">
+                                ${fecha} • ${hora} | <span class="text-secondary">${m.nombre_cuenta || 'Efectivo'}</span>
+                            </small>
                         </div>
                     </div>
                     <div class="text-end">
-                        <div class="${cT} fw-bold" style="font-size: 0.95rem;">${s} S/ ${parseFloat(m.monto).toFixed(2)}</div>
+                        <div class="${textoMonto} fw-bold font-monospace" style="font-size: 0.95rem;">
+                            ${signo} S/ ${parseFloat(m.monto).toFixed(2)}
+                        </div>
                     </div>
                 </div>`;
             });
+            
             contenedor.innerHTML = html;
         }
-    } catch (e) { contenedor.innerHTML = '<div class="text-center py-3 text-danger">Error datos.</div>'; }
+    } catch (e) { 
+        console.error(e);
+        contenedor.innerHTML = '<div class="text-center py-3 text-danger small">Error cargando datos.</div>'; 
+    }
 }
 
 // 5. TRANSFERENCIAS
