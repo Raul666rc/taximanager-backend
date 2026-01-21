@@ -723,78 +723,87 @@ function aplicarFiltroManual() {
     cargarDatosGrafico(d, h);
 }
 
-// Carga de datos y renderizado de KPIs + Lista
+// ==========================================
+// VERSIÓN DE DIAGNÓSTICO: CARGA DE ESTADÍSTICAS
+// ==========================================
 async function cargarDatosGrafico(desde, hasta) {
-    // Mostramos un loader si existe (opcional)
+    // 1. Verificar si existen los elementos en el HTML antes de llamar a la API
+    const elTotal = document.getElementById('kpiTotalGastos');
+    const elMayor = document.getElementById('kpiMayorCategoria');
+    
+    if (!elTotal || !elMayor) {
+        console.error("❌ ERROR CRÍTICO: No encuentro los IDs 'kpiTotalGastos' o 'kpiMayorCategoria' en el HTML. Verifica tu archivo index.html");
+        // Si no existen, no podemos seguir pintando los cuadros.
+    }
+
     const loader = document.getElementById('loadingGrafico');
     if(loader) loader.classList.remove('d-none');
 
     try {
+        console.log(`📡 Solicitando datos desde ${desde} hasta ${hasta}...`);
+        
         const res = await fetch(`${API_URL}/finanzas/grafico-gastos?desde=${desde}&hasta=${hasta}`);
-        if (!res.ok) throw new Error("Error HTTP");
+        if (!res.ok) throw new Error("Error HTTP " + res.status);
+        
         const r = await res.json();
+        console.log("📦 Datos recibidos:", r);
         
         if (r.success) {
             
-            // ======================================================
-            // 1. CÁLCULOS PARA LOS CUADROS ROJO Y CIAN
-            // ======================================================
+            // --- CÁLCULOS ---
             let total = 0;
             let mayorVal = 0;
             let mayorCat = "Ninguno";
             const listaItems = [];
 
-            if (r.data.length > 0) {
-                // Recorremos los datos para sumar y encontrar el mayor
+            // Asegurarnos de que r.data sea un array válido
+            if (Array.isArray(r.data) && r.data.length > 0) {
                 r.data.forEach((val, index) => {
-                    const monto = parseFloat(val);
-                    const label = r.labels[index];
+                    // Forzamos conversión a número para evitar errores
+                    const monto = parseFloat(val) || 0; 
+                    const label = r.labels[index] || "Sin nombre";
                     
-                    // Sumamos al total (Cuadro Rojo)
                     total += monto;
 
-                    // Revisamos si este es el gasto mayor (Cuadro Cian)
                     if(monto > mayorVal) {
                         mayorVal = monto;
                         mayorCat = label;
                     }
 
-                    // Guardamos para la lista de abajo
                     listaItems.push({ label, monto, color: obtenerColorIndice(index) });
                 });
+            } else {
+                console.warn("⚠️ El array de datos está vacío o no es válido.");
             }
 
-            // ======================================================
-            // 2. INYECTAR DATOS EN LOS CUADROS (DOM)
-            // ======================================================
+            console.log(`💰 Total Calculado: ${total}, Mayor: ${mayorCat}`);
+
+            // --- ACTUALIZACIÓN VISUAL (CON SEGURIDAD) ---
             
-            // Llenar Cuadro ROJO (Total)
-            const elTotal = document.getElementById('kpiTotalGastos');
-            if(elTotal) elTotal.innerText = `S/ ${total.toFixed(2)}`;
+            // 1. Cuadro ROJO (Total)
+            if(elTotal) {
+                elTotal.innerText = `S/ ${total.toFixed(2)}`;
+                elTotal.classList.remove('d-none'); // Asegurar que sea visible
+            }
 
-            // Llenar Cuadro CIAN (Mayor Categoría)
-            const elMayor = document.getElementById('kpiMayorCategoria');
-            if(elMayor) elMayor.innerText = mayorCat;
+            // 2. Cuadro CIAN (Mayor Categoría)
+            if(elMayor) {
+                elMayor.innerText = mayorCat;
+                elMayor.classList.remove('d-none');
+            }
 
-
-            // ======================================================
-            // 3. DIBUJAR GRÁFICO Y LISTA
-            // ======================================================
-            
-            // Llamar a la función que dibuja la dona
+            // 3. Gráfico
             if (typeof renderizarGraficoGastos === 'function') {
-                renderizarGraficoGastos(r.labels, r.data);
+                renderizarGraficoGastos(r.labels || [], r.data || []);
             }
 
-            // Llenar la Lista de Desglose (Debajo del gráfico)
+            // 4. Lista
             const listaEl = document.getElementById('listaDesgloseGastos');
             if(listaEl) {
                 if (listaItems.length === 0) {
-                    listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos en este periodo</li>';
+                    listaEl.innerHTML = '<li class="list-group-item bg-transparent text-muted text-center small py-3">Sin gastos registrados</li>';
                 } else {
-                    // Ordenar lista de mayor a menor precio
                     listaItems.sort((a,b) => b.monto - a.monto);
-                    
                     let htmlLista = '';
                     listaItems.forEach(item => {
                         const porcentaje = total > 0 ? ((item.monto / total) * 100).toFixed(0) : 0;
@@ -806,18 +815,17 @@ async function cargarDatosGrafico(desde, hasta) {
                             </div>
                             <div class="text-end">
                                 <div class="fw-bold font-monospace small">S/ ${item.monto.toFixed(2)}</div>
-                                <small class="text-muted" style="font-size: 0.65rem;">${porcentaje}% del total</small>
+                                <small class="text-muted" style="font-size: 0.65rem;">${porcentaje}%</small>
                             </div>
                         </li>`;
                     });
                     listaEl.innerHTML = htmlLista;
                 }
             }
-
         }
     } catch (e) { 
-        console.error(e);
-        // notificar("Error cargando estadísticas", "error"); 
+        console.error("💥 Error en el proceso:", e);
+        if(document.getElementById('kpiTotalGastos')) document.getElementById('kpiTotalGastos').innerText = "Error";
     } finally {
         if(loader) loader.classList.add('d-none');
     }
