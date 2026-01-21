@@ -302,9 +302,19 @@ async function abrirBilletera(periodo = 'mes') {
     } catch (e) { console.error(e); }
 }
 
+// ==========================================
+// LISTA DE MOVIMIENTOS (ESTILO PREMIUM) 💎
+// ==========================================
 async function cargarMovimientos() {
     const contenedor = document.getElementById('listaMovimientosHome');
     if (!contenedor) return;
+
+    // Loader elegante
+    contenedor.innerHTML = `
+        <div class="text-center py-4 text-muted">
+            <div class="spinner-border text-secondary spinner-border-sm mb-2" role="status"></div>
+            <div class="small fst-italic">Leyendo transacciones...</div>
+        </div>`;
 
     try {
         const res = await fetch(`${API_URL}/finanzas/movimientos`);
@@ -312,70 +322,123 @@ async function cargarMovimientos() {
         
         if (result.success) {
             if (result.data.length === 0) { 
-                contenedor.innerHTML = '<div class="text-center py-4 text-muted small">Sin movimientos recientes</div>'; 
+                contenedor.innerHTML = `
+                    <div class="text-center py-5 text-muted opacity-50">
+                        <i class="fas fa-wind fa-3x mb-3"></i><br>
+                        <small>Nada por aquí aún...</small>
+                    </div>`; 
                 return; 
             }
             
             let html = '';
             
             result.data.forEach(m => {
-                // --- LÓGICA DE COLORES E ICONOS ---
-                let color = 'danger';      // Rojo por defecto (Gasto)
-                let signo = '-';
-                let icono = 'fa-arrow-up'; // Flecha salida
-                let textoMonto = 'text-danger';
+                // 1. CONFIGURACIÓN VISUAL POR DEFECTO
+                let color = 'secondary'; // Gris
+                let signo = '';
+                let icono = 'fa-circle';
+                let estiloBorde = 'border-secondary-neon';
+                let nombreCategoria = m.categoria || 'General';
 
-                // 1. SI ES UN INGRESO PURO (Taxi, Freelance)
+                // 2. LÓGICA INTELIGENTE DE ICONOS Y COLORES 🧠
+                
+                // --- A) INGRESOS (Verde) ---
                 if (m.tipo === 'INGRESO') { 
-                    color = 'success'; signo = '+'; icono = 'fa-arrow-down'; textoMonto = 'text-success';
+                    color = 'success'; 
+                    signo = '+'; 
+                    estiloBorde = 'border-success-neon';
+                    icono = 'fa-arrow-down'; // Default ingreso
+                    
+                    if (nombreCategoria.includes('Taxi')) icono = 'fa-taxi';
+                    else if (nombreCategoria.includes('Freelance')) icono = 'fa-laptop-code';
                 } 
                 
-                // 2. SI ES PAGO DE DEUDA
-                else if (m.tipo === 'PAGO_DEUDA') {
-                    color = 'purple'; signo = '-'; icono = 'fa-hand-holding-usd'; textoMonto = 'text-white'; 
-                    // Nota: Asegúrate de tener una clase .text-purple o usa inline style
+                // --- B) GASTOS (Rojo) ---
+                else if (m.tipo === 'GASTO') {
+                    color = 'danger'; 
+                    signo = '-'; 
+                    estiloBorde = 'border-danger-neon';
+                    icono = 'fa-arrow-up'; // Default gasto
+
+                    // Iconos específicos según categoría
+                    const cat = nombreCategoria.toUpperCase();
+                    if (cat.includes('GASOLINA') || cat.includes('COMBUSTIBLE')) icono = 'fa-gas-pump';
+                    else if (cat.includes('ALIMENTO') || cat.includes('COMIDA') || cat.includes('MENU')) icono = 'fa-utensils';
+                    else if (cat.includes('TALLER') || cat.includes('MECANICA')) icono = 'fa-wrench';
+                    else if (cat.includes('LAVADO') || cat.includes('LIMPIEZA')) icono = 'fa-soap';
+                    else if (cat.includes('CELULAR') || cat.includes('RECARGA')) icono = 'fa-mobile-alt';
                 }
 
-                // 3. SI ES TRANSFERENCIA (La nueva lógica)
+                // --- C) DEUDAS (Púrpura/Rosa) ---
+                else if (m.tipo === 'PAGO_DEUDA') {
+                    color = 'warning'; // Usamos warning o custom purple
+                    signo = '-';
+                    estiloBorde = 'border-purple-neon'; // Clase custom definida en CSS
+                    icono = 'fa-hand-holding-usd';
+                    // Truco para color púrpura visual usando clases de bootstrap + style
+                    // Lo manejaremos en el renderizado
+                }
+
+                // --- D) TRANSFERENCIAS (Azul / Gris) ---
                 else if (m.tipo === 'TRANSFERENCIA') {
-                    // Verificamos el "Apellido" (Categoría)
-                    if (m.categoria === 'Transferencia Entrada') {
-                        color = 'info';      // Cian
-                        signo = '+';         // Suma a esta cuenta
-                        icono = 'fa-right-to-bracket'; // Icono de entrada
-                        textoMonto = 'text-info';
+                    
+                    if (nombreCategoria.includes('Entrada')) {
+                        // Recibí dinero (Warda recibe)
+                        color = 'info'; 
+                        signo = '+'; 
+                        estiloBorde = 'border-info-neon';
+                        icono = 'fa-vault'; // Caja fuerte / Warda
                     } else {
-                        // Transferencia Salida
-                        color = 'secondary'; // Gris/Azulado para salida interna (neutro)
+                        // Envié dinero (Yape envía)
+                        color = 'secondary'; 
                         signo = '-';
-                        icono = 'fa-paper-plane'; // Icono de envío
-                        textoMonto = 'text-white-50'; // Que no asuste como rojo, es movimiento propio
+                        estiloBorde = 'border-secondary-neon';
+                        icono = 'fa-paper-plane'; // Enviar
                     }
                 }
 
-                // Formato de Fecha
-                const fecha = new Date(m.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
-                const hora = new Date(m.fecha).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+                // 3. FECHA AMIGABLE
+                const fechaObj = new Date(m.fecha);
+                const dia = fechaObj.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+                const hora = fechaObj.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 
+                // 4. AJUSTE DE COLOR PÚRPURA (SI ES DEUDA)
+                // Bootstrap no tiene "text-purple", así que forzamos si es deuda
+                let claseTexto = `text-${color}`;
+                let claseBg = `bg-${color}`;
+                let estiloExtra = "";
+
+                if (estiloBorde === 'border-purple-neon') {
+                    claseTexto = ""; 
+                    claseBg = "bg-dark"; // Fondo oscuro para el icono
+                    estiloExtra = "color: #d63384;"; // Rosa/Púrpura manual
+                }
+
+                // 5. RENDERIZADO HTML (Card Style)
                 html += `
-                <div class="list-group-item bg-black border-secondary border-opacity-25 d-flex justify-content-between align-items-center px-3 py-2">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle bg-${color} bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
-                            <i class="fa-solid ${icono} text-${color} small"></i>
+                <div class="list-group-item item-movimiento border-0 border-bottom border-secondary border-opacity-10 d-flex align-items-center px-3 py-3 ${estiloBorde}">
+                    
+                    <div class="icon-box bg-opacity-10 me-3 ${claseBg}" style="min-width: 45px; background-color: rgba(255,255,255,0.05);">
+                        <i class="fas ${icono} ${claseTexto}" style="${estiloExtra}"></i>
+                    </div>
+                    
+                    <div class="flex-grow-1 lh-1 overflow-hidden">
+                        <div class="text-white fw-bold text-uppercase text-truncate mb-1" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+                            ${m.descripcion}
                         </div>
-                        <div style="line-height: 1.2;">
-                            <div class="text-white fw-bold small text-uppercase mb-0 text-truncate" style="max-width: 180px;">
-                                ${m.descripcion}
-                            </div>
-                            <small class="text-muted" style="font-size: 0.65rem;">
-                                ${fecha} • ${hora} | <span class="text-secondary">${m.nombre_cuenta || 'Efectivo'}</span>
-                            </small>
+                        <div class="d-flex align-items-center text-muted small">
+                            <span class="badge bg-dark border border-secondary text-white-50 me-2" style="font-size: 0.6rem; border-radius: 4px;">${m.nombre_cuenta || 'Efectivo'}</span>
+                            <span style="font-size: 0.7rem;">${dia} • ${hora}</span>
                         </div>
                     </div>
-                    <div class="text-end">
-                        <div class="${textoMonto} fw-bold font-monospace" style="font-size: 0.95rem;">
+
+                    <div class="text-end ms-2">
+                        <div class="${claseTexto} fw-bold font-monospace fs-5" style="${estiloExtra} text-shadow: 0 0 10px rgba(0,0,0,0.5);">
                             ${signo} S/ ${parseFloat(m.monto).toFixed(2)}
                         </div>
+                        <small class="text-white-50 fst-italic" style="font-size: 0.6rem;">
+                            ${nombreCategoria.replace('Transferencia ', '')}
+                        </small>
                     </div>
                 </div>`;
             });
@@ -384,7 +447,7 @@ async function cargarMovimientos() {
         }
     } catch (e) { 
         console.error(e);
-        contenedor.innerHTML = '<div class="text-center py-3 text-danger small">Error cargando datos.</div>'; 
+        contenedor.innerHTML = '<div class="text-center py-3 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error datos</div>'; 
     }
 }
 

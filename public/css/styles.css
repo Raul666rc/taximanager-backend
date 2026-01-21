@@ -420,3 +420,36 @@ small, .small {
 .btn-fab-gasto:active {
     transform: scale(0.90);
 }
+
+/* ESTILOS PREMIUM PARA LISTA DE MOVIMIENTOS */
+
+/* Contenedor del item */
+.item-movimiento {
+    background: #080808; /* Casi negro */
+    border-left: 4px solid #333; /* Borde indicador por defecto */
+    transition: transform 0.2s, background 0.2s;
+}
+
+.item-movimiento:active {
+    background: #1a1a1a;
+    transform: scale(0.98);
+}
+
+/* Círculo del Icono */
+.icon-box {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5); /* Sombra interna */
+}
+
+/* Variaciones de Color para el Borde Lateral y Icono */
+.border-success-neon { border-left-color: #198754 !important; }
+.border-danger-neon { border-left-color: #dc3545 !important; }
+.border-info-neon { border-left-color: #0dcaf0 !important; }
+.border-purple-neon { border-left-color: #d63384 !important; }
+.border-secondary-neon { border-left-color: #6c757d !important; }
