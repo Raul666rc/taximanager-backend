@@ -94,6 +94,9 @@ class FinanzasModel {
         }
     }
 
+    // ==========================================
+    // 4. GASTO RAPIDO
+    // ==========================================
     static async registrarGastoRapido(monto, categoria, nota) {
         const connection = await db.getConnection();
         try {
